@@ -130,8 +130,11 @@ protected:
   float				m_minerAverageBlockGenTime;
   int				m_minerGeneratedBlocks;
   double			m_hashRate;
-  std::geometric_distribution<int> m_blockSizeDistribution;
+  std::geometric_distribution<int> m_blockGenTimeDistribution ;
   
+  int 				m_nextBlockSize;
+  double			m_minerAverageBlockSize;
+  std::piecewise_constant_distribution<double> m_blockSizeDistribution;
 };
 
 } // namespace ns3
