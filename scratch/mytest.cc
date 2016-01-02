@@ -32,7 +32,7 @@ main (int argc, char *argv[])
   int xSize = 2;
   int ySize = 2;
   int start = 0;
-  int stop = 1000000; //minutes
+  int stop = 100; //minutes
   const int secsPerMin = 60;
   double blockGenBinSize = 1./secsPerMin/1000;
   double blockGenParameter = 0.183*blockGenBinSize/2;
