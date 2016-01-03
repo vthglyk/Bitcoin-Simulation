@@ -98,6 +98,10 @@ Block::GetTimeReceived (void) const
  
 Blockchain::Blockchain(void)
 {
+  m_noStaleBlocks = 0;
+  m_currentTopBlock = nullptr;
+  Block genesisBlock(0, -1, -1, 0, 0, 0);
+  AddBlock(genesisBlock); 
 }
 
 Blockchain::~Blockchain (void)
@@ -110,26 +114,6 @@ Blockchain::GetNoStaleBlocks (void) const
   return m_noStaleBlocks;
 }
 
-bool 
-Blockchain::HasBlock (const Block newBlock)
-{
-  bool found = false;
-  
-  if (newBlock.GetBlockHeight() > m_blocks.size())			//The new block has a new blockHeight, so we haven't received it previously.
-	return false;
-  else														//The new block doesn't have a new blockHeight,
-  {															//so we have to check it is new or if we have already received it.
-    for (auto const &block: m_blocks[newBlock.GetBlockHeight()]) 
-    {
-      if (block == newBlock)
-	  {
-	    found = true;
-        break;
-	  }
-    }
-  }
-  return found;
-}
 
 Block* 
 Blockchain::GetCurrentTopBlock (void) const
@@ -149,18 +133,48 @@ Blockchain::SetCurrentTopBlock (Block *currentTopBlock)
   m_currentTopBlock = currentTopBlock;
 }
 
-void 
-Blockchain::AddBlock (Block newBlock)
+int 
+Blockchain::GetBlockchainHeight (void) const
 {
+  return m_currentTopBlock->GetBlockHeight();
+}
 
-  if (newBlock.GetBlockHeight() > m_blocks.size())			//The new block has a new blockHeight, so have to create a new vector (row)
+bool 
+Blockchain::HasBlock (const Block newBlock)
+{
+  bool found = false;
+  
+  if (newBlock.GetBlockHeight() > m_currentTopBlock->GetBlockHeight())		//The new block has a new blockHeight, so we haven't received it previously.
+	return false;
+  else														//The new block doesn't have a new blockHeight,
+  {															//so we have to check it is new or if we have already received it.
+    for (auto const &block: m_blocks[newBlock.GetBlockHeight()]) 
+    {
+      if (block == newBlock)
+	  {
+	    found = true;
+        break;
+	  }
+    }
+  }
+  return found;
+}
+
+void 
+Blockchain::AddBlock (Block& newBlock)
+{
+  
+  if (m_currentTopBlock == nullptr || newBlock.GetBlockHeight() > m_currentTopBlock->GetBlockHeight())			//The new block has a new blockHeight, so have to create a new vector (row)
   {
     std::vector<Block> newHeight(1, newBlock);
 	m_blocks.push_back(newHeight);
+	SetCurrentTopBlock(&newHeight[0]);
+
   }
   else														//The new block doesn't have a new blockHeight,
   {															//so we have to add it in an existing row
     m_blocks[newBlock.GetBlockHeight()].push_back(newBlock);   
+	m_noStaleBlocks++;
   }
 }
 
@@ -170,6 +184,37 @@ bool operator== (const Block &block1, const Block &block2)
     return true;
   else
 	return false;
+}
+
+std::ostream& operator<< (std::ostream &out, Block &block)
+{
+
+    out << "(m_blockHeight: " << block.GetBlockHeight() << ", " <<
+        "m_minerId: " << block.GetMinerId() << ", " <<
+        "m_parentBlockMinerId: " << block.GetParentBlockMinerId() << ", " <<
+		"m_blockSizeBytes: " << block.GetBlockSizeBytes() << ", " <<
+		"m_timeCreated: " << block.GetTimeCreated() << ", " <<
+		"m_timeReceived: " << block.GetTimeReceived() <<
+		")";
+    return out;
+}
+
+std::ostream& operator<< (std::ostream &out, Blockchain &blockchain)
+{
+  
+  std::vector< std::vector<Block>>::iterator blockHeight_it;
+  std::vector<Block>::iterator  block_it;
+
+  for (blockHeight_it = blockchain.m_blocks.begin(); blockHeight_it < blockchain.m_blocks.end(); blockHeight_it++) 
+  {
+    for (block_it = blockHeight_it->begin();  block_it < blockHeight_it->end(); block_it++)
+	{
+	  out << *block_it << std::endl;
+    }
+	out << std::endl;
+  }
+  
+  return out;
 }
 
 }// Namespace ns3

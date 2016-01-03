@@ -6,6 +6,7 @@
 #include "ns3/ptr.h"
 #include "ns3/traced-callback.h"
 #include "ns3/address.h"
+#include "bitcoin.h"
 
 namespace ns3 {
 
@@ -89,7 +90,8 @@ protected:
   TypeId          m_tid;          //!< Protocol TypeId
   int			  m_numberOfPeers; //!< Number of node's peers
   std::vector<Address>		  m_peersAddresses; //!< The addresses of peers
-
+  Blockchain blockchain;
+  
   /// Traced Callback: received packets, source address.
   TracedCallback<Ptr<const Packet>, const Address &> m_rxTrace;
 

@@ -35,7 +35,8 @@ public:
   int GetTimeReceived (void) const;
   
   friend bool operator== (const Block &block1, const Block &block2);
- 
+  friend std::ostream& operator<< (std::ostream &out, Block &block);
+  
 private:	
   int m_blockHeight;
   int m_minerId;
@@ -60,11 +61,15 @@ public:
   void SetCurrentTopBlock (void);
   void SetCurrentTopBlock (Block *currentTopBlock);
   
-  void AddBlock (Block newBlock);
+  int GetBlockchainHeight (void) const;
   
+  void AddBlock (Block& newBlock);
+  
+  friend std::ostream& operator<< (std::ostream &out, Blockchain &blockchain);
+  std::vector<std::vector<Block>> m_blocks;	//2d vector containing all the blocks. (row->blockHeight, col->sibling blocks)
+
 private:
   int m_noStaleBlocks;						//total number of stale blocks
-  std::vector<std::vector<Block>> m_blocks;	//2d vector containing all the blocks. (row->blockHeight, col->sibling blocks)
   Block *m_currentTopBlock;					//The top block in the Blockchain
 };
 

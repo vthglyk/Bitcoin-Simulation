@@ -54,7 +54,7 @@ BitcoinNode::GetTypeId (void)
   return tid;
 }
 
-BitcoinNode::BitcoinNode (void)
+BitcoinNode::BitcoinNode (void) 
 {
   NS_LOG_FUNCTION (this);
   m_socket = 0;
@@ -126,6 +126,8 @@ BitcoinNode::StartApplication ()    // Called at time specified by Start
     MakeCallback (&BitcoinNode::HandlePeerClose, this),
     MakeCallback (&BitcoinNode::HandlePeerError, this));
 
+  blockchain.SetCurrentTopBlock();	//Reset currentTopBlock to avoid shallow copy
+
 }
 
 void 
@@ -143,6 +145,9 @@ BitcoinNode::StopApplication ()     // Called at time specified by Stop
       m_socket->Close ();
       m_socket->SetRecvCallback (MakeNullCallback<void, Ptr<Socket> > ());
     }
+
+  NS_LOG_DEBUG ("My currentTopBlock is:\n" << *(blockchain.GetCurrentTopBlock()));
+  NS_LOG_DEBUG ("My blockchain is:\n" << blockchain);
 }
 
 void 
