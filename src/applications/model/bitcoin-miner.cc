@@ -261,16 +261,32 @@ BitcoinMiner::SendPacket (void)
   rapidjson::Document d; 
   d.SetObject();
   
+  rapidjson::Value value(blockchain.GetCurrentTopBlock()->GetBlockHeight() + 1);
+  d.AddMember("height", value, d.GetAllocator());
+  
+  value = GetNode ()->GetId ();
+  d.AddMember("minerId", value, d.GetAllocator());
+
+  value = blockchain.GetCurrentTopBlock()->GetMinerId();
+  d.AddMember("parentBlockMinerId", value, d.GetAllocator());
+  
   if (m_fixedBlockSize > 0)
     m_nextBlockSize = m_fixedBlockSize;
   else
     m_nextBlockSize = m_blockSizeDistribution(m_generator) * 1000;	// *1000 because the m_blockSizeDistribution returns KBytes
-  
-  rapidjson::Value value(m_nextBlockSize);
+
+  value = m_nextBlockSize;
   d.AddMember("size", value, d.GetAllocator());
   
-  value = GetNode ()->GetId ();
-  d.AddMember("miner", value, d.GetAllocator());
+  value = Simulator::Now ().GetSeconds ();
+  d.AddMember("timeCreated", value, d.GetAllocator());
+  
+  value = Simulator::Now ().GetSeconds ();							//because of move policy of rapidjson
+  d.AddMember("timeReceived", value, d.GetAllocator());
+
+  Block newBlock (d["height"].GetInt(), d["minerId"].GetInt(), d["parentBlockMinerId"].GetInt(),
+			      d["size"].GetInt(), d["timeCreated"].GetDouble(), d["timeReceived"].GetDouble());
+  blockchain.AddBlock(newBlock);
   
   // Stringify the DOM
   rapidjson::StringBuffer packetInfo;

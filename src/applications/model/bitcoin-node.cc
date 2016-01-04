@@ -126,8 +126,6 @@ BitcoinNode::StartApplication ()    // Called at time specified by Start
     MakeCallback (&BitcoinNode::HandlePeerClose, this),
     MakeCallback (&BitcoinNode::HandlePeerError, this));
 
-  blockchain.SetCurrentTopBlock();	//Reset currentTopBlock to avoid shallow copy
-
 }
 
 void 
@@ -146,8 +144,8 @@ BitcoinNode::StopApplication ()     // Called at time specified by Stop
       m_socket->SetRecvCallback (MakeNullCallback<void, Ptr<Socket> > ());
     }
 
-  NS_LOG_DEBUG ("My currentTopBlock is:\n" << *(blockchain.GetCurrentTopBlock()));
-  NS_LOG_DEBUG ("My blockchain is:\n" << blockchain);
+  NS_LOG_DEBUG ("Bitcoin node's " << GetNode ()->GetId () << " currentTopBlock is:\n" << *(blockchain.GetCurrentTopBlock()));
+  NS_LOG_DEBUG ("Bitcoin node's " << GetNode ()->GetId () << " currentTopBlock is:\n" << blockchain);
 }
 
 void 
@@ -201,6 +199,19 @@ BitcoinNode::HandleRead (Ptr<Socket> socket)
                        << " port " << InetSocketAddress::ConvertFrom (from).GetPort () 
 					   << " with size = " << d["size"].GetInt() << " from miner " << d["miner"].GetInt());
 		
+		  Block newBlock (d["height"].GetInt(), d["minerId"].GetInt(), d["parentBlockMinerId"].GetInt(),
+						  d["size"].GetInt(), d["timeCreated"].GetDouble(), d["timeReceived"].GetDouble());
+						  
+		  if (blockchain.HasBlock(newBlock))
+		  {
+		    NS_LOG_DEBUG("Bitcoin node " << GetNode ()->GetId () << " has already added this block in the blockchain: " << newBlock);
+		  }
+		  else
+		  {
+			blockchain.AddBlock(newBlock);
+		    NS_LOG_DEBUG("Bitcoin node " << GetNode ()->GetId () << " added a new block in the blockchain: " << newBlock);
+		  }
+		  
 		  delete[] packetInfo;
         }
       else if (Inet6SocketAddress::IsMatchingType (from))

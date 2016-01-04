@@ -15,7 +15,7 @@ namespace ns3 {
  *
  */
 
-Block::Block(int blockHeight, int minerId, int parentBlockMinerId, int blockSizeBytes, int timeCreated, int timeReceived)
+Block::Block(int blockHeight, int minerId, int parentBlockMinerId, int blockSizeBytes, double timeCreated, double timeReceived)
 {  
   m_blockHeight = blockHeight;
   m_minerId = minerId;
@@ -77,13 +77,13 @@ Block::SetBlockSizeBytes (int blockSizeBytes)
   m_blockSizeBytes = blockSizeBytes;
 }
 
-int 
+double 
 Block::GetTimeCreated (void) const
 {
   return m_timeCreated;
 }
   
-int 
+double 
 Block::GetTimeReceived (void) const
 {
   return m_timeReceived;
@@ -99,7 +99,6 @@ Block::GetTimeReceived (void) const
 Blockchain::Blockchain(void)
 {
   m_noStaleBlocks = 0;
-  m_currentTopBlock = nullptr;
   Block genesisBlock(0, -1, -1, 0, 0, 0);
   AddBlock(genesisBlock); 
 }
@@ -116,35 +115,23 @@ Blockchain::GetNoStaleBlocks (void) const
 
 
 Block* 
-Blockchain::GetCurrentTopBlock (void) const
+Blockchain::GetCurrentTopBlock (void)
 {
-  return m_currentTopBlock;
-}
-
-void 
-Blockchain::SetCurrentTopBlock (void)
-{
-  m_currentTopBlock = &m_blocks.back()[0];
-}
-
-void 
-Blockchain::SetCurrentTopBlock (Block *currentTopBlock)
-{
-  m_currentTopBlock = currentTopBlock;
+  return &m_blocks[m_blocks.size() - 1][0];
 }
 
 int 
-Blockchain::GetBlockchainHeight (void) const
+Blockchain::GetBlockchainHeight (void)
 {
-  return m_currentTopBlock->GetBlockHeight();
+  return GetCurrentTopBlock()->GetBlockHeight();
 }
 
 bool 
-Blockchain::HasBlock (const Block newBlock)
+Blockchain::HasBlock (const Block &newBlock)
 {
   bool found = false;
   
-  if (newBlock.GetBlockHeight() > m_currentTopBlock->GetBlockHeight())		//The new block has a new blockHeight, so we haven't received it previously.
+  if (newBlock.GetBlockHeight() > GetCurrentTopBlock()->GetBlockHeight())		//The new block has a new blockHeight, so we haven't received it previously.
 	return false;
   else														//The new block doesn't have a new blockHeight,
   {															//so we have to check it is new or if we have already received it.
@@ -163,13 +150,11 @@ Blockchain::HasBlock (const Block newBlock)
 void 
 Blockchain::AddBlock (Block& newBlock)
 {
-  
-  if (m_currentTopBlock == nullptr || newBlock.GetBlockHeight() > m_currentTopBlock->GetBlockHeight())			//The new block has a new blockHeight, so have to create a new vector (row)
+
+  if (m_blocks.size() == 0 || newBlock.GetBlockHeight() > GetCurrentTopBlock()->GetBlockHeight())			//The new block has a new blockHeight, so have to create a new vector (row)
   {
     std::vector<Block> newHeight(1, newBlock);
 	m_blocks.push_back(newHeight);
-	SetCurrentTopBlock(&newHeight[0]);
-
   }
   else														//The new block doesn't have a new blockHeight,
   {															//so we have to add it in an existing row

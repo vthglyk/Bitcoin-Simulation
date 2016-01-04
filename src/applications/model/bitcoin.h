@@ -15,7 +15,7 @@ enum Messages
 class Block
 {
 public:
-  Block (int blockHeight, int minerId, int parentBlockMinerId, int blockSizeBytes, int timeCreated, int timeReceived);
+  Block (int blockHeight, int minerId, int parentBlockMinerId, int blockSizeBytes, double timeCreated, double timeReceived);
   virtual ~Block (void);
  
   int GetBlockHeight (void) const;
@@ -30,9 +30,9 @@ public:
   int GetBlockSizeBytes (void) const;
   void SetBlockSizeBytes (int blockSizeBytes);
   
-  int GetTimeCreated (void) const;
+  double GetTimeCreated (void) const;
   
-  int GetTimeReceived (void) const;
+  double GetTimeReceived (void) const;
   
   friend bool operator== (const Block &block1, const Block &block2);
   friend std::ostream& operator<< (std::ostream &out, Block &block);
@@ -42,8 +42,8 @@ private:
   int m_minerId;
   int m_parentBlockMinerId;
   int m_blockSizeBytes;
-  int m_timeCreated;
-  int m_timeReceived;
+  double m_timeCreated;
+  double m_timeReceived;
   
 };
 
@@ -55,22 +55,20 @@ public:
 
   int GetNoStaleBlocks (void) const;
   
-  bool HasBlock (Block newBlock);
+  bool HasBlock (const Block &newBlock);
   
-  Block* GetCurrentTopBlock (void) const;
-  void SetCurrentTopBlock (void);
-  void SetCurrentTopBlock (Block *currentTopBlock);
+  Block* GetCurrentTopBlock (void);
   
-  int GetBlockchainHeight (void) const;
+  int GetBlockchainHeight (void);
   
   void AddBlock (Block& newBlock);
   
   friend std::ostream& operator<< (std::ostream &out, Blockchain &blockchain);
-  std::vector<std::vector<Block>> m_blocks;	//2d vector containing all the blocks. (row->blockHeight, col->sibling blocks)
 
 private:
   int m_noStaleBlocks;						//total number of stale blocks
-  Block *m_currentTopBlock;					//The top block in the Blockchain
+  std::vector<std::vector<Block>> m_blocks;	//2d vector containing all the blocks. (row->blockHeight, col->sibling blocks)
+
 };
 
 //bool operator== (const Block &block1, const Block &block2);
