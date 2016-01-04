@@ -55,6 +55,8 @@ public:
 
   int GetNoStaleBlocks (void) const;
   
+  int GetTotalBlocks (void) const;
+
   bool HasBlock (const Block &newBlock);
   
   Block* GetCurrentTopBlock (void);
@@ -67,6 +69,7 @@ public:
 
 private:
   int m_noStaleBlocks;						//total number of stale blocks
+  int m_totalBlocks;						//total number of blocks including genesis block
   std::vector<std::vector<Block>> m_blocks;	//2d vector containing all the blocks. (row->blockHeight, col->sibling blocks)
 
 };

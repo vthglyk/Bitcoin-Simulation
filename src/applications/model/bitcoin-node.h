@@ -89,6 +89,8 @@ protected:
   Address         m_local;        //!< Local address to bind to
   TypeId          m_tid;          //!< Protocol TypeId
   int			  m_numberOfPeers; //!< Number of node's peers
+  double		  m_meanBlockReceiveTime;
+  double		  m_previousBlockReceiveTime;
   std::vector<Address>		  m_peersAddresses; //!< The addresses of peers
   Blockchain blockchain;
   

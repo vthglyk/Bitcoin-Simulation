@@ -113,6 +113,11 @@ Blockchain::GetNoStaleBlocks (void) const
   return m_noStaleBlocks;
 }
 
+int 
+Blockchain::GetTotalBlocks (void) const
+{
+  return m_totalBlocks;
+}
 
 Block* 
 Blockchain::GetCurrentTopBlock (void)
@@ -161,6 +166,8 @@ Blockchain::AddBlock (Block& newBlock)
     m_blocks[newBlock.GetBlockHeight()].push_back(newBlock);   
 	m_noStaleBlocks++;
   }
+  
+  m_totalBlocks++;
 }
 
 bool operator== (const Block &block1, const Block &block2)

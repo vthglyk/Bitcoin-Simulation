@@ -286,6 +286,13 @@ BitcoinMiner::SendPacket (void)
 
   Block newBlock (d["height"].GetInt(), d["minerId"].GetInt(), d["parentBlockMinerId"].GetInt(),
 			      d["size"].GetInt(), d["timeCreated"].GetDouble(), d["timeReceived"].GetDouble());
+
+  /**
+   * Update m_meanBlockReceiveTime with the timeCreated of the newly generated block
+   */
+  m_meanBlockReceiveTime = (blockchain.GetTotalBlocks() - 1)/static_cast<double>(blockchain.GetTotalBlocks())*m_meanBlockReceiveTime + 
+							(d["timeReceived"].GetDouble() - m_previousBlockReceiveTime)/(blockchain.GetTotalBlocks());
+  m_previousBlockReceiveTime = d["timeReceived"].GetDouble();						
   blockchain.AddBlock(newBlock);
   
   // Stringify the DOM
