@@ -51,7 +51,7 @@ BitcoinNode::GetTypeId (void)
   return tid;
 }
 
-BitcoinNode::BitcoinNode (void) 
+BitcoinNode::BitcoinNode (void) : m_bitcoinPort (8333)
 {
   NS_LOG_FUNCTION (this);
   m_socket = 0;
@@ -177,7 +177,7 @@ BitcoinNode::HandleRead (Ptr<Socket> socket)
   Ptr<Packet> packet;
   Address from;
   double newBlockReceiveTime = Simulator::Now ().GetSeconds();
-  
+
   while ((packet = socket->RecvFrom (from)))
     {
       if (packet->GetSize () == 0)
@@ -186,52 +186,125 @@ BitcoinNode::HandleRead (Ptr<Socket> socket)
         }
       if (InetSocketAddress::IsMatchingType (from))
         {
-
+		  /**
+		   * We may receive more than one packets simultaneously on the socket,
+		   * so we have to parse each one of them.
+		   */
+		  std::string delimiter = "}";
+		  std::string parsedPacket;
+          size_t pos = 0;
 		  char *packetInfo = new char[packet->GetSize () + 1];
 		  packet->CopyData (reinterpret_cast<uint8_t*>(packetInfo), packet->GetSize ());
 		  packetInfo[packet->GetSize ()] = '\0'; // ensure that it is null terminated to avoid bugs
 		  
-		  rapidjson::Document d;
-          d.Parse(packetInfo);
+		  std::string totalReceivedData(packetInfo);
+		  NS_LOG_DEBUG("Total Received Data : " << totalReceivedData);
 		  
-		  rapidjson::StringBuffer buffer;
-		  rapidjson::Writer<rapidjson::StringBuffer> writer(buffer);
-          d.Accept(writer);
-		  
-		  NS_LOG_DEBUG ("packet size: " << packet->GetSize () << ", packet info: " << buffer.GetString());
-		  
-          Block newBlock (d["height"].GetInt(), d["minerId"].GetInt(), d["parentBlockMinerId"].GetInt(),
-						  d["size"].GetInt(), d["timeCreated"].GetDouble(), newBlockReceiveTime);	
-						  
-          NS_LOG_DEBUG ("At time "  << Simulator::Now ().GetSeconds ()
-                       << "s bitcoin node " << GetNode ()->GetId () << " received "
-                       <<  packet->GetSize () << " bytes from "
-                       << InetSocketAddress::ConvertFrom(from).GetIpv4 ()
-                       << " port " << InetSocketAddress::ConvertFrom (from).GetPort () 
-					   << " with size = " << d["size"].GetInt() << " from miner " << d["minerId"].GetInt());
-		  	  
-		  if (blockchain.HasBlock(newBlock))
+		  while ((pos = totalReceivedData.find(delimiter)) != std::string::npos) 
 		  {
-		    NS_LOG_DEBUG("Bitcoin node " << GetNode ()->GetId () << " has already added this block in the blockchain: " << newBlock);
-		  }
-		  else
-		  {
-			/**
-			 * Update m_meanBlockReceiveTime with the timeReceived of the newly received block
-			 */
-		    m_meanBlockReceiveTime = (blockchain.GetTotalBlocks() - 1)/static_cast<double>(blockchain.GetTotalBlocks())*m_meanBlockReceiveTime + 
-									 (newBlockReceiveTime - m_previousBlockReceiveTime)/(blockchain.GetTotalBlocks());
-			m_previousBlockReceiveTime = newBlockReceiveTime;
-			blockchain.AddBlock(newBlock);
-		    NS_LOG_DEBUG("Bitcoin node " << GetNode ()->GetId () << " added a new block in the blockchain: " << newBlock);
-		  }
+            parsedPacket = totalReceivedData.substr(0, pos + 1);
+		    NS_LOG_DEBUG("Parsed Packet : " << parsedPacket);
 		  
-		  rapidjson::Value value(newBlockReceiveTime);
-		  double fullBlockReceiveTime = d["size"].GetInt() / static_cast<double>(1000000) ; //FIX: constant MB/s
-		  d.AddMember("timeReceived", value, d.GetAllocator());
+		    rapidjson::Document d;
+            d.Parse(parsedPacket.c_str());
+		  
+		    rapidjson::StringBuffer buffer;
+		    rapidjson::Writer<rapidjson::StringBuffer> writer(buffer);
+            d.Accept(writer);
+		  
+            NS_LOG_DEBUG ("At time "  << Simulator::Now ().GetSeconds ()
+                          << "s bitcoin node " << GetNode ()->GetId () << " received "
+                          <<  packet->GetSize () << " bytes from "
+                          << InetSocketAddress::ConvertFrom(from).GetIpv4 ()
+                          << " port " << InetSocketAddress::ConvertFrom (from).GetPort () 
+			         	  << " with info = " << buffer.GetString());	
+						
+		    switch (d["message"].GetInt())
+		    {
+		      case INV:
+			  {
+			      //NS_LOG_DEBUG ("INV");
+				  Block newBlock (d["height"].GetInt(), d["minerId"].GetInt(), d["parentBlockMinerId"].GetInt(),
+						          d["size"].GetInt(), d["timeCreated"].GetDouble(), newBlockReceiveTime);
+								  
+		          if (blockchain.HasBlock(newBlock))
+		          {
+		            NS_LOG_DEBUG("Bitcoin node " << GetNode ()->GetId () << " has already added this block in the blockchain: " << newBlock);
+		          }
+		          else
+		          {
+			        /**
+			         * Request the newly advertised block
+			         */
+			        rapidjson::StringBuffer bufferInv;
+		            rapidjson::Writer<rapidjson::StringBuffer> writer(bufferInv);
+				
+			        d["message"].SetInt(GET_HEADERS);
+                    d.Accept(writer);
+				    NS_LOG_DEBUG ("INV " << bufferInv.GetString());
+				
+			        Ptr<Socket> ns3TcpSocket = Socket::CreateSocket (GetNode (), TcpSocketFactory::GetTypeId ());
+                    ns3TcpSocket->Connect(InetSocketAddress (InetSocketAddress::ConvertFrom(from).GetIpv4 (), m_bitcoinPort));
+	                ns3TcpSocket->Send (reinterpret_cast<const uint8_t*>(bufferInv.GetString()), bufferInv.GetSize(), 0);
+				
+			  	    d["message"].SetInt(GET_DATA);
+			        rapidjson::StringBuffer bufferInv2;
+		            rapidjson::Writer<rapidjson::StringBuffer> writer2(bufferInv2);
+				
+                    d.Accept(writer2);
+				    NS_LOG_DEBUG ("INV " << bufferInv2.GetString());
+				
+	                ns3TcpSocket->Send (reinterpret_cast<const uint8_t*>(bufferInv2.GetString()), bufferInv2.GetSize(), 0);
+	                ns3TcpSocket->Close();
+		          }								  
 
-		  Simulator::Schedule (Seconds(fullBlockReceiveTime), &BitcoinNode::ReceivePacket, this, *(blockchain.GetBlockPointer(newBlock)));
-		  NS_LOG_DEBUG("The full block will be received in " << fullBlockReceiveTime << "s");
+			      break;
+			  }
+			  case GET_HEADERS:
+			  {
+			    NS_LOG_DEBUG ("GET_HEADERS");
+			    break;
+			  }
+			  case GET_DATA:
+			  {
+			    NS_LOG_DEBUG ("GET_DATA");
+			    break;
+			  }
+			  case BLOCK:
+			  {
+			      NS_LOG_DEBUG ("BLOCK");
+                  Block newBlock (d["height"].GetInt(), d["minerId"].GetInt(), d["parentBlockMinerId"].GetInt(),
+						        d["size"].GetInt(), d["timeCreated"].GetDouble(), newBlockReceiveTime);	
+
+		          if (blockchain.HasBlock(newBlock))
+		          {
+		            NS_LOG_DEBUG("Bitcoin node " << GetNode ()->GetId () << " has already added this block in the blockchain: " << newBlock);
+		          }
+		          else
+		          {
+			        /**
+			         * Update m_meanBlockReceiveTime with the timeReceived of the newly received block
+			         */
+		            m_meanBlockReceiveTime = (blockchain.GetTotalBlocks() - 1)/static_cast<double>(blockchain.GetTotalBlocks())*m_meanBlockReceiveTime + 
+			    	  					     (newBlockReceiveTime - m_previousBlockReceiveTime)/(blockchain.GetTotalBlocks());
+			        m_previousBlockReceiveTime = newBlockReceiveTime;
+			        blockchain.AddBlock(newBlock);
+		            NS_LOG_DEBUG("Bitcoin node " << GetNode ()->GetId () << " added a new block in the blockchain: " << newBlock);
+		          }
+		  
+		          double fullBlockReceiveTime = d["size"].GetInt() / static_cast<double>(1000000) ; //FIX: constant MB/s
+
+		          Simulator::Schedule (Seconds(fullBlockReceiveTime), &BitcoinNode::ReceivePacket, this, *(blockchain.GetBlockPointer(newBlock)));
+		          NS_LOG_DEBUG("The full block will be received in " << fullBlockReceiveTime << "s");
+		          break;
+			  }
+			  default:
+			    NS_LOG_DEBUG ("Default");
+			    break;
+		    }
+			
+			totalReceivedData.erase(0, pos + delimiter.length());
+		  }
 		  
 		  delete[] packetInfo;
         }

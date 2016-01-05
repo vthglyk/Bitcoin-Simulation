@@ -90,7 +90,7 @@ protected:
   // listening socket is stored separately from the accepted sockets
   Ptr<Socket>     m_socket;       //!< Listening socket
   std::list<Ptr<Socket> > m_socketList; //!< the accepted sockets
-
+  const int		  m_bitcoinPort;
   Address         m_local;        //!< Local address to bind to
   TypeId          m_tid;          //!< Protocol TypeId
   int			  m_numberOfPeers; //!< Number of node's peers

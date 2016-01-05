@@ -10,9 +10,9 @@ enum Messages
   INV,
   GET_HEADERS,
   HEADERS,
-  GETBLOCK,
+  GET_BLOCKS,
   BLOCK,
-  GETDATA
+  GET_DATA
 };
 
 class Block

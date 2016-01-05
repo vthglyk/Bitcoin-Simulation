@@ -260,7 +260,10 @@ BitcoinMiner::MineBlock (void)
   rapidjson::Document d; 
   d.SetObject();
   
-  rapidjson::Value value(blockchain.GetCurrentTopBlock()->GetBlockHeight() + 1);
+  rapidjson::Value value(INV);
+  d.AddMember("message", value, d.GetAllocator());
+  
+  value = blockchain.GetCurrentTopBlock()->GetBlockHeight() + 1;
   d.AddMember("height", value, d.GetAllocator());
   
   value = GetNode ()->GetId ();
@@ -300,7 +303,7 @@ BitcoinMiner::MineBlock (void)
   rapidjson::Writer<rapidjson::StringBuffer> writer(packetInfo);
   d.Accept(writer);
   
-  Ptr<Packet> packet = Create<Packet> (reinterpret_cast<const uint8_t*>(packetInfo.GetString()), packetInfo.GetSize());
+  //Ptr<Packet> packet = Create<Packet> (reinterpret_cast<const uint8_t*>(packetInfo.GetString()), packetInfo.GetSize());
   
   for (std::vector<Address>::const_iterator i = m_peersAddresses.begin(); i != m_peersAddresses.end(); ++i)
   {
