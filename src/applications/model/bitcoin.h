@@ -8,8 +8,11 @@ namespace ns3 {
 enum Messages
 {
   INV,
-  GETHEADERS,
-  GETBLOCK
+  GET_HEADERS,
+  HEADERS,
+  GETBLOCK,
+  BLOCK,
+  GETDATA
 };
 
 class Block
@@ -58,6 +61,8 @@ public:
   int GetTotalBlocks (void) const;
 
   bool HasBlock (const Block &newBlock);
+  
+  const Block* GetBlockPointer (const Block &newBlock);
   
   Block* GetCurrentTopBlock (void);
   

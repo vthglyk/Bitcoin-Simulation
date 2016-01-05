@@ -152,6 +152,22 @@ Blockchain::HasBlock (const Block &newBlock)
   return found;
 }
 
+const Block* 
+Blockchain::GetBlockPointer (const Block &newBlock)
+{
+  Block* pointer = nullptr;
+  
+  for (auto const &block: m_blocks[newBlock.GetBlockHeight()]) 
+  {
+    if (block == newBlock)
+    {
+	  return &block;
+      break;
+	}
+  }
+  
+}
+  
 void 
 Blockchain::AddBlock (Block& newBlock)
 {

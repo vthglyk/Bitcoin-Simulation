@@ -112,7 +112,7 @@ protected:
    */  
   void ScheduleNextMiningEvent (void);
   
-  virtual void SendPacket (void);
+  void MineBlock (void);
   
   uint32_t			m_fixedBlockSize;  
   double 				m_fixedBlockTimeGeneration; 	//!< Fixed Block Time Generation

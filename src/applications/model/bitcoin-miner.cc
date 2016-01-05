@@ -235,7 +235,7 @@ BitcoinMiner::ScheduleNextMiningEvent (void)
 	m_nextBlockTime = m_fixedBlockTimeGeneration;
 
 	NS_LOG_LOGIC ("Fixed Block Time Generation " << m_fixedBlockTimeGeneration << "s");
-	m_nextMiningEvent = Simulator::Schedule (Seconds(m_fixedBlockTimeGeneration), &BitcoinMiner::SendPacket, this);
+	m_nextMiningEvent = Simulator::Schedule (Seconds(m_fixedBlockTimeGeneration), &BitcoinMiner::MineBlock, this);
   }
   else
   {
@@ -243,7 +243,7 @@ BitcoinMiner::ScheduleNextMiningEvent (void)
 	
     m_nextBlockTime = m_blockGenTimeDistribution(m_generator)*m_blockGenBinSize*secondsPerMin;
 	//NS_LOG_DEBUG("m_nextBlockTime = " << m_nextBlockTime << ", binsize = " << m_blockGenBinSize << ", m_blockGenParameter = " << m_blockGenParameter << ", hashrate = " << m_hashRate);
-	m_nextMiningEvent = Simulator::Schedule (Seconds(m_nextBlockTime), &BitcoinMiner::SendPacket, this);
+	m_nextMiningEvent = Simulator::Schedule (Seconds(m_nextBlockTime), &BitcoinMiner::MineBlock, this);
 	
 
 	NS_LOG_INFO ("Time " << Simulator::Now ().GetSeconds () << ": Miner " << GetNode ()->GetId () << " will generate a block in " 
@@ -254,10 +254,9 @@ BitcoinMiner::ScheduleNextMiningEvent (void)
 }
 
 void 
-BitcoinMiner::SendPacket (void)
+BitcoinMiner::MineBlock (void)
 {
   NS_LOG_FUNCTION (this);
-  double bill;
   rapidjson::Document d; 
   d.SetObject();
   
@@ -284,6 +283,7 @@ BitcoinMiner::SendPacket (void)
   value = Simulator::Now ().GetSeconds ();							//because of move policy of rapidjson
   d.AddMember("timeReceived", value, d.GetAllocator());
 
+  
   Block newBlock (d["height"].GetInt(), d["minerId"].GetInt(), d["parentBlockMinerId"].GetInt(),
 			      d["size"].GetInt(), d["timeCreated"].GetDouble(), d["timeReceived"].GetDouble());
 
@@ -298,7 +298,7 @@ BitcoinMiner::SendPacket (void)
   // Stringify the DOM
   rapidjson::StringBuffer packetInfo;
   rapidjson::Writer<rapidjson::StringBuffer> writer(packetInfo);
-  d.Accept(writer);  
+  d.Accept(writer);
   
   Ptr<Packet> packet = Create<Packet> (reinterpret_cast<const uint8_t*>(packetInfo.GetString()), packetInfo.GetSize());
   
@@ -306,7 +306,7 @@ BitcoinMiner::SendPacket (void)
   {
     Ptr<Socket> ns3TcpSocket = Socket::CreateSocket (GetNode (), TcpSocketFactory::GetTypeId ());
     ns3TcpSocket->Connect(*i);
-	ns3TcpSocket->Send (packet);
+	ns3TcpSocket->Send (reinterpret_cast<const uint8_t*>(packetInfo.GetString()), packetInfo.GetSize(), 0);
 	ns3TcpSocket->Close();
   }
 

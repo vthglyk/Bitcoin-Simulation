@@ -7,6 +7,9 @@
 #include "ns3/traced-callback.h"
 #include "ns3/address.h"
 #include "bitcoin.h"
+#include "../../rapidjson/document.h"
+#include "../../rapidjson/writer.h"
+#include "../../rapidjson/stringbuffer.h"
 
 namespace ns3 {
 
@@ -80,7 +83,9 @@ protected:
   void HandlePeerError (Ptr<Socket> socket);
 
   virtual void SendPacket (void);
-
+  
+  virtual void ReceivePacket(Block newBlock);
+  
   // In the case of TCP, each socket accept returns a new socket, so the 
   // listening socket is stored separately from the accepted sockets
   Ptr<Socket>     m_socket;       //!< Listening socket

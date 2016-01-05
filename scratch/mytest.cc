@@ -32,7 +32,7 @@ main (int argc, char *argv[])
   int xSize = 2;
   int ySize = 2;
   int start = 0;
-  int stop = 11; //minutes
+  int stop = 16; //minutes
   const int secsPerMin = 60;
   double blockGenBinSize = 1./secsPerMin/1000;
   double blockGenParameter = 0.183*blockGenBinSize/2;
@@ -46,8 +46,8 @@ main (int argc, char *argv[])
   //LogComponentEnable("OnOffApplication", LOG_LEVEL_FUNCTION);
 
   PointToPointHelper pointToPoint;
-  pointToPoint.SetDeviceAttribute ("DataRate", StringValue ("5Mbps"));
-  pointToPoint.SetChannelAttribute ("Delay", StringValue ("2ms"));
+  pointToPoint.SetDeviceAttribute ("DataRate", StringValue ("8Mbps"));
+  pointToPoint.SetChannelAttribute ("Delay", StringValue ("1ms"));
 
   // Create Grid
   PointToPointGridHelper grid (xSize, ySize, pointToPoint);
