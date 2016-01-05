@@ -7,13 +7,15 @@ namespace ns3 {
 	
 enum Messages
 {
-  INV,
-  GET_HEADERS,
-  HEADERS,
-  GET_BLOCKS,
-  BLOCK,
-  GET_DATA
+  INV,				//0
+  GET_HEADERS,		//1
+  HEADERS,			//2
+  GET_BLOCKS,		//3
+  BLOCK,			//4
+  GET_DATA			//5
 };
+
+const char* getMessageName(enum Messages m);
 
 class Block
 {

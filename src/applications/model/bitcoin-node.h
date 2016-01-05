@@ -82,9 +82,10 @@ protected:
    */
   void HandlePeerError (Ptr<Socket> socket);
 
-  virtual void SendPacket (void);
+  void SendPacket (void);
   
-  virtual void ReceivePacket(Block newBlock);
+  virtual void ReceiveBlock(Block newBlock);
+  void SendMessage(enum Messages receivedMessage,  enum Messages responseMessage, rapidjson::Document &d, Address to);
   
   // In the case of TCP, each socket accept returns a new socket, so the 
   // listening socket is stored separately from the accepted sockets

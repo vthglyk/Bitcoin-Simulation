@@ -225,4 +225,17 @@ std::ostream& operator<< (std::ostream &out, Blockchain &blockchain)
   return out;
 }
 
+const char* getMessageName(enum Messages m) 
+{
+   switch (m) 
+   {
+      case INV: return "INV";
+      case GET_HEADERS: return "GET_HEADERS";
+      case HEADERS: return "HEADERS";
+      case GET_BLOCKS: return "GET_BLOCKS";
+      case BLOCK: return "BLOCK";
+      case GET_DATA: return "GET_DATA";
+   }
+}
+
 }// Namespace ns3

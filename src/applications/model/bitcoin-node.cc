@@ -262,12 +262,20 @@ BitcoinNode::HandleRead (Ptr<Socket> socket)
 			  }
 			  case GET_HEADERS:
 			  {
-			    NS_LOG_DEBUG ("GET_HEADERS");
+			    //NS_LOG_DEBUG ("GET_HEADERS");
+				SendMessage(GET_HEADERS, HEADERS, d, from);
+
 			    break;
 			  }
 			  case GET_DATA:
 			  {
-			    NS_LOG_DEBUG ("GET_DATA");
+			    //NS_LOG_DEBUG ("GET_DATA");
+				SendMessage(GET_DATA, BLOCK, d, from);
+			    break;
+			  }
+			  case HEADERS:
+			  {
+			    NS_LOG_DEBUG ("HEADERS");
 			    break;
 			  }
 			  case BLOCK:
@@ -294,7 +302,7 @@ BitcoinNode::HandleRead (Ptr<Socket> socket)
 		  
 		          double fullBlockReceiveTime = d["size"].GetInt() / static_cast<double>(1000000) ; //FIX: constant MB/s
 
-		          Simulator::Schedule (Seconds(fullBlockReceiveTime), &BitcoinNode::ReceivePacket, this, *(blockchain.GetBlockPointer(newBlock)));
+		          Simulator::Schedule (Seconds(fullBlockReceiveTime), &BitcoinNode::ReceiveBlock, this, *(blockchain.GetBlockPointer(newBlock)));
 		          NS_LOG_DEBUG("The full block will be received in " << fullBlockReceiveTime << "s");
 		          break;
 			  }
@@ -320,12 +328,28 @@ BitcoinNode::HandleRead (Ptr<Socket> socket)
     }
 }
 
+void
+BitcoinNode::SendMessage(enum Messages receivedMessage,  enum Messages responseMessage, rapidjson::Document &d, Address to)
+{
+  rapidjson::StringBuffer buffer;
+  rapidjson::Writer<rapidjson::StringBuffer> writer(buffer);
+				
+  d["message"].SetInt(responseMessage);
+  d.Accept(writer);
+  NS_LOG_DEBUG (getMessageName(receivedMessage) << ": " << buffer.GetString());
+				
+  Ptr<Socket> ns3TcpSocket = Socket::CreateSocket (GetNode (), TcpSocketFactory::GetTypeId ());
+  ns3TcpSocket->Connect(InetSocketAddress (InetSocketAddress::ConvertFrom(to).GetIpv4 (), m_bitcoinPort));
+  ns3TcpSocket->Send (reinterpret_cast<const uint8_t*>(buffer.GetString()), buffer.GetSize(), 0);
+  ns3TcpSocket->Close();
+}
+
 void 
-BitcoinNode::ReceivePacket(Block newBlock)
+BitcoinNode::ReceiveBlock(Block newBlock)
 {
   NS_LOG_FUNCTION (this);
 
-  NS_LOG_DEBUG ("ReceivePacket: At time " << Simulator::Now ().GetSeconds ()
+  NS_LOG_DEBUG ("ReceiveBlock: At time " << Simulator::Now ().GetSeconds ()
                 << "s bitcoin node " << GetNode ()->GetId () << " received " << newBlock);
 }
 
