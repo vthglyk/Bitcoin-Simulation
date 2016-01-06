@@ -57,6 +57,7 @@ BitcoinNode::BitcoinNode (void) : m_bitcoinPort (8333)
   m_socket = 0;
   m_meanBlockReceiveTime = 0;
   m_previousBlockReceiveTime = 0;
+  m_meanBlockPropagationTime = 0;
 }
 
 BitcoinNode::~BitcoinNode(void)
@@ -147,6 +148,7 @@ BitcoinNode::StopApplication ()     // Called at time specified by Stop
   NS_LOG_DEBUG ("Current Top Block is:\n" << *(blockchain.GetCurrentTopBlock()));
   NS_LOG_DEBUG ("Current Blockchain is:\n" << blockchain);
   NS_LOG_DEBUG("Mean Block Receive Time = " << m_meanBlockReceiveTime);
+  NS_LOG_DEBUG("Mean Block Propagation Time = " << m_meanBlockPropagationTime);
   NS_LOG_DEBUG("Total Blocks = " << blockchain.GetTotalBlocks());
   NS_LOG_DEBUG("Stale Blocks = " << blockchain.GetNoStaleBlocks());
 }
@@ -223,93 +225,69 @@ BitcoinNode::HandleRead (Ptr<Socket> socket)
 		    {
 		      case INV:
 			  {
-			      //NS_LOG_DEBUG ("INV");
-				  Block newBlock (d["height"].GetInt(), d["minerId"].GetInt(), d["parentBlockMinerId"].GetInt(),
-						          d["size"].GetInt(), d["timeCreated"].GetDouble(), newBlockReceiveTime);
+                  //NS_LOG_DEBUG ("INV");
+                  Block newBlock (d["height"].GetInt(), d["minerId"].GetInt(), d["parentBlockMinerId"].GetInt(),
+                                  d["size"].GetInt(), d["timeCreated"].GetDouble(), newBlockReceiveTime);
 								  
-		          if (blockchain.HasBlock(newBlock))
-		          {
-		            NS_LOG_DEBUG("Bitcoin node " << GetNode ()->GetId () << " has already added this block in the blockchain: " << newBlock);
-		          }
-		          else
-		          {
-			        /**
-			         * Request the newly advertised block
-			         */
-			        rapidjson::StringBuffer bufferInv;
-		            rapidjson::Writer<rapidjson::StringBuffer> writer(bufferInv);
-				
-			        d["message"].SetInt(GET_HEADERS);
-                    d.Accept(writer);
-				    NS_LOG_DEBUG ("INV " << bufferInv.GetString());
-				
-			        Ptr<Socket> ns3TcpSocket = Socket::CreateSocket (GetNode (), TcpSocketFactory::GetTypeId ());
+                  if (blockchain.HasBlock(newBlock))
+                  {
+                    NS_LOG_DEBUG("Bitcoin node " << GetNode ()->GetId () << " has already added this block in the blockchain: " << newBlock);
+                  }
+                  else
+                  {
+                    /**
+                     * Request the newly advertised block
+                     */
+                    Ptr<Socket> ns3TcpSocket = Socket::CreateSocket (GetNode (), TcpSocketFactory::GetTypeId ());
                     ns3TcpSocket->Connect(InetSocketAddress (InetSocketAddress::ConvertFrom(from).GetIpv4 (), m_bitcoinPort));
-	                ns3TcpSocket->Send (reinterpret_cast<const uint8_t*>(bufferInv.GetString()), bufferInv.GetSize(), 0);
-				
-			  	    d["message"].SetInt(GET_DATA);
-			        rapidjson::StringBuffer bufferInv2;
-		            rapidjson::Writer<rapidjson::StringBuffer> writer2(bufferInv2);
-				
-                    d.Accept(writer2);
-				    NS_LOG_DEBUG ("INV " << bufferInv2.GetString());
-				
-	                ns3TcpSocket->Send (reinterpret_cast<const uint8_t*>(bufferInv2.GetString()), bufferInv2.GetSize(), 0);
-	                ns3TcpSocket->Close();
-		          }								  
+					
+                    SendMessage(INV, GET_HEADERS, d, ns3TcpSocket);				
+                    SendMessage(INV, GET_DATA, d, ns3TcpSocket);
+                    ns3TcpSocket->Close();
+                   }								  
 
-			      break;
-			  }
-			  case GET_HEADERS:
-			  {
-			    //NS_LOG_DEBUG ("GET_HEADERS");
-				SendMessage(GET_HEADERS, HEADERS, d, from);
+                   break;
+              }
+              case GET_HEADERS:
+              {
+                //NS_LOG_DEBUG ("GET_HEADERS");
+                Ptr<Socket> ns3TcpSocket = Socket::CreateSocket (GetNode (), TcpSocketFactory::GetTypeId ());
+                ns3TcpSocket->Connect(InetSocketAddress (InetSocketAddress::ConvertFrom(from).GetIpv4 (), m_bitcoinPort));
+                SendMessage(GET_HEADERS, HEADERS, d, ns3TcpSocket);
+                ns3TcpSocket->Close();
 
-			    break;
-			  }
-			  case GET_DATA:
-			  {
-			    //NS_LOG_DEBUG ("GET_DATA");
-				SendMessage(GET_DATA, BLOCK, d, from);
-			    break;
-			  }
-			  case HEADERS:
-			  {
-			    NS_LOG_DEBUG ("HEADERS");
-			    break;
-			  }
+                break;
+              }
+              case GET_DATA:
+              {
+                //NS_LOG_DEBUG ("GET_DATA");
+                Ptr<Socket> ns3TcpSocket = Socket::CreateSocket (GetNode (), TcpSocketFactory::GetTypeId ());
+                ns3TcpSocket->Connect(InetSocketAddress (InetSocketAddress::ConvertFrom(from).GetIpv4 (), m_bitcoinPort));
+                SendMessage(GET_DATA, BLOCK, d, ns3TcpSocket);
+                ns3TcpSocket->Close();
+                break;
+              }
+              case HEADERS:
+              {
+                NS_LOG_DEBUG ("HEADERS");
+                break;
+              }
 			  case BLOCK:
 			  {
-			      NS_LOG_DEBUG ("BLOCK");
-                  Block newBlock (d["height"].GetInt(), d["minerId"].GetInt(), d["parentBlockMinerId"].GetInt(),
-						        d["size"].GetInt(), d["timeCreated"].GetDouble(), newBlockReceiveTime);	
+                 NS_LOG_DEBUG ("BLOCK");
 
-		          if (blockchain.HasBlock(newBlock))
-		          {
-		            NS_LOG_DEBUG("Bitcoin node " << GetNode ()->GetId () << " has already added this block in the blockchain: " << newBlock);
-		          }
-		          else
-		          {
-			        /**
-			         * Update m_meanBlockReceiveTime with the timeReceived of the newly received block
-			         */
-		            m_meanBlockReceiveTime = (blockchain.GetTotalBlocks() - 1)/static_cast<double>(blockchain.GetTotalBlocks())*m_meanBlockReceiveTime + 
-			    	  					     (newBlockReceiveTime - m_previousBlockReceiveTime)/(blockchain.GetTotalBlocks());
-			        m_previousBlockReceiveTime = newBlockReceiveTime;
-			        blockchain.AddBlock(newBlock);
-		            NS_LOG_DEBUG("Bitcoin node " << GetNode ()->GetId () << " added a new block in the blockchain: " << newBlock);
-		          }
-		  
-		          double fullBlockReceiveTime = d["size"].GetInt() / static_cast<double>(1000000) ; //FIX: constant MB/s
+                 double fullBlockReceiveTime = d["size"].GetInt() / static_cast<double>(1000000) ; //FIX ME: constant MB/s
+                 Block newBlock (d["height"].GetInt(), d["minerId"].GetInt(), d["parentBlockMinerId"].GetInt(),
+                                 d["size"].GetInt(), d["timeCreated"].GetDouble(), Simulator::Now ().GetSeconds () + fullBlockReceiveTime);
 
-		          Simulator::Schedule (Seconds(fullBlockReceiveTime), &BitcoinNode::ReceiveBlock, this, *(blockchain.GetBlockPointer(newBlock)));
-		          NS_LOG_DEBUG("The full block will be received in " << fullBlockReceiveTime << "s");
-		          break;
-			  }
-			  default:
-			    NS_LOG_DEBUG ("Default");
-			    break;
-		    }
+                 Simulator::Schedule (Seconds(fullBlockReceiveTime), &BitcoinNode::ReceiveBlock, this, newBlock);
+                 NS_LOG_DEBUG("The full block will be received in " << fullBlockReceiveTime << "s");
+                 break;
+              }
+              default:
+                NS_LOG_DEBUG ("Default");
+                break;
+            }
 			
 			totalReceivedData.erase(0, pos + delimiter.length());
 		  }
@@ -329,7 +307,7 @@ BitcoinNode::HandleRead (Ptr<Socket> socket)
 }
 
 void
-BitcoinNode::SendMessage(enum Messages receivedMessage,  enum Messages responseMessage, rapidjson::Document &d, Address to)
+BitcoinNode::SendMessage(enum Messages receivedMessage,  enum Messages responseMessage, rapidjson::Document &d, Ptr<Socket> outgoingSocket)
 {
   rapidjson::StringBuffer buffer;
   rapidjson::Writer<rapidjson::StringBuffer> writer(buffer);
@@ -338,17 +316,33 @@ BitcoinNode::SendMessage(enum Messages receivedMessage,  enum Messages responseM
   d.Accept(writer);
   NS_LOG_DEBUG (getMessageName(receivedMessage) << ": " << buffer.GetString());
 				
-  Ptr<Socket> ns3TcpSocket = Socket::CreateSocket (GetNode (), TcpSocketFactory::GetTypeId ());
-  ns3TcpSocket->Connect(InetSocketAddress (InetSocketAddress::ConvertFrom(to).GetIpv4 (), m_bitcoinPort));
-  ns3TcpSocket->Send (reinterpret_cast<const uint8_t*>(buffer.GetString()), buffer.GetSize(), 0);
-  ns3TcpSocket->Close();
+  outgoingSocket->Send (reinterpret_cast<const uint8_t*>(buffer.GetString()), buffer.GetSize(), 0);
+				
 }
 
 void 
 BitcoinNode::ReceiveBlock(Block newBlock)
 {
   NS_LOG_FUNCTION (this);
-
+  
+  if (blockchain.HasBlock(newBlock))
+  {
+    NS_LOG_DEBUG("Bitcoin node " << GetNode ()->GetId () << " has already added this block in the blockchain: " << newBlock);
+  }
+  else
+  {
+    /**
+	 * Update m_meanBlockReceiveTime with the timeReceived of the newly received block
+	 */
+	
+    m_meanBlockReceiveTime = (blockchain.GetTotalBlocks() - 1)/static_cast<double>(blockchain.GetTotalBlocks())*m_meanBlockReceiveTime + 
+			    	  		 (newBlock.GetTimeReceived() - m_previousBlockReceiveTime)/(blockchain.GetTotalBlocks());
+    m_previousBlockReceiveTime = newBlock.GetTimeReceived();
+    m_meanBlockPropagationTime = (blockchain.GetTotalBlocks() - 1)/static_cast<double>(blockchain.GetTotalBlocks())*m_meanBlockPropagationTime + 
+			    	  		     (newBlock.GetTimeReceived() - newBlock.GetTimeCreated())/(blockchain.GetTotalBlocks());
+	blockchain.AddBlock(newBlock);
+    NS_LOG_DEBUG("Bitcoin node " << GetNode ()->GetId () << " added a new block in the blockchain: " << newBlock);
+  }
   NS_LOG_DEBUG ("ReceiveBlock: At time " << Simulator::Now ().GetSeconds ()
                 << "s bitcoin node " << GetNode ()->GetId () << " received " << newBlock);
 }

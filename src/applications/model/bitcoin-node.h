@@ -85,7 +85,8 @@ protected:
   void SendPacket (void);
   
   virtual void ReceiveBlock(Block newBlock);
-  void SendMessage(enum Messages receivedMessage,  enum Messages responseMessage, rapidjson::Document &d, Address to);
+  
+  void SendMessage(enum Messages receivedMessage,  enum Messages responseMessage, rapidjson::Document &d, Ptr<Socket> outgoingSocket);
   
   // In the case of TCP, each socket accept returns a new socket, so the 
   // listening socket is stored separately from the accepted sockets
@@ -97,6 +98,8 @@ protected:
   int			  m_numberOfPeers; //!< Number of node's peers
   double		  m_meanBlockReceiveTime;
   double		  m_previousBlockReceiveTime;
+  double		  m_meanBlockPropagationTime;
+
   std::vector<Address>		  m_peersAddresses; //!< The addresses of peers
   Blockchain blockchain;
   
