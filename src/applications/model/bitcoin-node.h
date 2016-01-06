@@ -82,12 +82,13 @@ protected:
    */
   void HandlePeerError (Ptr<Socket> socket);
 
-  void SendPacket (void);
-  
-  virtual void ReceiveBlock(Block newBlock);
+  void ReceiveBlock(Block newBlock, Address from);				//Called for every new block
+  virtual void ReceiveHigherBlock(Block newBlock);	//Called for blocks with better score(height)
   
   void SendMessage(enum Messages receivedMessage,  enum Messages responseMessage, rapidjson::Document &d, Ptr<Socket> outgoingSocket);
-  
+ 
+  void AdvertiseNewBlock (Block newBlock, Address from);
+
   // In the case of TCP, each socket accept returns a new socket, so the 
   // listening socket is stored separately from the accepted sockets
   Ptr<Socket>     m_socket;       //!< Listening socket
@@ -101,7 +102,7 @@ protected:
   double		  m_meanBlockPropagationTime;
 
   std::vector<Address>		  m_peersAddresses; //!< The addresses of peers
-  Blockchain blockchain;
+  Blockchain 				  m_blockchain;
   
   /// Traced Callback: received packets, source address.
   TracedCallback<Ptr<const Packet>, const Address &> m_rxTrace;

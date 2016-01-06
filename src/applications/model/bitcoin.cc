@@ -99,6 +99,7 @@ Block::GetTimeReceived (void) const
 Blockchain::Blockchain(void)
 {
   m_noStaleBlocks = 0;
+  m_totalBlocks = 0;
   Block genesisBlock(0, -1, -1, 0, 0, 0);
   AddBlock(genesisBlock); 
 }

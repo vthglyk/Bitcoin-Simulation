@@ -114,8 +114,10 @@ protected:
   
   void MineBlock (void);
   
+  virtual void ReceiveHigherBlock(Block newBlock);	//Called for blocks with better score(height). Remove m_nextMiningEvent and call MineBlock again.
+  
   uint32_t			m_fixedBlockSize;  
-  double 				m_fixedBlockTimeGeneration; 	//!< Fixed Block Time Generation
+  double 			m_fixedBlockTimeGeneration; 	//!< Fixed Block Time Generation
   EventId			m_nextMiningEvent; 				//!< Event to mine the next block
   std::default_random_engine m_generator;
 
@@ -127,6 +129,7 @@ protected:
   double 			m_blockGenBinSize;	
   double			m_blockGenParameter; 			//!< The block generation distribution parameter
   double 			m_nextBlockTime;
+  double		    m_previousBlockGenerationTime;
   float				m_minerAverageBlockGenTime;
   int				m_minerGeneratedBlocks;
   double			m_hashRate;

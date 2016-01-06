@@ -85,6 +85,7 @@ BitcoinMiner::BitcoinMiner () : BitcoinNode()
   NS_LOG_FUNCTION (this);
   m_minerAverageBlockGenTime = 0;
   m_minerGeneratedBlocks = 0;
+  m_previousBlockGenerationTime = 0;
   
   std::random_device rd;
   m_generator.seed(rd());
@@ -147,7 +148,8 @@ BitcoinMiner::StopApplication ()
   Simulator::Cancel (m_nextMiningEvent);
   
   NS_LOG_DEBUG ("The miner " << GetNode ()->GetId () << " generated " << m_minerGeneratedBlocks 
-				<< " blocks with average block generation time = " << m_minerAverageBlockGenTime
+				<< " blocks "<< "(" << 100. * m_minerGeneratedBlocks / (m_blockchain.GetTotalBlocks() - 1) 
+				<< "%) with average block generation time = " << m_minerAverageBlockGenTime
 				<< "s or " << static_cast<int>(m_minerAverageBlockGenTime) / 60 << "min and " 
 				<< m_minerAverageBlockGenTime - static_cast<int>(m_minerAverageBlockGenTime) / 60 * 60 << "s"
 				<< " and average size " << m_minerAverageBlockSize << " Bytes");
@@ -263,13 +265,13 @@ BitcoinMiner::MineBlock (void)
   rapidjson::Value value(INV);
   d.AddMember("message", value, d.GetAllocator());
   
-  value = blockchain.GetCurrentTopBlock()->GetBlockHeight() + 1;
+  value = m_blockchain.GetCurrentTopBlock()->GetBlockHeight() + 1;
   d.AddMember("height", value, d.GetAllocator());
   
   value = GetNode ()->GetId ();
   d.AddMember("minerId", value, d.GetAllocator());
 
-  value = blockchain.GetCurrentTopBlock()->GetMinerId();
+  value = m_blockchain.GetCurrentTopBlock()->GetMinerId();
   d.AddMember("parentBlockMinerId", value, d.GetAllocator());
   
   if (m_fixedBlockSize > 0)
@@ -293,10 +295,11 @@ BitcoinMiner::MineBlock (void)
   /**
    * Update m_meanBlockReceiveTime with the timeCreated of the newly generated block
    */
-  m_meanBlockReceiveTime = (blockchain.GetTotalBlocks() - 1)/static_cast<double>(blockchain.GetTotalBlocks())*m_meanBlockReceiveTime + 
-							(d["timeReceived"].GetDouble() - m_previousBlockReceiveTime)/(blockchain.GetTotalBlocks());
-  m_previousBlockReceiveTime = d["timeReceived"].GetDouble();						
-  blockchain.AddBlock(newBlock);
+  m_meanBlockReceiveTime = (m_blockchain.GetTotalBlocks() - 1)/static_cast<double>(m_blockchain.GetTotalBlocks())*m_meanBlockReceiveTime + 
+							(d["timeReceived"].GetDouble() - m_previousBlockReceiveTime)/(m_blockchain.GetTotalBlocks());
+  m_previousBlockReceiveTime = d["timeReceived"].GetDouble();	
+  m_meanBlockPropagationTime = (m_blockchain.GetTotalBlocks() - 1)/static_cast<double>(m_blockchain.GetTotalBlocks())*m_meanBlockPropagationTime;
+  m_blockchain.AddBlock(newBlock);
   
   // Stringify the DOM
   rapidjson::StringBuffer packetInfo;
@@ -313,9 +316,11 @@ BitcoinMiner::MineBlock (void)
 	ns3TcpSocket->Close();
   }
 
-  m_minerAverageBlockGenTime = m_minerGeneratedBlocks/static_cast<double>(m_minerGeneratedBlocks+1)*m_minerAverageBlockGenTime + m_nextBlockTime/(m_minerGeneratedBlocks+1);
-  m_minerAverageBlockSize = m_minerGeneratedBlocks/static_cast<double>(m_minerGeneratedBlocks+1)*m_minerAverageBlockSize + static_cast<double>(m_nextBlockSize)/(m_minerGeneratedBlocks+1);
-
+  m_minerAverageBlockGenTime = m_minerGeneratedBlocks/static_cast<double>(m_minerGeneratedBlocks+1)*m_minerAverageBlockGenTime 
+                             + (Simulator::Now ().GetSeconds () - m_previousBlockGenerationTime)/(m_minerGeneratedBlocks+1);
+  m_minerAverageBlockSize = m_minerGeneratedBlocks/static_cast<double>(m_minerGeneratedBlocks+1)*m_minerAverageBlockSize 
+                            + static_cast<double>(m_nextBlockSize)/(m_minerGeneratedBlocks+1);
+  m_previousBlockGenerationTime = Simulator::Now ().GetSeconds ();
   m_minerGeneratedBlocks++;
 
   NS_LOG_INFO ("At time " << Simulator::Now ().GetSeconds ()
@@ -324,4 +329,12 @@ BitcoinMiner::MineBlock (void)
   ScheduleNextMiningEvent ();
 }
 
+void 
+BitcoinMiner::ReceiveHigherBlock(Block newBlock)
+{
+  NS_LOG_FUNCTION (this);
+  NS_LOG_INFO("Bitcoin node "<< GetNode ()->GetId () << " added a new block in the m_blockchain with higher height: " << newBlock);
+  Simulator::Cancel (m_nextMiningEvent);
+  ScheduleNextMiningEvent ();
+}
 } // Namespace ns3
