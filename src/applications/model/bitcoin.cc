@@ -135,7 +135,6 @@ Blockchain::GetBlockchainHeight (void)
 bool 
 Blockchain::HasBlock (const Block &newBlock)
 {
-  bool found = false;
   
   if (newBlock.GetBlockHeight() > GetCurrentTopBlock()->GetBlockHeight())		//The new block has a new blockHeight, so we haven't received it previously.
 	return false;
@@ -145,12 +144,11 @@ Blockchain::HasBlock (const Block &newBlock)
     {
       if (block == newBlock)
 	  {
-	    found = true;
-        break;
+	    return true;
 	  }
     }
   }
-  return found;
+  return false;
 }
 
 const Block* 
@@ -173,15 +171,33 @@ void
 Blockchain::AddBlock (Block& newBlock)
 {
 
-  if (m_blocks.size() == 0 || newBlock.GetBlockHeight() > GetCurrentTopBlock()->GetBlockHeight())			//The new block has a new blockHeight, so have to create a new vector (row)
+  if (m_blocks.size() == 0)
   {
+    std::vector<Block> newHeight(1, newBlock);
+	m_blocks.push_back(newHeight);
+  }	
+  else if (newBlock.GetBlockHeight() > GetCurrentTopBlock()->GetBlockHeight())   		//The new block has a new blockHeight, so have to create a new vector (row)
+  {
+	/**
+	 * If we receive an orphan block we have to create the dummy rows for the missing blocks as well
+	 */
+	int dummyRows = newBlock.GetBlockHeight() - GetCurrentTopBlock()->GetBlockHeight() - 1;
+	
+	for(int i = 0; i < dummyRows; i++)
+	{  
+	  std::vector<Block> newHeight; 
+	  m_blocks.push_back(newHeight);
+	}
+	
     std::vector<Block> newHeight(1, newBlock);
 	m_blocks.push_back(newHeight);
   }
   else														//The new block doesn't have a new blockHeight,
   {															//so we have to add it in an existing row
+    if (m_blocks[newBlock.GetBlockHeight()].size() > 0)
+	  m_noStaleBlocks++;									
+
     m_blocks[newBlock.GetBlockHeight()].push_back(newBlock);   
-	m_noStaleBlocks++;
   }
   
   m_totalBlocks++;
@@ -213,14 +229,15 @@ std::ostream& operator<< (std::ostream &out, Blockchain &blockchain)
   
   std::vector< std::vector<Block>>::iterator blockHeight_it;
   std::vector<Block>::iterator  block_it;
-
-  for (blockHeight_it = blockchain.m_blocks.begin(); blockHeight_it < blockchain.m_blocks.end(); blockHeight_it++) 
+  int i;
+  
+  for (blockHeight_it = blockchain.m_blocks.begin(), i = 0; blockHeight_it < blockchain.m_blocks.end(); blockHeight_it++, i++) 
   {
+	out << "  BLOCK HEIGHT " << i << ":\n";
     for (block_it = blockHeight_it->begin();  block_it < blockHeight_it->end(); block_it++)
 	{
-	  out << *block_it << std::endl;
+	  out << *block_it << "\n";
     }
-	out << std::endl;
   }
   
   return out;

@@ -32,7 +32,7 @@ main (int argc, char *argv[])
   int xSize = 2;
   int ySize = 2;
   int start = 0;
-  int stop = 50000; //minutes
+  int stop = 1000; //minutes
   const int secsPerMin = 60;
   double blockGenBinSize = 1./secsPerMin/1000;
   double blockGenParameter = 0.19*blockGenBinSize/2;
@@ -74,7 +74,7 @@ main (int argc, char *argv[])
   BitcoinMinerHelper bitcoinMinerHelper ("ns3::TcpSocketFactory", InetSocketAddress (Ipv4Address::GetAny (), bitcoinPort), peers, 0.67, blockGenBinSize, blockGenParameter);
   //bitcoinMinerHelper.SetAttribute("FixedBlockIntervalGeneration", DoubleValue(300));
   ApplicationContainer bitcoinMiners = bitcoinMinerHelper.Install (grid.GetNode (0,0));
-  //bitcoinMinerHelper.SetAttribute("FixedBlockIntervalGeneration", DoubleValue(300));
+  //bitcoinMinerHelper.SetAttribute("FixedBlockIntervalGeneration", DoubleValue(300.5));
   bitcoinMinerHelper.SetAttribute("HashRate", DoubleValue(0.33));
   bitcoinMiners.Add(bitcoinMinerHelper.Install (grid.GetNode (xSize - 1, ySize - 1)));
   //bitcoinMiners.Add(bitcoinMinerHelper.Install (grid.GetNode (0, ySize - 1)));
