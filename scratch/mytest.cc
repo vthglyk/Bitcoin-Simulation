@@ -37,8 +37,8 @@ main (int argc, char *argv[])
   const int secsPerMin = 60;
   int xSize = 2;
   int ySize = 2;
-  int targetNumberOfBlocks = 10000;
-  int averageBlockGenerationTime = 10;
+  int targetNumberOfBlocks = 1;
+  int averageBlockGenerationTime = 8;
   double fixedHashRate = 0.5;
   int start = 0;
   
@@ -81,9 +81,9 @@ main (int argc, char *argv[])
     std::cout << "testAddress: " << InetSocketAddress::ConvertFrom(*i).GetIpv4 () << std::endl;
 	
   BitcoinMinerHelper bitcoinMinerHelper ("ns3::TcpSocketFactory", InetSocketAddress (Ipv4Address::GetAny (), bitcoinPort), peers, 0.67, blockGenBinSize, blockGenParameter);
-  //bitcoinMinerHelper.SetAttribute("FixedBlockIntervalGeneration", DoubleValue(300));
+  bitcoinMinerHelper.SetAttribute("FixedBlockIntervalGeneration", DoubleValue(300));
   ApplicationContainer bitcoinMiners = bitcoinMinerHelper.Install (grid.GetNode (0,0));
-  //bitcoinMinerHelper.SetAttribute("FixedBlockIntervalGeneration", DoubleValue(360));
+  bitcoinMinerHelper.SetAttribute("FixedBlockIntervalGeneration", DoubleValue(300));
   bitcoinMinerHelper.SetAttribute("HashRate", DoubleValue(0.33));
   bitcoinMiners.Add(bitcoinMinerHelper.Install (grid.GetNode (xSize - 1, ySize - 1)));
   //bitcoinMiners.Add(bitcoinMinerHelper.Install (grid.GetNode (0, ySize - 1)));
@@ -119,7 +119,9 @@ main (int argc, char *argv[])
   Simulator::Destroy ();
 
   tFinish=get_wall_time();
-  std::cout << "\nThe simulation ran for " << tFinish - tStart << "s.\n";
+  std::cout << "\nThe simulation ran for " << tFinish - tStart << "s simulating "
+            << stop << "mins. Performed " << stop * secsPerMin / (tFinish - tStart) 
+			<< " faster than realtime.\n";
   return 0;
 }
 

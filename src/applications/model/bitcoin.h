@@ -39,8 +39,12 @@ public:
   
   double GetTimeReceived (void) const;
   
+  bool IsParent(const Block &block) const; //check if it is the parent of block
+
+  bool IsChild(const Block &block) const; //check if it is the child of block
+
   friend bool operator== (const Block &block1, const Block &block2);
-  friend std::ostream& operator<< (std::ostream &out, Block &block);
+  friend std::ostream& operator<< (std::ostream &out, const Block &block);
   
 private:	
   int m_blockHeight;
@@ -66,6 +70,10 @@ public:
   
   const Block* GetBlockPointer (const Block &newBlock);
   
+  std::vector<const Block *> GetChildrenPointers (const Block &newBlock);  //Get the child of newBlock
+  
+  Block* GetParent (const Block &newBlock);  //Get the parent of newBlock
+
   Block* GetCurrentTopBlock (void);
   
   int GetBlockchainHeight (void);

@@ -89,6 +89,24 @@ Block::GetTimeReceived (void) const
   return m_timeReceived;
 }
 
+bool 
+Block::IsParent(const Block &block) const
+{
+  if (GetBlockHeight() == block.GetBlockHeight() - 1 && GetMinerId() == block.GetParentBlockMinerId())
+    return true;
+  else
+	return false;
+}
+
+bool 
+Block::IsChild(const Block &block) const
+{
+  if (GetBlockHeight() == block.GetBlockHeight() + 1 && GetParentBlockMinerId() == block.GetMinerId())
+    return true;
+  else
+	return false;
+}
+
 
 /**
  *
@@ -154,19 +172,54 @@ Blockchain::HasBlock (const Block &newBlock)
 const Block* 
 Blockchain::GetBlockPointer (const Block &newBlock)
 {
-  Block* pointer = nullptr;
   
   for (auto const &block: m_blocks[newBlock.GetBlockHeight()]) 
   {
     if (block == newBlock)
     {
 	  return &block;
-      break;
 	}
   }
-  
+  return nullptr;
 }
+ 
+std::vector<const Block *> 
+Blockchain::GetChildrenPointers (const Block &newBlock)
+{
+  std::vector<const Block *> children;
+  std::vector<Block>::iterator  block_it;
   
+  if (newBlock.GetBlockHeight() + 1 > GetBlockchainHeight())
+    return children;
+
+  for (block_it = m_blocks[newBlock.GetBlockHeight() + 1].begin();  block_it < m_blocks[newBlock.GetBlockHeight() + 1].end(); block_it++)
+  {
+    if (newBlock.IsParent(*block_it))
+    {
+	  Block printBlock (newBlock.GetBlockHeight(), newBlock.GetMinerId(), newBlock.GetParentBlockMinerId(),
+	                    newBlock.GetBlockSizeBytes(), newBlock.GetTimeCreated(), newBlock.GetTimeReceived());
+	  
+	  std::cout << "Block "  << printBlock << " is the parent of block " << *block_it << std::endl;
+	  children.push_back(&(*block_it));
+	}
+  }
+  return children;
+}
+
+Block* 
+Blockchain::GetParent (const Block &newBlock)
+{
+  std::vector<Block>::iterator  block_it;
+  
+  for (block_it = m_blocks[newBlock.GetBlockHeight() - 1].begin();  block_it < m_blocks[newBlock.GetBlockHeight() - 1].end(); block_it++)  {
+    if (newBlock.IsChild(*block_it))
+    {
+	  return &(*block_it);
+	}
+  }
+  return nullptr;
+}
+
 void 
 Blockchain::AddBlock (Block& newBlock)
 {
@@ -211,7 +264,7 @@ bool operator== (const Block &block1, const Block &block2)
 	return false;
 }
 
-std::ostream& operator<< (std::ostream &out, Block &block)
+std::ostream& operator<< (std::ostream &out, const Block &block)
 {
 
     out << "(m_blockHeight: " << block.GetBlockHeight() << ", " <<
