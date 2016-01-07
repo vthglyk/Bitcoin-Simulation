@@ -15,12 +15,16 @@
  */
 
 #include <fstream>
+#include <time.h>
+#include <sys/time.h>
 #include "ns3/core-module.h"
 #include "ns3/network-module.h"
 #include "ns3/internet-module.h"
 #include "ns3/point-to-point-module.h"
 #include "ns3/applications-module.h"
 #include "ns3/point-to-point-layout-module.h"
+
+double get_wall_time();
 
 using namespace ns3;
 
@@ -29,14 +33,19 @@ NS_LOG_COMPONENT_DEFINE ("FifthScriptExample");
 int 
 main (int argc, char *argv[])
 {
+  double tStart = get_wall_time(), tFinish;
+  const int secsPerMin = 60;
   int xSize = 2;
   int ySize = 2;
-  int start = 0;
-  int stop = 1000; //minutes
-  const int secsPerMin = 60;
-  double blockGenBinSize = 1./secsPerMin/1000;
-  double blockGenParameter = 0.19*blockGenBinSize/2;
+  int targetNumberOfBlocks = 10000;
+  int averageBlockGenerationTime = 10;
   double fixedHashRate = 0.5;
+  int start = 0;
+  
+  int stop = targetNumberOfBlocks * averageBlockGenerationTime; //minutes
+  double blockGenBinSize = 1./secsPerMin/1000;					//minutes
+  double blockGenParameter = 0.19 * blockGenBinSize / 2 * (10 / averageBlockGenerationTime);	//0.19 for blockGenBinSize = 2mins
+
   
   CommandLine cmd;
   cmd.Parse(argc, argv);
@@ -74,7 +83,7 @@ main (int argc, char *argv[])
   BitcoinMinerHelper bitcoinMinerHelper ("ns3::TcpSocketFactory", InetSocketAddress (Ipv4Address::GetAny (), bitcoinPort), peers, 0.67, blockGenBinSize, blockGenParameter);
   //bitcoinMinerHelper.SetAttribute("FixedBlockIntervalGeneration", DoubleValue(300));
   ApplicationContainer bitcoinMiners = bitcoinMinerHelper.Install (grid.GetNode (0,0));
-  //bitcoinMinerHelper.SetAttribute("FixedBlockIntervalGeneration", DoubleValue(300.5));
+  //bitcoinMinerHelper.SetAttribute("FixedBlockIntervalGeneration", DoubleValue(360));
   bitcoinMinerHelper.SetAttribute("HashRate", DoubleValue(0.33));
   bitcoinMiners.Add(bitcoinMinerHelper.Install (grid.GetNode (xSize - 1, ySize - 1)));
   //bitcoinMiners.Add(bitcoinMinerHelper.Install (grid.GetNode (0, ySize - 1)));
@@ -109,6 +118,17 @@ main (int argc, char *argv[])
   Simulator::Run ();
   Simulator::Destroy ();
 
+  tFinish=get_wall_time();
+  std::cout << "\nThe simulation ran for " << tFinish - tStart << "s.\n";
   return 0;
 }
 
+double get_wall_time()
+{
+    struct timeval time;
+    if (gettimeofday(&time,NULL)){
+        //  Handle error
+        return 0;
+    }
+    return (double)time.tv_sec + (double)time.tv_usec * .000001;
+}

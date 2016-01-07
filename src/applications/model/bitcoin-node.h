@@ -85,6 +85,8 @@ protected:
   void ReceiveBlock(Block newBlock, Address from);				//Called for every new block
   virtual void ReceiveHigherBlock(Block newBlock);	//Called for blocks with better score(height)
   
+  void ValidateBlock(Block newBlock, Address from);
+  
   void SendMessage(enum Messages receivedMessage,  enum Messages responseMessage, rapidjson::Document &d, Ptr<Socket> outgoingSocket);
  
   void AdvertiseNewBlock (Block newBlock, Address from);

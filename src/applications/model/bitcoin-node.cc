@@ -149,7 +149,7 @@ BitcoinNode::StopApplication ()     // Called at time specified by Stop
   NS_LOG_DEBUG("Mean Block Receive Time = " << m_meanBlockReceiveTime << " or " 
                << static_cast<int>(m_meanBlockReceiveTime) / 60 << "min and " 
 			   << m_meanBlockReceiveTime - static_cast<int>(m_meanBlockReceiveTime) / 60 * 60 << "s");
-  NS_LOG_DEBUG("Mean Block Propagation Time = " << m_meanBlockPropagationTime);
+  NS_LOG_DEBUG("Mean Block Propagation Time = " << m_meanBlockPropagationTime << "s");
   NS_LOG_DEBUG("Total Blocks = " << m_blockchain.GetTotalBlocks());
   NS_LOG_DEBUG("Stale Blocks = " << m_blockchain.GetNoStaleBlocks());
 }
@@ -182,12 +182,12 @@ BitcoinNode::HandleRead (Ptr<Socket> socket)
         packetInfo[packet->GetSize ()] = '\0'; // ensure that it is null terminated to avoid bugs
 		  
         std::string totalReceivedData(packetInfo);
-        NS_LOG_INFO("Total Received Data Node " << GetNode ()->GetId () << ": Total Received Data" << totalReceivedData);
+        NS_LOG_INFO("Node " << GetNode ()->GetId () << " Total Received Data: " << totalReceivedData);
 		  
         while ((pos = totalReceivedData.find(delimiter)) != std::string::npos) 
         {
           parsedPacket = totalReceivedData.substr(0, pos + 1);
-          NS_LOG_INFO("Total Received Data Node " << GetNode ()->GetId () << ": Parsed Packet : " << parsedPacket);
+          NS_LOG_INFO("Node " << GetNode ()->GetId () << " Parsed Packet: " << parsedPacket);
 		  
           rapidjson::Document d;
           d.Parse(parsedPacket.c_str());
@@ -232,7 +232,6 @@ BitcoinNode::HandleRead (Ptr<Socket> socket)
             }
             case GET_HEADERS:
             {
-              //NS_LOG_INFO ("GET_HEADERS");
               Ptr<Socket> ns3TcpSocket = Socket::CreateSocket (GetNode (), TcpSocketFactory::GetTypeId ());
               ns3TcpSocket->Connect(InetSocketAddress (InetSocketAddress::ConvertFrom(from).GetIpv4 (), m_bitcoinPort));
               SendMessage(GET_HEADERS, HEADERS, d, ns3TcpSocket);
@@ -242,7 +241,6 @@ BitcoinNode::HandleRead (Ptr<Socket> socket)
             }
             case GET_DATA:
             {
-              //NS_LOG_INFO ("GET_DATA");
               Ptr<Socket> ns3TcpSocket = Socket::CreateSocket (GetNode (), TcpSocketFactory::GetTypeId ());
               ns3TcpSocket->Connect(InetSocketAddress (InetSocketAddress::ConvertFrom(from).GetIpv4 (), m_bitcoinPort));
               SendMessage(GET_DATA, BLOCK, d, ns3TcpSocket);
@@ -304,6 +302,10 @@ BitcoinNode::ReceiveBlock(Block newBlock, Address from)
     /**
      * Update m_meanBlockReceiveTime with the timeReceived of the newly received block
      */
+	const int averageBlockSizeBytes = 458263;
+	const double averageValidationTimeSeconds = 0.174;
+	double validationTime = averageValidationTimeSeconds * newBlock.GetBlockSizeBytes() / averageBlockSizeBytes;	
+	
     if (newBlock.GetBlockHeight() > m_blockchain.GetBlockchainHeight())
       ReceiveHigherBlock(newBlock);
   
@@ -314,7 +316,10 @@ BitcoinNode::ReceiveBlock(Block newBlock, Address from)
                                + (newBlock.GetTimeReceived() - newBlock.GetTimeCreated())/(m_blockchain.GetTotalBlocks());
     m_blockchain.AddBlock(newBlock);
 	
-    AdvertiseNewBlock(newBlock, from);
+	
+    Simulator::Schedule (Seconds(validationTime), &BitcoinNode::ValidateBlock, this, newBlock, from);
+    NS_LOG_INFO ("ReceiveBlock: The Block " << newBlock << " will be validated in " 
+	              << validationTime << "s");
   }
 
 }
@@ -334,13 +339,25 @@ BitcoinNode::SendMessage(enum Messages receivedMessage,  enum Messages responseM
 				
   d["message"].SetInt(responseMessage);
   d.Accept(writer);
-  NS_LOG_INFO (getMessageName(receivedMessage) << ": " << buffer.GetString());
+  NS_LOG_INFO ("Node " << GetNode ()->GetId () << " got a " 
+               << getMessageName(receivedMessage) << " message" 
+               << " and sent a " << getMessageName(responseMessage) 
+			   << " message: " << buffer.GetString());
 				
   outgoingSocket->Send (reinterpret_cast<const uint8_t*>(buffer.GetString()), buffer.GetSize(), 0);
 				
 }
 
-
+void 
+BitcoinNode::ValidateBlock(Block newBlock, Address from)
+{
+  NS_LOG_FUNCTION (this);
+  NS_LOG_INFO ("At time " << Simulator::Now ().GetSeconds ()
+               << "s bitcoin node " << GetNode ()->GetId () 
+			   << " validated block " <<  newBlock);
+  AdvertiseNewBlock(newBlock, from);
+}
+  
 void 
 BitcoinNode::AdvertiseNewBlock (Block newBlock, Address from)
 {
