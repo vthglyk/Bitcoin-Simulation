@@ -213,7 +213,7 @@ BitcoinNode::HandleRead (Ptr<Socket> socket)
 								  
                 if (m_blockchain.HasBlock(newBlock))
                 {
-                  NS_LOG_INFO("Bitcoin node " << GetNode ()->GetId () << " has already added this block in the m_blockchain: " << newBlock);
+                  NS_LOG_DEBUG("Bitcoin node " << GetNode ()->GetId () << " has already added this block in the m_blockchain: " << newBlock);
                 }
                 else
                 {
@@ -299,33 +299,13 @@ BitcoinNode::ReceiveBlock(Block newBlock, Address from)
   }
   else
   {
-    /**
-     * Update m_meanBlockReceiveTime with the timeReceived of the newly received block
-     */
-	const int averageBlockSizeBytes = 458263;
-	const double averageValidationTimeSeconds = 0.174;
-	double validationTime = averageValidationTimeSeconds * newBlock.GetBlockSizeBytes() / averageBlockSizeBytes;	
-	
-    if (newBlock.GetBlockHeight() > m_blockchain.GetBlockchainHeight())
-      ReceiveHigherBlock(newBlock);
-  
-    m_meanBlockReceiveTime = (m_blockchain.GetTotalBlocks() - 1)/static_cast<double>(m_blockchain.GetTotalBlocks())*m_meanBlockReceiveTime 
-                           + (newBlock.GetTimeReceived() - m_previousBlockReceiveTime)/(m_blockchain.GetTotalBlocks());
-    m_previousBlockReceiveTime = newBlock.GetTimeReceived();
-    m_meanBlockPropagationTime = (m_blockchain.GetTotalBlocks() - 1)/static_cast<double>(m_blockchain.GetTotalBlocks())*m_meanBlockPropagationTime  
-                               + (newBlock.GetTimeReceived() - newBlock.GetTimeCreated())/(m_blockchain.GetTotalBlocks());
-    m_blockchain.AddBlock(newBlock);
-	
-	
-    Simulator::Schedule (Seconds(validationTime), &BitcoinNode::ValidateBlock, this, newBlock, from);
-    NS_LOG_DEBUG ("ReceiveBlock: The Block " << newBlock << " will be validated in " 
-	              << validationTime << "s");
+	ValidateBlock (newBlock, from);
   }
 
 }
 
 void 
-BitcoinNode::ReceiveHigherBlock(Block newBlock)
+BitcoinNode::ReceivedHigherBlock(Block newBlock)
 {
   NS_LOG_FUNCTION (this);
   NS_LOG_DEBUG("Bitcoin node " << GetNode ()->GetId () << " added a new block in the m_blockchain with higher height: " << newBlock);
@@ -362,7 +342,20 @@ BitcoinNode::ValidateBlock(Block newBlock, Address from)
     NS_LOG_DEBUG("Block " << newBlock << " has parent " << *parent << "\n");
 
   if (children.size() == 0)
+  {
     NS_LOG_DEBUG("Block " << newBlock << " has no children\n");
+	
+    /**
+     * Update m_meanBlockReceiveTime with the timeReceived of the newly received block
+     */
+	const int averageBlockSizeBytes = 458263;
+	const double averageValidationTimeSeconds = 0.174;
+	double validationTime = averageValidationTimeSeconds * newBlock.GetBlockSizeBytes() / averageBlockSizeBytes;		
+	
+    Simulator::Schedule (Seconds(validationTime), &BitcoinNode::AfterBlockValidation, this, newBlock, from);
+    NS_LOG_DEBUG ("ReceiveBlock: The Block " << newBlock << " will be validated in " 
+	              << validationTime << "s");
+  }
   else 
   {
     std::vector<const Block *>::iterator  block_it;
@@ -374,12 +367,30 @@ BitcoinNode::ValidateBlock(Block newBlock, Address from)
     }
   }
   
+
+}
+
+void 
+BitcoinNode::AfterBlockValidation(Block newBlock, Address from)
+{
+  NS_LOG_FUNCTION (this);
+
   NS_LOG_DEBUG ("At time " << Simulator::Now ().GetSeconds ()
                << "s bitcoin node " << GetNode ()->GetId () 
 			   << " validated block " <<  newBlock);
-  AdvertiseNewBlock(newBlock, from);
-}
+			   
+  if (newBlock.GetBlockHeight() > m_blockchain.GetBlockchainHeight())
+    ReceivedHigherBlock(newBlock);
   
+  m_meanBlockReceiveTime = (m_blockchain.GetTotalBlocks() - 1)/static_cast<double>(m_blockchain.GetTotalBlocks())*m_meanBlockReceiveTime 
+                         + (newBlock.GetTimeReceived() - m_previousBlockReceiveTime)/(m_blockchain.GetTotalBlocks());
+  m_previousBlockReceiveTime = newBlock.GetTimeReceived();
+  m_meanBlockPropagationTime = (m_blockchain.GetTotalBlocks() - 1)/static_cast<double>(m_blockchain.GetTotalBlocks())*m_meanBlockPropagationTime  
+                             + (newBlock.GetTimeReceived() - newBlock.GetTimeCreated())/(m_blockchain.GetTotalBlocks());
+  m_blockchain.AddBlock(newBlock);
+  
+  AdvertiseNewBlock(newBlock, from);
+}  
 void 
 BitcoinNode::AdvertiseNewBlock (Block newBlock, Address from)
 {

@@ -118,7 +118,7 @@ Blockchain::Blockchain(void)
 {
   m_noStaleBlocks = 0;
   m_totalBlocks = 0;
-  Block genesisBlock(0, -1, -1, 0, 0, 0);
+  Block genesisBlock(0, -1, -2, 0, 0, 0);
   AddBlock(genesisBlock); 
 }
 
@@ -196,10 +196,6 @@ Blockchain::GetChildrenPointers (const Block &newBlock)
   {
     if (newBlock.IsParent(*block_it))
     {
-	  Block printBlock (newBlock.GetBlockHeight(), newBlock.GetMinerId(), newBlock.GetParentBlockMinerId(),
-	                    newBlock.GetBlockSizeBytes(), newBlock.GetTimeCreated(), newBlock.GetTimeReceived());
-	  
-	  std::cout << "Block "  << printBlock << " is the parent of block " << *block_it << std::endl;
 	  children.push_back(&(*block_it));
 	}
   }

@@ -331,7 +331,7 @@ BitcoinMiner::MineBlock (void)
 }
 
 void 
-BitcoinMiner::ReceiveHigherBlock(Block newBlock)
+BitcoinMiner::ReceivedHigherBlock(Block newBlock)
 {
   NS_LOG_FUNCTION (this);
   NS_LOG_INFO("Bitcoin node "<< GetNode ()->GetId () << " added a new block in the m_blockchain with higher height: " << newBlock);
