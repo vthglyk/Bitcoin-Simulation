@@ -143,15 +143,16 @@ BitcoinNode::StopApplication ()     // Called at time specified by Stop
       m_socket->SetRecvCallback (MakeNullCallback<void, Ptr<Socket> > ());
     }
 
-  NS_LOG_DEBUG("\n\nBITCOIN NODE " << GetNode ()->GetId () << ":");
-  NS_LOG_DEBUG ("Current Top Block is:\n" << *(m_blockchain.GetCurrentTopBlock()));
+  NS_LOG_WARN("\n\nBITCOIN NODE " << GetNode ()->GetId () << ":");
+  NS_LOG_WARN ("Current Top Block is:\n" << *(m_blockchain.GetCurrentTopBlock()));
   NS_LOG_DEBUG ("Current Blockchain is:\n" << m_blockchain);
-  NS_LOG_DEBUG("Mean Block Receive Time = " << m_meanBlockReceiveTime << " or " 
+  m_blockchain.PrintOrphans();
+  NS_LOG_WARN("Mean Block Receive Time = " << m_meanBlockReceiveTime << " or " 
                << static_cast<int>(m_meanBlockReceiveTime) / 60 << "min and " 
 			   << m_meanBlockReceiveTime - static_cast<int>(m_meanBlockReceiveTime) / 60 * 60 << "s");
-  NS_LOG_DEBUG("Mean Block Propagation Time = " << m_meanBlockPropagationTime << "s");
-  NS_LOG_DEBUG("Total Blocks = " << m_blockchain.GetTotalBlocks());
-  NS_LOG_DEBUG("Stale Blocks = " << m_blockchain.GetNoStaleBlocks());
+  NS_LOG_WARN("Mean Block Propagation Time = " << m_meanBlockPropagationTime << "s");
+  NS_LOG_WARN("Total Blocks = " << m_blockchain.GetTotalBlocks());
+  NS_LOG_WARN("Stale Blocks = " << m_blockchain.GetNoStaleBlocks());
 }
 
 void 
@@ -261,7 +262,7 @@ BitcoinNode::HandleRead (Ptr<Socket> socket)
                               d["size"].GetInt(), d["timeCreated"].GetDouble(), Simulator::Now ().GetSeconds () + fullBlockReceiveTime);
 
               Simulator::Schedule (Seconds(fullBlockReceiveTime), &BitcoinNode::ReceiveBlock, this, newBlock, from);
-              NS_LOG_INFO("The full block will be received in " << fullBlockReceiveTime << "s");
+              NS_LOG_DEBUG("The full block will be received in " << fullBlockReceiveTime << "s");
               break;
             }
             default:
@@ -287,7 +288,7 @@ BitcoinNode::HandleRead (Ptr<Socket> socket)
 }
 
 void 
-BitcoinNode::ReceiveBlock(Block newBlock, Address from)
+BitcoinNode::ReceiveBlock(const Block &newBlock, Address from) 
 {
   NS_LOG_FUNCTION (this);
   NS_LOG_DEBUG ("ReceiveBlock: At time " << Simulator::Now ().GetSeconds ()
@@ -295,7 +296,7 @@ BitcoinNode::ReceiveBlock(Block newBlock, Address from)
 				
   if (m_blockchain.HasBlock(newBlock))
   {
-    NS_LOG_DEBUG("Bitcoin node " << GetNode ()->GetId () << " has already added this block in the m_blockchain: " << newBlock);
+    NS_LOG_DEBUG("ReceiveBlock: Bitcoin node " << GetNode ()->GetId () << " has already added this block in the m_blockchain: " << newBlock);
   }
   else
   {
@@ -305,15 +306,17 @@ BitcoinNode::ReceiveBlock(Block newBlock, Address from)
 }
 
 void 
-BitcoinNode::ReceivedHigherBlock(Block newBlock)
+BitcoinNode::ReceivedHigherBlock(const Block &newBlock) 
 {
   NS_LOG_FUNCTION (this);
-  NS_LOG_DEBUG("Bitcoin node " << GetNode ()->GetId () << " added a new block in the m_blockchain with higher height: " << newBlock);
+  NS_LOG_DEBUG("ReceivedHigherBlock: Bitcoin node " << GetNode ()->GetId () << " added a new block in the m_blockchain with higher height: " << newBlock);
 }
 
 void
 BitcoinNode::SendMessage(enum Messages receivedMessage,  enum Messages responseMessage, rapidjson::Document &d, Ptr<Socket> outgoingSocket)
 {
+  NS_LOG_FUNCTION (this);
+  
   rapidjson::StringBuffer buffer;
   rapidjson::Writer<rapidjson::StringBuffer> writer(buffer);
 				
@@ -329,59 +332,65 @@ BitcoinNode::SendMessage(enum Messages receivedMessage,  enum Messages responseM
 }
 
 void 
-BitcoinNode::ValidateBlock(Block newBlock, Address from)
+BitcoinNode::ValidateBlock(const Block &newBlock, Address from) 
 {
   NS_LOG_FUNCTION (this);
   
-  std::vector<const Block *> children = m_blockchain.GetChildrenPointers(newBlock);
-  Block *parent = m_blockchain.GetParent(newBlock);
+  const Block *parent = m_blockchain.GetParent(newBlock);
   
   if (parent == nullptr)
-    NS_LOG_DEBUG("Block " << newBlock << " has no parent\n"); 
-  else 
-    NS_LOG_DEBUG("Block " << newBlock << " has parent " << *parent << "\n");
-
-  if (children.size() == 0)
   {
-    NS_LOG_DEBUG("Block " << newBlock << " has no children\n");
+    NS_LOG_DEBUG("ValidateBlock: Block " << newBlock << " is an orphan\n"); 
 	
-    /**
-     * Update m_meanBlockReceiveTime with the timeReceived of the newly received block
-     */
+	/**
+	 * Acquire parent
+	 */
+	 
+	 m_blockchain.AddOrphan(newBlock);
+	 m_blockchain.PrintOrphans();
+  }
+  else 
+  {
+    NS_LOG_DEBUG("ValidateBlock: Block's " << newBlock << " parent is " << *parent << "\n");
+
+	/**
+	 * Block is not orphan, so we can go on validating
+	 */	
+	 
 	const int averageBlockSizeBytes = 458263;
 	const double averageValidationTimeSeconds = 0.174;
 	double validationTime = averageValidationTimeSeconds * newBlock.GetBlockSizeBytes() / averageBlockSizeBytes;		
 	
     Simulator::Schedule (Seconds(validationTime), &BitcoinNode::AfterBlockValidation, this, newBlock, from);
-    NS_LOG_DEBUG ("ReceiveBlock: The Block " << newBlock << " will be validated in " 
+    NS_LOG_DEBUG ("ValidateBlock: The Block " << newBlock << " will be validated in " 
 	              << validationTime << "s");
-  }
-  else 
-  {
-    std::vector<const Block *>::iterator  block_it;
-	NS_LOG_DEBUG("Block " << newBlock << " has children:\n");
-	
-	for (block_it = children.begin();  block_it < children.end(); block_it++)
-    {
-       NS_LOG_DEBUG (*block_it);
-    }
-  }
-  
+  }  
 
 }
 
 void 
-BitcoinNode::AfterBlockValidation(Block newBlock, Address from)
+BitcoinNode::AfterBlockValidation(const Block &newBlock, Address from) 
 {
   NS_LOG_FUNCTION (this);
 
-  NS_LOG_DEBUG ("At time " << Simulator::Now ().GetSeconds ()
+  NS_LOG_DEBUG ("AfterBlockValidation: At time " << Simulator::Now ().GetSeconds ()
                << "s bitcoin node " << GetNode ()->GetId () 
 			   << " validated block " <<  newBlock);
 			   
   if (newBlock.GetBlockHeight() > m_blockchain.GetBlockchainHeight())
     ReceivedHigherBlock(newBlock);
-  
+
+  if (m_blockchain.IsOrphan(newBlock))
+  {
+    NS_LOG_DEBUG ("AfterBlockValidation: Block " << newBlock << " was orphan");
+	m_blockchain.RemoveOrphan(newBlock);
+  }
+
+  /**
+   * Add Block in the blockchain.
+   * Update m_meanBlockReceiveTime with the timeReceived of the newly received block.
+   */
+   
   m_meanBlockReceiveTime = (m_blockchain.GetTotalBlocks() - 1)/static_cast<double>(m_blockchain.GetTotalBlocks())*m_meanBlockReceiveTime 
                          + (newBlock.GetTimeReceived() - m_previousBlockReceiveTime)/(m_blockchain.GetTotalBlocks());
   m_previousBlockReceiveTime = newBlock.GetTimeReceived();
@@ -389,10 +398,12 @@ BitcoinNode::AfterBlockValidation(Block newBlock, Address from)
                              + (newBlock.GetTimeReceived() - newBlock.GetTimeCreated())/(m_blockchain.GetTotalBlocks());
   m_blockchain.AddBlock(newBlock);
   
-  AdvertiseNewBlock(newBlock, from);
+  AdvertiseNewBlock(newBlock, from);//////////////////////////////////////
+  ValidateOrphanChildren(newBlock, from);
 }  
+
 void 
-BitcoinNode::AdvertiseNewBlock (Block newBlock, Address from)
+BitcoinNode::AdvertiseNewBlock (const Block &newBlock, Address from) const
 {
   NS_LOG_FUNCTION (this);
 
@@ -436,12 +447,36 @@ BitcoinNode::AdvertiseNewBlock (Block newBlock, Address from)
       ns3TcpSocket->Close();
 	  
 
-      NS_LOG_DEBUG ("At time " << Simulator::Now ().GetSeconds ()
+      NS_LOG_DEBUG ("AdvertiseNewBlock: At time " << Simulator::Now ().GetSeconds ()
                    << "s bitcoin node " << GetNode ()->GetId () << " advertised a new Block: " 
                    << newBlock << " to " << InetSocketAddress::ConvertFrom(*i).GetIpv4 ());
     }
   }
  
+}
+
+void 
+BitcoinNode::ValidateOrphanChildren(const Block &newBlock, Address from) 
+{
+  NS_LOG_FUNCTION (this);
+
+  std::vector<const Block *> children = m_blockchain.GetOrphanChildrenPointers(newBlock);
+
+  if (children.size() == 0)
+  {
+    NS_LOG_DEBUG("ValidateOrphanChildren: Block " << newBlock << " has no orphan children\n");
+  }
+  else 
+  {
+    std::vector<const Block *>::iterator  block_it;
+	NS_LOG_DEBUG("ValidateOrphanChildren: Block " << newBlock << " has orphan children:");
+	
+	for (block_it = children.begin();  block_it < children.end(); block_it++)
+    {
+       NS_LOG_DEBUG ("\t" << **block_it);
+	   ValidateBlock (**block_it, from);
+    }
+  }
 }
 
 

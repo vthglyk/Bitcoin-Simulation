@@ -147,7 +147,7 @@ BitcoinMiner::StopApplication ()
   BitcoinNode::StopApplication ();  
   Simulator::Cancel (m_nextMiningEvent);
   
-  NS_LOG_DEBUG ("The miner " << GetNode ()->GetId () << " generated " << m_minerGeneratedBlocks 
+  NS_LOG_WARN ("The miner " << GetNode ()->GetId () << " generated " << m_minerGeneratedBlocks 
                 << " blocks "<< "(" << 100. * m_minerGeneratedBlocks / (m_blockchain.GetTotalBlocks() - 1) 
                 << "%) with average block generation time = " << m_minerAverageBlockGenTime
                 << "s or " << static_cast<int>(m_minerAverageBlockGenTime) / 60 << "min and " 
@@ -265,12 +265,21 @@ BitcoinMiner::MineBlock (void)
   d.AddMember("message", value, d.GetAllocator());
   
   value = m_blockchain.GetCurrentTopBlock()->GetBlockHeight() + 1;
+  if (GetNode ()->GetId () == 0)
+    value = 2 - m_minerGeneratedBlocks;
   d.AddMember("height", value, d.GetAllocator());
    
   value = GetNode ()->GetId ();
   d.AddMember("minerId", value, d.GetAllocator());
 
   value = m_blockchain.GetCurrentTopBlock()->GetMinerId();
+  if (GetNode ()->GetId () == 0)
+  {
+	if (d["height"].GetInt() == 1)
+      value = -1;
+    else 
+	  value = 0;
+  }
   d.AddMember("parentBlockMinerId", value, d.GetAllocator());
   
   if (m_fixedBlockSize > 0)

@@ -132,26 +132,28 @@ Blockchain::GetNoStaleBlocks (void) const
   return m_noStaleBlocks;
 }
 
+
+int 
+Blockchain::GetNoOrphans (void) const
+{
+  return m_orphans.size();
+}
+
 int 
 Blockchain::GetTotalBlocks (void) const
 {
   return m_totalBlocks;
 }
 
-Block* 
-Blockchain::GetCurrentTopBlock (void)
-{
-  return &m_blocks[m_blocks.size() - 1][0];
-}
 
 int 
-Blockchain::GetBlockchainHeight (void)
+Blockchain::GetBlockchainHeight (void) const 
 {
   return GetCurrentTopBlock()->GetBlockHeight();
 }
 
 bool 
-Blockchain::HasBlock (const Block &newBlock)
+Blockchain::HasBlock (const Block &newBlock) const
 {
   
   if (newBlock.GetBlockHeight() > GetCurrentTopBlock()->GetBlockHeight())		//The new block has a new blockHeight, so we haven't received it previously.
@@ -169,8 +171,21 @@ Blockchain::HasBlock (const Block &newBlock)
   return false;
 }
 
+bool 
+Blockchain::IsOrphan (const Block &newBlock) const
+{													
+  for (auto const &block: m_orphans) 
+  {
+    if (block == newBlock)
+	{
+	  return true;
+	}
+  }
+  return false;
+}
+
 const Block* 
-Blockchain::GetBlockPointer (const Block &newBlock)
+Blockchain::GetBlockPointer (const Block &newBlock) const
 {
   
   for (auto const &block: m_blocks[newBlock.GetBlockHeight()]) 
@@ -183,16 +198,17 @@ Blockchain::GetBlockPointer (const Block &newBlock)
   return nullptr;
 }
  
-std::vector<const Block *> 
+const std::vector<const Block *> 
 Blockchain::GetChildrenPointers (const Block &newBlock)
 {
   std::vector<const Block *> children;
   std::vector<Block>::iterator  block_it;
+  int childrenHeight = newBlock.GetBlockHeight() + 1;
   
-  if (newBlock.GetBlockHeight() + 1 > GetBlockchainHeight())
+  if (childrenHeight > GetBlockchainHeight())
     return children;
 
-  for (block_it = m_blocks[newBlock.GetBlockHeight() + 1].begin();  block_it < m_blocks[newBlock.GetBlockHeight() + 1].end(); block_it++)
+  for (block_it = m_blocks[childrenHeight].begin();  block_it < m_blocks[childrenHeight].end(); block_it++)
   {
     if (newBlock.IsParent(*block_it))
     {
@@ -202,22 +218,53 @@ Blockchain::GetChildrenPointers (const Block &newBlock)
   return children;
 }
 
-Block* 
-Blockchain::GetParent (const Block &newBlock)
+
+const std::vector<const Block *> 
+Blockchain::GetOrphanChildrenPointers (const Block &newBlock)
+{
+  std::vector<const Block *> children;
+  std::vector<Block>::iterator  block_it;
+
+  for (block_it = m_orphans.begin();  block_it < m_orphans.end(); block_it++)
+  {
+    if (newBlock.IsParent(*block_it))
+    {
+	  children.push_back(&(*block_it));
+	}
+  }
+  return children;
+}
+
+
+const Block* 
+Blockchain::GetParent (const Block &newBlock) 
 {
   std::vector<Block>::iterator  block_it;
+  int parentHeight = newBlock.GetBlockHeight() - 1;
+
+  if (parentHeight > GetBlockchainHeight())
+    return nullptr;
   
-  for (block_it = m_blocks[newBlock.GetBlockHeight() - 1].begin();  block_it < m_blocks[newBlock.GetBlockHeight() - 1].end(); block_it++)  {
+  for (block_it = m_blocks[parentHeight].begin();  block_it < m_blocks[parentHeight].end(); block_it++)  {
     if (newBlock.IsChild(*block_it))
     {
 	  return &(*block_it);
 	}
   }
+
   return nullptr;
 }
 
+
+const Block* 
+Blockchain::GetCurrentTopBlock (void) const
+{
+  return &m_blocks[m_blocks.size() - 1][0];
+}
+
+
 void 
-Blockchain::AddBlock (Block& newBlock)
+Blockchain::AddBlock (const Block& newBlock)
 {
 
   if (m_blocks.size() == 0)
@@ -251,6 +298,53 @@ Blockchain::AddBlock (Block& newBlock)
   
   m_totalBlocks++;
 }
+
+
+void 
+Blockchain::AddOrphan (const Block& newBlock)
+{
+  m_orphans.push_back(newBlock);
+}
+
+
+void 
+Blockchain::RemoveOrphan (const Block& newBlock)
+{
+  std::vector<Block>::iterator  block_it;
+
+  for (block_it = m_orphans.begin();  block_it < m_orphans.end(); block_it++)
+  {
+    if (newBlock == *block_it)
+      break;
+  }
+  
+  if (block_it == m_orphans.end())
+  {
+    // name not in vector
+	return;
+  } 
+  else
+  {
+	m_orphans.erase(block_it);
+  }
+}
+
+
+void
+Blockchain::PrintOrphans (void)
+{
+  std::vector<Block>::iterator  block_it;
+  
+  std::cout << "The orphans are:\n";
+  
+  for (block_it = m_orphans.begin();  block_it < m_orphans.end(); block_it++)
+  {
+	std::cout << *block_it << "\n";
+  }
+  
+  std::cout << "\n";
+}
+
 
 bool operator== (const Block &block1, const Block &block2)
 {

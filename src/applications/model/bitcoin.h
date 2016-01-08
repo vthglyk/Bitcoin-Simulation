@@ -64,32 +64,42 @@ public:
 
   int GetNoStaleBlocks (void) const;
   
+  int GetNoOrphans (void) const;
+  
   int GetTotalBlocks (void) const;
+  
+  int GetBlockchainHeight (void) const;
 
-  bool HasBlock (const Block &newBlock);
+  bool HasBlock (const Block &newBlock) const;
   
-  const Block* GetBlockPointer (const Block &newBlock);
+  bool IsOrphan (const Block &newBlock) const;
   
-  std::vector<const Block *> GetChildrenPointers (const Block &newBlock);  //Get the child of newBlock
+  const Block* GetBlockPointer (const Block &newBlock) const;
   
-  Block* GetParent (const Block &newBlock);  //Get the parent of newBlock
+  const std::vector<const Block *> GetChildrenPointers (const Block &newBlock);  //Get the children of newBlock
+  const std::vector<const Block *> GetOrphanChildrenPointers (const Block &newBlock);  //Get the orphan children of newBlock
+  
+  const Block* GetParent (const Block &newBlock);  //Get the parent of newBlock
 
-  Block* GetCurrentTopBlock (void);
+  const Block* GetCurrentTopBlock (void) const;
   
-  int GetBlockchainHeight (void);
+  void AddBlock (const Block& newBlock);
   
-  void AddBlock (Block& newBlock);
+  void AddOrphan (const Block& newBlock);
+  void RemoveOrphan (const Block& newBlock);
+  void PrintOrphans (void);
   
   friend std::ostream& operator<< (std::ostream &out, Blockchain &blockchain);
 
 private:
   int m_noStaleBlocks;						//total number of stale blocks
   int m_totalBlocks;						//total number of blocks including genesis block
-  std::vector<std::vector<Block>> m_blocks;	//2d vector containing all the blocks. (row->blockHeight, col->sibling blocks)
+  std::vector<std::vector<Block>> m_blocks;	//2d vector containing all the blocks of the blockchain. (row->blockHeight, col->sibling blocks)
+  std::vector<Block> m_orphans;				//vector containing the orphans
+
 
 };
 
-//bool operator== (const Block &block1, const Block &block2);
 
 }// Namespace ns3
 
