@@ -209,8 +209,8 @@ BitcoinNode::HandleRead (Ptr<Socket> socket)
             case INV:
             {
                 //NS_LOG_INFO ("INV");
-                Block newBlock (d["height"].GetInt(), d["minerId"].GetInt(), d["parentBlockMinerId"].GetInt(),
-                                d["size"].GetInt(), d["timeCreated"].GetDouble(), newBlockReceiveTime);
+                Block newBlock (d["height"].GetInt(), d["minerId"].GetInt(), d["parentBlockMinerId"].GetInt(), d["size"].GetInt(), 
+                                d["timeCreated"].GetDouble(), newBlockReceiveTime, InetSocketAddress::ConvertFrom(from).GetIpv4 ());
 								  
                 if (m_blockchain.HasBlock(newBlock))
                 {
@@ -258,10 +258,10 @@ BitcoinNode::HandleRead (Ptr<Socket> socket)
               NS_LOG_DEBUG ("BLOCK");
 
               double fullBlockReceiveTime = d["size"].GetInt() / static_cast<double>(1000000) ; //FIX ME: constant MB/s
-              Block newBlock (d["height"].GetInt(), d["minerId"].GetInt(), d["parentBlockMinerId"].GetInt(),
-                              d["size"].GetInt(), d["timeCreated"].GetDouble(), Simulator::Now ().GetSeconds () + fullBlockReceiveTime);
+              Block newBlock (d["height"].GetInt(), d["minerId"].GetInt(), d["parentBlockMinerId"].GetInt(), d["size"].GetInt(),
+                              d["timeCreated"].GetDouble(), Simulator::Now ().GetSeconds () + fullBlockReceiveTime, InetSocketAddress::ConvertFrom(from).GetIpv4 ());
 
-              Simulator::Schedule (Seconds(fullBlockReceiveTime), &BitcoinNode::ReceiveBlock, this, newBlock, from);
+              Simulator::Schedule (Seconds(fullBlockReceiveTime), &BitcoinNode::ReceiveBlock, this, newBlock);
               NS_LOG_DEBUG("The full block will be received in " << fullBlockReceiveTime << "s");
               break;
             }
@@ -288,7 +288,7 @@ BitcoinNode::HandleRead (Ptr<Socket> socket)
 }
 
 void 
-BitcoinNode::ReceiveBlock(const Block &newBlock, Address from) 
+BitcoinNode::ReceiveBlock(const Block &newBlock) 
 {
   NS_LOG_FUNCTION (this);
   NS_LOG_DEBUG ("ReceiveBlock: At time " << Simulator::Now ().GetSeconds ()
@@ -300,7 +300,7 @@ BitcoinNode::ReceiveBlock(const Block &newBlock, Address from)
   }
   else
   {
-	ValidateBlock (newBlock, from);
+	ValidateBlock (newBlock);
   }
 
 }
@@ -332,7 +332,7 @@ BitcoinNode::SendMessage(enum Messages receivedMessage,  enum Messages responseM
 }
 
 void 
-BitcoinNode::ValidateBlock(const Block &newBlock, Address from) 
+BitcoinNode::ValidateBlock(const Block &newBlock) 
 {
   NS_LOG_FUNCTION (this);
   
@@ -361,7 +361,7 @@ BitcoinNode::ValidateBlock(const Block &newBlock, Address from)
 	const double averageValidationTimeSeconds = 0.174;
 	double validationTime = averageValidationTimeSeconds * newBlock.GetBlockSizeBytes() / averageBlockSizeBytes;		
 	
-    Simulator::Schedule (Seconds(validationTime), &BitcoinNode::AfterBlockValidation, this, newBlock, from);
+    Simulator::Schedule (Seconds(validationTime), &BitcoinNode::AfterBlockValidation, this, newBlock);
     NS_LOG_DEBUG ("ValidateBlock: The Block " << newBlock << " will be validated in " 
 	              << validationTime << "s");
   }  
@@ -369,7 +369,7 @@ BitcoinNode::ValidateBlock(const Block &newBlock, Address from)
 }
 
 void 
-BitcoinNode::AfterBlockValidation(const Block &newBlock, Address from) 
+BitcoinNode::AfterBlockValidation(const Block &newBlock) 
 {
   NS_LOG_FUNCTION (this);
 
@@ -398,12 +398,12 @@ BitcoinNode::AfterBlockValidation(const Block &newBlock, Address from)
                              + (newBlock.GetTimeReceived() - newBlock.GetTimeCreated())/(m_blockchain.GetTotalBlocks());
   m_blockchain.AddBlock(newBlock);
   
-  AdvertiseNewBlock(newBlock, from);//////////////////////////////////////
-  ValidateOrphanChildren(newBlock, from);
+  AdvertiseNewBlock(newBlock);//////////////////////////////////////
+  ValidateOrphanChildren(newBlock);
 }  
 
 void 
-BitcoinNode::AdvertiseNewBlock (const Block &newBlock, Address from) const
+BitcoinNode::AdvertiseNewBlock (const Block &newBlock) const
 {
   NS_LOG_FUNCTION (this);
 
@@ -439,7 +439,7 @@ BitcoinNode::AdvertiseNewBlock (const Block &newBlock, Address from) const
   for (std::vector<Address>::const_iterator i = m_peersAddresses.begin(); i != m_peersAddresses.end(); ++i)
   {
 	
-    if ( InetSocketAddress::ConvertFrom(*i).GetIpv4 () != InetSocketAddress::ConvertFrom(from).GetIpv4 () )
+    if ( InetSocketAddress::ConvertFrom(*i).GetIpv4 () != newBlock.GetReceivedFromIpv4 () )
     {
       Ptr<Socket> ns3TcpSocket = Socket::CreateSocket (GetNode (), TcpSocketFactory::GetTypeId ());
       ns3TcpSocket->Connect(*i);
@@ -456,7 +456,7 @@ BitcoinNode::AdvertiseNewBlock (const Block &newBlock, Address from) const
 }
 
 void 
-BitcoinNode::ValidateOrphanChildren(const Block &newBlock, Address from) 
+BitcoinNode::ValidateOrphanChildren(const Block &newBlock) 
 {
   NS_LOG_FUNCTION (this);
 
@@ -474,7 +474,7 @@ BitcoinNode::ValidateOrphanChildren(const Block &newBlock, Address from)
 	for (block_it = children.begin();  block_it < children.end(); block_it++)
     {
        NS_LOG_DEBUG ("\t" << **block_it);
-	   ValidateBlock (**block_it, from);
+	   ValidateBlock (**block_it);
     }
   }
 }

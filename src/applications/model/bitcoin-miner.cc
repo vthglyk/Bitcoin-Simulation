@@ -297,8 +297,8 @@ BitcoinMiner::MineBlock (void)
   d.AddMember("timeReceived", value, d.GetAllocator());
 
   
-  Block newBlock (d["height"].GetInt(), d["minerId"].GetInt(), d["parentBlockMinerId"].GetInt(),
-                  d["size"].GetInt(), d["timeCreated"].GetDouble(), d["timeReceived"].GetDouble());
+  Block newBlock (d["height"].GetInt(), d["minerId"].GetInt(), d["parentBlockMinerId"].GetInt(), d["size"].GetInt(),
+                  d["timeCreated"].GetDouble(), d["timeReceived"].GetDouble(), Ipv4Address("127.0.0.1"));
 
   /**
    * Update m_meanBlockReceiveTime with the timeCreated of the newly generated block

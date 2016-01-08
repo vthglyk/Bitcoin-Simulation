@@ -2,6 +2,7 @@
 #define BITCOIN_H
 
 #include <vector>
+#include "ns3/address.h"
 
 namespace ns3 {
 	
@@ -20,7 +21,8 @@ const char* getMessageName(enum Messages m);
 class Block
 {
 public:
-  Block (int blockHeight, int minerId, int parentBlockMinerId, int blockSizeBytes, double timeCreated, double timeReceived);
+  Block (int blockHeight, int minerId, int parentBlockMinerId, int blockSizeBytes, 
+         double timeCreated, double timeReceived, Ipv4Address receivedFromIpv4);
   virtual ~Block (void);
  
   int GetBlockHeight (void) const;
@@ -38,6 +40,9 @@ public:
   double GetTimeCreated (void) const;
   
   double GetTimeReceived (void) const;
+
+  Ipv4Address GetReceivedFromIpv4 (void) const;
+  void SetReceivedFromIpv4 (Ipv4Address receivedFromIpv4);
   
   bool IsParent(const Block &block) const; //check if it is the parent of block
 
@@ -47,12 +52,13 @@ public:
   friend std::ostream& operator<< (std::ostream &out, const Block &block);
   
 private:	
-  int m_blockHeight;
-  int m_minerId;
-  int m_parentBlockMinerId;
-  int m_blockSizeBytes;
-  double m_timeCreated;
-  double m_timeReceived;
+  int           m_blockHeight;
+  int           m_minerId;
+  int           m_parentBlockMinerId;
+  int           m_blockSizeBytes;
+  double        m_timeCreated;
+  double        m_timeReceived;
+  Ipv4Address   m_receivedFromIpv4;
   
 };
 
@@ -92,10 +98,10 @@ public:
   friend std::ostream& operator<< (std::ostream &out, Blockchain &blockchain);
 
 private:
-  int m_noStaleBlocks;						//total number of stale blocks
-  int m_totalBlocks;						//total number of blocks including genesis block
-  std::vector<std::vector<Block>> m_blocks;	//2d vector containing all the blocks of the blockchain. (row->blockHeight, col->sibling blocks)
-  std::vector<Block> m_orphans;				//vector containing the orphans
+  int                                m_noStaleBlocks;    //total number of stale blocks
+  int                                m_totalBlocks;		 //total number of blocks including genesis block
+  std::vector<std::vector<Block>>    m_blocks;	         //2d vector containing all the blocks of the blockchain. (row->blockHeight, col->sibling blocks)
+  std::vector<Block>                 m_orphans;			 //vector containing the orphans
 
 
 };

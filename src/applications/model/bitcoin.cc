@@ -15,7 +15,8 @@ namespace ns3 {
  *
  */
 
-Block::Block(int blockHeight, int minerId, int parentBlockMinerId, int blockSizeBytes, double timeCreated, double timeReceived)
+Block::Block(int blockHeight, int minerId, int parentBlockMinerId, int blockSizeBytes, 
+             double timeCreated, double timeReceived, Ipv4Address receivedFromIpv4)
 {  
   m_blockHeight = blockHeight;
   m_minerId = minerId;
@@ -23,6 +24,8 @@ Block::Block(int blockHeight, int minerId, int parentBlockMinerId, int blockSize
   m_blockSizeBytes = blockSizeBytes;
   m_timeCreated = timeCreated;
   m_timeReceived = timeReceived;
+  m_receivedFromIpv4 = receivedFromIpv4;
+
 }
 
 Block::~Block (void)
@@ -88,6 +91,19 @@ Block::GetTimeReceived (void) const
 {
   return m_timeReceived;
 }
+  
+
+Ipv4Address 
+Block::GetReceivedFromIpv4 (void) const
+{
+  return m_receivedFromIpv4;
+}
+  
+void 
+Block::SetReceivedFromIpv4 (Ipv4Address receivedFromIpv4)
+{
+  m_receivedFromIpv4 = receivedFromIpv4;
+}
 
 bool 
 Block::IsParent(const Block &block) const
@@ -118,7 +134,7 @@ Blockchain::Blockchain(void)
 {
   m_noStaleBlocks = 0;
   m_totalBlocks = 0;
-  Block genesisBlock(0, -1, -2, 0, 0, 0);
+  Block genesisBlock(0, -1, -2, 0, 0, 0, Ipv4Address("0.0.0.0"));
   AddBlock(genesisBlock); 
 }
 
@@ -362,7 +378,8 @@ std::ostream& operator<< (std::ostream &out, const Block &block)
         "m_parentBlockMinerId: " << block.GetParentBlockMinerId() << ", " <<
 		"m_blockSizeBytes: " << block.GetBlockSizeBytes() << ", " <<
 		"m_timeCreated: " << block.GetTimeCreated() << ", " <<
-		"m_timeReceived: " << block.GetTimeReceived() <<
+		"m_timeReceived: " << block.GetTimeReceived() << ", " <<
+		"m_receivedFromIpv4: " << block.GetReceivedFromIpv4() <<
 		")";
     return out;
 }

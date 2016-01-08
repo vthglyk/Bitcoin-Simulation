@@ -82,16 +82,16 @@ protected:
    */
   void HandlePeerError (Ptr<Socket> socket);
 
-  void ReceiveBlock(const Block &newBlock, Address from);				//Called for every new block
+  void ReceiveBlock(const Block &newBlock);				//Called for every new block
   virtual void ReceivedHigherBlock(const Block &newBlock);	//Called for blocks with better score(height)
   
-  void ValidateBlock(const Block &newBlock, Address from);
-  void AfterBlockValidation(const Block &newBlock, Address from);
-  void ValidateOrphanChildren(const Block &newBlock, Address from);
+  void ValidateBlock(const Block &newBlock);
+  void AfterBlockValidation(const Block &newBlock);
+  void ValidateOrphanChildren(const Block &newBlock);
   
   void SendMessage(enum Messages receivedMessage,  enum Messages responseMessage, rapidjson::Document &d, Ptr<Socket> outgoingSocket);
  
-  void AdvertiseNewBlock (const Block &newBlock, Address from) const;
+  void AdvertiseNewBlock (const Block &newBlock) const;
 
   // In the case of TCP, each socket accept returns a new socket, so the 
   // listening socket is stored separately from the accepted sockets
