@@ -202,15 +202,14 @@ BitcoinNode::HandleRead (Ptr<Socket> socket)
                         <<  packet->GetSize () << " bytes from "
                         << InetSocketAddress::ConvertFrom(from).GetIpv4 ()
                         << " port " << InetSocketAddress::ConvertFrom (from).GetPort () 
-		        	  << " with info = " << buffer.GetString());	
+		        	    << " with info = " << buffer.GetString());	
 						
           switch (d["message"].GetInt())
           {
             case INV:
             {
                 //NS_LOG_INFO ("INV");
-                Block newBlock (d["height"].GetInt(), d["minerId"].GetInt(), d["parentBlockMinerId"].GetInt(), d["size"].GetInt(), 
-                                d["timeCreated"].GetDouble(), newBlockReceiveTime, InetSocketAddress::ConvertFrom(from).GetIpv4 ());
+                Block newBlock (d["height"].GetInt(), d["minerId"].GetInt());
 								  
                 if (m_blockchain.HasBlock(newBlock))
                 {
@@ -341,13 +340,14 @@ BitcoinNode::ValidateBlock(const Block &newBlock)
   if (parent == nullptr)
   {
     NS_LOG_DEBUG("ValidateBlock: Block " << newBlock << " is an orphan\n"); 
-	
+	 
+	 m_blockchain.AddOrphan(newBlock);
+	 m_blockchain.PrintOrphans();
+	 
 	/**
 	 * Acquire parent
 	 */
 	 
-	 m_blockchain.AddOrphan(newBlock);
-	 m_blockchain.PrintOrphans();
   }
   else 
   {

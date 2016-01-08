@@ -364,7 +364,7 @@ Blockchain::PrintOrphans (void)
 
 bool operator== (const Block &block1, const Block &block2)
 {
-  if (block1.GetBlockHeight() == block2.GetBlockHeight() && block1.GetMinerId() == block2.GetMinerId() && block1.GetParentBlockMinerId() == block2.GetParentBlockMinerId())
+  if (block1.GetBlockHeight() == block2.GetBlockHeight() && block1.GetMinerId() == block2.GetMinerId())
     return true;
   else
 	return false;

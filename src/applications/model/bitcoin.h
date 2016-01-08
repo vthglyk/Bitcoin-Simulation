@@ -21,8 +21,8 @@ const char* getMessageName(enum Messages m);
 class Block
 {
 public:
-  Block (int blockHeight, int minerId, int parentBlockMinerId, int blockSizeBytes, 
-         double timeCreated, double timeReceived, Ipv4Address receivedFromIpv4);
+  Block (int blockHeight, int minerId, int parentBlockMinerId = 0, int blockSizeBytes = 0, 
+         double timeCreated = 0, double timeReceived = 0, Ipv4Address receivedFromIpv4 = Ipv4Address("0.0.0.0"));
   virtual ~Block (void);
  
   int GetBlockHeight (void) const;
