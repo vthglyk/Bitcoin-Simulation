@@ -227,30 +227,30 @@ BitcoinNode::HandleRead (Ptr<Socket> socket)
 				int height = atoi(parsedInv.substr(0, invPos).c_str());
 				int minerId = atoi(parsedInv.substr(invPos+1, parsedInv.size()).c_str());
 				  
-                Block newBlock (height, minerId);
-								  
-                if (m_blockchain.HasBlock(newBlock))
+                								  
+                if (m_blockchain.HasBlock(height, minerId))
                 {
-                  NS_LOG_DEBUG("Bitcoin node " << GetNode ()->GetId () << " has already added this block in the m_blockchain: " << newBlock);
+                  NS_LOG_DEBUG("Bitcoin node " << GetNode ()->GetId () 
+				  << " has the block with height = " 
+				  << height << " and minerId = " << minerId);
+				  requestBlocks.push_back(parsedInv);				  
                 }
                 else
                 {
-                  /**
-                   * Request the newly advertised block
-                   */
+                  NS_LOG_DEBUG("Bitcoin node " << GetNode ()->GetId () 
+				  << " does not have the block with height = " 
+				  << height << " and minerId = " << minerId);
 				  requestBlocks.push_back(parsedInv);
-
                 }								  
 		      }
 			
 			  if (!requestBlocks.empty())
 			  {
-			    rapidjson::Value value(INV);
+			    rapidjson::Value value;
                 rapidjson::Value array(rapidjson::kArrayType);
 			  
 			    d.RemoveMember("inv");
 
-			  
                 for (block_it = requestBlocks.begin(); block_it < requestBlocks.end(); block_it++) 
                 {
                   NS_LOG_DEBUG (*block_it << " size = " << block_it->size());
@@ -271,8 +271,8 @@ BitcoinNode::HandleRead (Ptr<Socket> socket)
             case GET_HEADERS:
             {
 			  int j;
-			  std::vector<std::string> requestBlocks;
-			  std::vector<std::string>::iterator  block_it;
+			  std::vector<Block> requestBlocks;
+			  std::vector<Block>::iterator  block_it;
 			  
 			  for (j=0; j<d["blocks"].Size(); j++)
 			  {  
@@ -282,15 +282,61 @@ BitcoinNode::HandleRead (Ptr<Socket> socket)
 				  
 				int height = atoi(parsedInv.substr(0, invPos).c_str());
 				int minerId = atoi(parsedInv.substr(invPos+1, parsedInv.size()).c_str());
-				  
-                //Block newBlock (height, minerId);
+				
+                if (m_blockchain.HasBlock(height, minerId))
+                {
+                  NS_LOG_DEBUG("Bitcoin node " << GetNode ()->GetId () 
+				  << " has the block with height = " 
+				  << height << " and minerId = " << minerId);
+				  Block newBlock (m_blockchain.ReturnBlock (height, minerId));
+				  requestBlocks.push_back(newBlock);
+                }
+                else
+                {
+                  NS_LOG_DEBUG("Bitcoin node " << GetNode ()->GetId () 
+				  << " does not have the block with height = " 
+				  << height << " and minerId = " << minerId);                }	
 			  }
 			  
-              Ptr<Socket> ns3TcpSocket = Socket::CreateSocket (GetNode (), TcpSocketFactory::GetTypeId ());
-              ns3TcpSocket->Connect(InetSocketAddress (InetSocketAddress::ConvertFrom(from).GetIpv4 (), m_bitcoinPort));
-              SendMessage(GET_HEADERS, HEADERS, d, ns3TcpSocket);
-              ns3TcpSocket->Close();
+			  if (!requestBlocks.empty())
+			  {
+			    rapidjson::Value value;
+                rapidjson::Value array(rapidjson::kArrayType);
+			    rapidjson::Value blockInfo(rapidjson::kObjectType);
 
+			    d.RemoveMember("blocks");
+				
+                for (block_it = requestBlocks.begin(); block_it < requestBlocks.end(); block_it++) 
+                {
+                  NS_LOG_DEBUG ("In requestBlocks " << *block_it);
+    
+                  value = block_it->GetBlockHeight ();
+                  blockInfo.AddMember("height", value, d.GetAllocator ());
+  
+                  value = block_it->GetMinerId ();
+                  blockInfo.AddMember("minerId", value, d.GetAllocator ());
+
+                  value = block_it->GetParentBlockMinerId ();
+                  blockInfo.AddMember("parentBlockMinerId", value, d.GetAllocator ());
+  
+                  value = block_it->GetBlockSizeBytes ();
+                  blockInfo.AddMember("size", value, d.GetAllocator ());
+  
+                  value = block_it->GetTimeCreated ();
+                  blockInfo.AddMember("timeCreated", value, d.GetAllocator ());
+  
+                  value = block_it->GetTimeReceived ();							
+                  blockInfo.AddMember("timeReceived", value, d.GetAllocator ());
+				  
+                  array.PushBack(blockInfo, d.GetAllocator());
+                }	
+				
+				d.AddMember("blocks", array, d.GetAllocator());
+                Ptr<Socket> ns3TcpSocket = Socket::CreateSocket (GetNode (), TcpSocketFactory::GetTypeId ());
+                ns3TcpSocket->Connect(InetSocketAddress (InetSocketAddress::ConvertFrom(from).GetIpv4 (), m_bitcoinPort));
+                SendMessage(GET_HEADERS, HEADERS, d, ns3TcpSocket);
+                ns3TcpSocket->Close();
+			  }
               break;
             }
             case GET_DATA:
