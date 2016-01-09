@@ -80,7 +80,7 @@ public:
   int GetBlockchainHeight (void) const;
 
   bool HasBlock (const Block &newBlock) const;
-  
+  bool HasBlock (int height, int minerId) const;
   /**
    * Return the block with the specified height and minerId.
    * Should be called after HasBlock() to make sure that the block exists

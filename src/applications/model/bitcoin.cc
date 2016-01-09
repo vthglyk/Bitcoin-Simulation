@@ -213,6 +213,25 @@ Blockchain::HasBlock (const Block &newBlock) const
   return false;
 }
 
+bool 
+Blockchain::HasBlock (int height, int minerId) const
+{
+  
+  if (height > GetCurrentTopBlock()->GetBlockHeight())		//The new block has a new blockHeight, so we haven't received it previously.
+	return false;
+  else														//The new block doesn't have a new blockHeight,
+  {															//so we have to check it is new or if we have already received it.
+    for (auto const &block: m_blocks[height]) 
+    {
+      if (block.GetBlockHeight() == height && block.GetMinerId() == minerId)
+	  {
+	    return true;
+	  }
+    }
+  }
+  return false;
+}
+
 
 Block 
 Blockchain::ReturnBlock(int height, int minerId)
@@ -224,6 +243,7 @@ Blockchain::ReturnBlock(int height, int minerId)
     if (block_it->GetBlockHeight() == height && block_it->GetMinerId() == minerId)
 	  return *block_it;
   }
+  return Block(-1, -1, -1, -1, -1, -1, Ipv4Address("0.0.0.0"));
 }
 
 
