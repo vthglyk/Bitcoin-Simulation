@@ -259,53 +259,58 @@ BitcoinMiner::MineBlock (void)
 {
   NS_LOG_FUNCTION (this);
   rapidjson::Document d; 
+  int height =  m_blockchain.GetCurrentTopBlock()->GetBlockHeight() + 1;
+  int minerId = GetNode ()->GetId ();
+  int parentBlockMinerId = m_blockchain.GetCurrentTopBlock()->GetMinerId();
+  int currentTime = Simulator::Now ().GetSeconds ();
+  char buffer[20];
+  int len;
   d.SetObject();
   
+
+  
+/*   if (GetNode ()->GetId () == 0)
+    height = 2 - m_minerGeneratedBlocks; */
+   
+/*   if (GetNode ()->GetId () == 0)
+  {
+	if (height == 1)
+      minerId = -1;
+    else 
+	  minerId = 0;
+  } */
+  
   rapidjson::Value value(INV);
+  rapidjson::Value array(rapidjson::kArrayType);
   d.AddMember("message", value, d.GetAllocator());
   
-  value = m_blockchain.GetCurrentTopBlock()->GetBlockHeight() + 1;
-  if (GetNode ()->GetId () == 0)
-    value = 2 - m_minerGeneratedBlocks;
-  d.AddMember("height", value, d.GetAllocator());
-   
-  value = GetNode ()->GetId ();
-  d.AddMember("minerId", value, d.GetAllocator());
-
-  value = m_blockchain.GetCurrentTopBlock()->GetMinerId();
-  if (GetNode ()->GetId () == 0)
-  {
-	if (d["height"].GetInt() == 1)
-      value = -1;
-    else 
-	  value = 0;
-  }
-  d.AddMember("parentBlockMinerId", value, d.GetAllocator());
+  value.SetString("block");
+  d.AddMember("type", value, d.GetAllocator());
+  
+  len = sprintf(buffer, "%d/%d", height, minerId);
+  value.SetString(buffer, len, d.GetAllocator());
+  array.PushBack(value, d.GetAllocator());
+  len = sprintf(buffer, "%d/%d", height+1, minerId+100);
+  value.SetString(buffer, len, d.GetAllocator());
+  array.PushBack(value, d.GetAllocator());
+  memset(buffer, 0, sizeof(buffer));
+  d.AddMember("inv", array, d.GetAllocator());
   
   if (m_fixedBlockSize > 0)
     m_nextBlockSize = m_fixedBlockSize;
   else
     m_nextBlockSize = m_blockSizeDistribution(m_generator) * 1000;	// *1000 because the m_blockSizeDistribution returns KBytes
 
-  value = m_nextBlockSize;
-  d.AddMember("size", value, d.GetAllocator());
-  
-  value = Simulator::Now ().GetSeconds ();
-  d.AddMember("timeCreated", value, d.GetAllocator());
-  
-  value = Simulator::Now ().GetSeconds ();							//because of move policy of rapidjson
-  d.AddMember("timeReceived", value, d.GetAllocator());
 
-  
-  Block newBlock (d["height"].GetInt(), d["minerId"].GetInt(), d["parentBlockMinerId"].GetInt(), d["size"].GetInt(),
-                  d["timeCreated"].GetDouble(), d["timeReceived"].GetDouble(), Ipv4Address("127.0.0.1"));
+  Block newBlock (height, minerId, parentBlockMinerId, m_nextBlockSize,
+                  currentTime, currentTime, Ipv4Address("127.0.0.1"));
 
   /**
    * Update m_meanBlockReceiveTime with the timeCreated of the newly generated block
    */
   m_meanBlockReceiveTime = (m_blockchain.GetTotalBlocks() - 1)/static_cast<double>(m_blockchain.GetTotalBlocks())*m_meanBlockReceiveTime + 
-							(d["timeReceived"].GetDouble() - m_previousBlockReceiveTime)/(m_blockchain.GetTotalBlocks());
-  m_previousBlockReceiveTime = d["timeReceived"].GetDouble();	
+							(currentTime - m_previousBlockReceiveTime)/(m_blockchain.GetTotalBlocks());
+  m_previousBlockReceiveTime = currentTime;	
   m_meanBlockPropagationTime = (m_blockchain.GetTotalBlocks() - 1)/static_cast<double>(m_blockchain.GetTotalBlocks())*m_meanBlockPropagationTime;
   m_blockchain.AddBlock(newBlock);
   

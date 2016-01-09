@@ -145,7 +145,7 @@ BitcoinNode::StopApplication ()     // Called at time specified by Stop
 
   NS_LOG_WARN("\n\nBITCOIN NODE " << GetNode ()->GetId () << ":");
   NS_LOG_WARN ("Current Top Block is:\n" << *(m_blockchain.GetCurrentTopBlock()));
-  NS_LOG_DEBUG ("Current Blockchain is:\n" << m_blockchain);
+  NS_LOG_WARN ("Current Blockchain is:\n" << m_blockchain);
   m_blockchain.PrintOrphans();
   NS_LOG_WARN("Mean Block Receive Time = " << m_meanBlockReceiveTime << " or " 
                << static_cast<int>(m_meanBlockReceiveTime) / 60 << "min and " 
@@ -167,6 +167,11 @@ BitcoinNode::HandleRead (Ptr<Socket> socket)
   {
       if (packet->GetSize () == 0)
       { //EOF
+         break;
+      }
+	  if (packet->GetSize () == 536)
+      { //EOF
+         NS_LOG_WARN("Packet size == 536");
          break;
       }
       if (InetSocketAddress::IsMatchingType (from))
@@ -209,25 +214,37 @@ BitcoinNode::HandleRead (Ptr<Socket> socket)
             case INV:
             {
                 //NS_LOG_INFO ("INV");
-                Block newBlock (d["height"].GetInt(), d["minerId"].GetInt());
+				int j;
+				
+				for (j=0; j<d["inv"].Size(); j++)
+			    {  
+			      int height, minerId;
+			      std::string invDelimiter = "/";
+				  std::string parsedInv = d["inv"][j].GetString();
+				  size_t invPos = parsedInv.find(invDelimiter);
+				  
+				  int height = atoi(parsedInv.substr(0, invPos).c_str());
+				  int minerId = atoi(parsedInv.substr(invPos+1, parsedInv.size()).c_str());
+				  
+                  Block newBlock (height, minerId);
 								  
-                if (m_blockchain.HasBlock(newBlock))
-                {
-                  NS_LOG_DEBUG("Bitcoin node " << GetNode ()->GetId () << " has already added this block in the m_blockchain: " << newBlock);
-                }
-                else
-                {
-                  /**
-                   * Request the newly advertised block
-                   */
-                  Ptr<Socket> ns3TcpSocket = Socket::CreateSocket (GetNode (), TcpSocketFactory::GetTypeId ());
-                  ns3TcpSocket->Connect(InetSocketAddress (InetSocketAddress::ConvertFrom(from).GetIpv4 (), m_bitcoinPort));
+                  if (m_blockchain.HasBlock(newBlock))
+                  {
+                    NS_LOG_DEBUG("Bitcoin node " << GetNode ()->GetId () << " has already added this block in the m_blockchain: " << newBlock);
+                  }
+                  else
+                  {
+                    /**
+                     * Request the newly advertised block
+                     */
+                    Ptr<Socket> ns3TcpSocket = Socket::CreateSocket (GetNode (), TcpSocketFactory::GetTypeId ());
+                    ns3TcpSocket->Connect(InetSocketAddress (InetSocketAddress::ConvertFrom(from).GetIpv4 (), m_bitcoinPort));
 					
-                  SendMessage(INV, GET_HEADERS, d, ns3TcpSocket);				
-                  SendMessage(INV, GET_DATA, d, ns3TcpSocket);
-                  ns3TcpSocket->Close();
-                 }								  
-
+                    SendMessage(INV, GET_HEADERS, d, ns3TcpSocket);				
+                    SendMessage(INV, GET_DATA, d, ns3TcpSocket);
+                    ns3TcpSocket->Close();
+                   }								  
+				}
                  break;
             }
             case GET_HEADERS:

@@ -38,7 +38,7 @@ main (int argc, char *argv[])
   int xSize = 2;
   int ySize = 2;
   int targetNumberOfBlocks = 1;
-  int averageBlockGenerationTime = 13;
+  int averageBlockGenerationTime = 10;
   double fixedHashRate = 0.5;
   int start = 0;
   
@@ -73,21 +73,21 @@ main (int argc, char *argv[])
   uint16_t bitcoinPort = 8333;
   Address bitcoinMiner1Address (InetSocketAddress (grid.GetIpv4Address (0,0), bitcoinPort));
   Address bitcoinMiner2Address (InetSocketAddress (grid.GetIpv4Address (xSize - 1, ySize - 1), bitcoinPort));
-  Address bitcoinNodeAddress (InetSocketAddress (grid.GetIpv4Address (xSize - 1, 0), bitcoinPort));
+  Address bitcoinNode1Address (InetSocketAddress (grid.GetIpv4Address (xSize - 1, 0), bitcoinPort));
+  Address bitcoinNode2Address (InetSocketAddress (grid.GetIpv4Address (0, ySize - 1), bitcoinPort));
 
-  Address testAddress[] =  {bitcoinNodeAddress};
+  Address testAddress[] =  {bitcoinNode1Address, bitcoinNode2Address};
   std::vector<Address> peers (testAddress, testAddress + sizeof(testAddress) / sizeof(Address) );
   for (std::vector<Address>::const_iterator i = peers.begin(); i != peers.end(); ++i)
     std::cout << "testAddress: " << InetSocketAddress::ConvertFrom(*i).GetIpv4 () << std::endl;
 	
   BitcoinMinerHelper bitcoinMinerHelper ("ns3::TcpSocketFactory", InetSocketAddress (Ipv4Address::GetAny (), bitcoinPort), peers, 0.67, blockGenBinSize, blockGenParameter);
-  bitcoinMinerHelper.SetAttribute("FixedBlockIntervalGeneration", DoubleValue(300.2));
+  bitcoinMinerHelper.SetAttribute("FixedBlockIntervalGeneration", DoubleValue(300));
   ApplicationContainer bitcoinMiners = bitcoinMinerHelper.Install (grid.GetNode (0,0));
   bitcoinMinerHelper.SetAttribute("FixedBlockIntervalGeneration", DoubleValue(1300.1));
   bitcoinMinerHelper.SetAttribute("HashRate", DoubleValue(0.33));
   bitcoinMiners.Add(bitcoinMinerHelper.Install (grid.GetNode (xSize - 1, ySize - 1)));
-  //bitcoinMiners.Add(bitcoinMinerHelper.Install (grid.GetNode (0, ySize - 1)));
-  //bitcoinMiners.Add(bitcoinMinerHelper.Install (grid.GetNode (xSize - 1, 0)));
+
 
   bitcoinMiners.Start (Seconds (start));
   bitcoinMiners.Stop (Minutes (stop));
@@ -100,6 +100,7 @@ main (int argc, char *argv[])
 	
   BitcoinNodeHelper bitcoinNodeHelper ("ns3::TcpSocketFactory", InetSocketAddress (Ipv4Address::GetAny (), bitcoinPort), peers);
   ApplicationContainer bitcoinNodes = bitcoinNodeHelper.Install (grid.GetNode (xSize - 1, 0));
+  bitcoinNodes.Add(bitcoinNodeHelper.Install (grid.GetNode (0, ySize - 1)));
   bitcoinNodes.Start (Seconds (start));
   bitcoinNodes.Stop (Minutes (stop));
 
