@@ -213,39 +213,60 @@ BitcoinNode::HandleRead (Ptr<Socket> socket)
           {
             case INV:
             {
-                //NS_LOG_INFO ("INV");
-				int j;
-				
-				for (j=0; j<d["inv"].Size(); j++)
-			    {  
-			      int height, minerId;
-			      std::string invDelimiter = "/";
-				  std::string parsedInv = d["inv"][j].GetString();
-				  size_t invPos = parsedInv.find(invDelimiter);
+              //NS_LOG_INFO ("INV");
+			  int j;
+			  std::vector<std::string> requestBlocks;
+			  std::vector<std::string>::iterator  block_it;
+			  
+			  for (j=0; j<d["inv"].Size(); j++)
+			  {  
+			    std::string invDelimiter = "/";
+				std::string parsedInv = d["inv"][j].GetString();
+				size_t invPos = parsedInv.find(invDelimiter);
 				  
-				  int height = atoi(parsedInv.substr(0, invPos).c_str());
-				  int minerId = atoi(parsedInv.substr(invPos+1, parsedInv.size()).c_str());
+				int height = atoi(parsedInv.substr(0, invPos).c_str());
+				int minerId = atoi(parsedInv.substr(invPos+1, parsedInv.size()).c_str());
 				  
-                  Block newBlock (height, minerId);
+                Block newBlock (height, minerId);
 								  
-                  if (m_blockchain.HasBlock(newBlock))
-                  {
-                    NS_LOG_DEBUG("Bitcoin node " << GetNode ()->GetId () << " has already added this block in the m_blockchain: " << newBlock);
-                  }
-                  else
-                  {
-                    /**
-                     * Request the newly advertised block
-                     */
-                    Ptr<Socket> ns3TcpSocket = Socket::CreateSocket (GetNode (), TcpSocketFactory::GetTypeId ());
-                    ns3TcpSocket->Connect(InetSocketAddress (InetSocketAddress::ConvertFrom(from).GetIpv4 (), m_bitcoinPort));
+                if (m_blockchain.HasBlock(newBlock))
+                {
+                  NS_LOG_DEBUG("Bitcoin node " << GetNode ()->GetId () << " has already added this block in the m_blockchain: " << newBlock);
+                }
+                else
+                {
+                  /**
+                   * Request the newly advertised block
+                   */
+				  requestBlocks.push_back(parsedInv);
+
+                }								  
+		      }
+			
+			  if (requestBlocks.size() > 0)
+			  {
+			    rapidjson::Value value(INV);
+                rapidjson::Value array(rapidjson::kArrayType);
+			  
+			    d.RemoveMember("inv");
+
+			  
+                for (block_it = requestBlocks.begin(); block_it < requestBlocks.end(); block_it++) 
+                {
+                  NS_LOG_DEBUG (*block_it << " size = " << block_it->size());
+                  value.SetString(block_it->c_str(), block_it->size(), d.GetAllocator());
+                  array.PushBack(value, d.GetAllocator());
+                }		
+			  
+			    d.AddMember("blocks", array, d.GetAllocator());
+		        Ptr<Socket> ns3TcpSocket = Socket::CreateSocket (GetNode (), TcpSocketFactory::GetTypeId ());
+                ns3TcpSocket->Connect(InetSocketAddress (InetSocketAddress::ConvertFrom(from).GetIpv4 (), m_bitcoinPort));
 					
-                    SendMessage(INV, GET_HEADERS, d, ns3TcpSocket);				
-                    SendMessage(INV, GET_DATA, d, ns3TcpSocket);
-                    ns3TcpSocket->Close();
-                   }								  
-				}
-                 break;
+                SendMessage(INV, GET_HEADERS, d, ns3TcpSocket);				
+                SendMessage(INV, GET_DATA, d, ns3TcpSocket);
+                ns3TcpSocket->Close();
+			  }
+              break;
             }
             case GET_HEADERS:
             {
