@@ -243,7 +243,7 @@ BitcoinNode::HandleRead (Ptr<Socket> socket)
                 }								  
 		      }
 			
-			  if (requestBlocks.size() > 0)
+			  if (!requestBlocks.empty())
 			  {
 			    rapidjson::Value value(INV);
                 rapidjson::Value array(rapidjson::kArrayType);
@@ -270,6 +270,22 @@ BitcoinNode::HandleRead (Ptr<Socket> socket)
             }
             case GET_HEADERS:
             {
+			  int j;
+			  std::vector<std::string> requestBlocks;
+			  std::vector<std::string>::iterator  block_it;
+			  
+			  for (j=0; j<d["blocks"].Size(); j++)
+			  {  
+			    std::string invDelimiter = "/";
+				std::string parsedInv = d["blocks"][j].GetString();
+				size_t invPos = parsedInv.find(invDelimiter);
+				  
+				int height = atoi(parsedInv.substr(0, invPos).c_str());
+				int minerId = atoi(parsedInv.substr(invPos+1, parsedInv.size()).c_str());
+				  
+                //Block newBlock (height, minerId);
+			  }
+			  
               Ptr<Socket> ns3TcpSocket = Socket::CreateSocket (GetNode (), TcpSocketFactory::GetTypeId ());
               ns3TcpSocket->Connect(InetSocketAddress (InetSocketAddress::ConvertFrom(from).GetIpv4 (), m_bitcoinPort));
               SendMessage(GET_HEADERS, HEADERS, d, ns3TcpSocket);

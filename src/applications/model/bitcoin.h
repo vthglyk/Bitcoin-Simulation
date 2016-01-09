@@ -23,6 +23,7 @@ class Block
 public:
   Block (int blockHeight, int minerId, int parentBlockMinerId = 0, int blockSizeBytes = 0, 
          double timeCreated = 0, double timeReceived = 0, Ipv4Address receivedFromIpv4 = Ipv4Address("0.0.0.0"));
+  Block (const Block &blockSource);  // Copy constructor
   virtual ~Block (void);
  
   int GetBlockHeight (void) const;
@@ -43,11 +44,13 @@ public:
 
   Ipv4Address GetReceivedFromIpv4 (void) const;
   void SetReceivedFromIpv4 (Ipv4Address receivedFromIpv4);
+    
+  bool IsParent (const Block &block) const; //check if it is the parent of block
+
+  bool IsChild (const Block &block) const; //check if it is the child of block
   
-  bool IsParent(const Block &block) const; //check if it is the parent of block
-
-  bool IsChild(const Block &block) const; //check if it is the child of block
-
+  Block& operator= (const Block &blockSource);
+  
   friend bool operator== (const Block &block1, const Block &block2);
   friend std::ostream& operator<< (std::ostream &out, const Block &block);
   
@@ -78,6 +81,12 @@ public:
 
   bool HasBlock (const Block &newBlock) const;
   
+  /**
+   * Return the block with the specified height and minerId.
+   * Should be called after HasBlock() to make sure that the block exists
+   */
+  Block ReturnBlock(int height, int minerId);  
+
   bool IsOrphan (const Block &newBlock) const;
   
   const Block* GetBlockPointer (const Block &newBlock) const;

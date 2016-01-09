@@ -28,6 +28,19 @@ Block::Block(int blockHeight, int minerId, int parentBlockMinerId, int blockSize
 
 }
 
+Block::Block (const Block &blockSource)
+{  
+  m_blockHeight = blockSource.m_blockHeight;
+  m_minerId = blockSource.m_minerId;
+  m_parentBlockMinerId = blockSource.m_parentBlockMinerId;
+  m_blockSizeBytes = blockSource.m_blockSizeBytes;
+  m_timeCreated = blockSource.m_timeCreated;
+  m_timeReceived = blockSource.m_timeReceived;
+  m_receivedFromIpv4 = blockSource.m_receivedFromIpv4;
+
+}
+
+
 Block::~Block (void)
 {
 }
@@ -124,6 +137,19 @@ Block::IsChild(const Block &block) const
 }
 
 
+Block& 
+Block::operator= (const Block &blockSource)
+{  
+  m_blockHeight = blockSource.m_blockHeight;
+  m_minerId = blockSource.m_minerId;
+  m_parentBlockMinerId = blockSource.m_parentBlockMinerId;
+  m_blockSizeBytes = blockSource.m_blockSizeBytes;
+  m_timeCreated = blockSource.m_timeCreated;
+  m_timeReceived = blockSource.m_timeReceived;
+  m_receivedFromIpv4 = blockSource.m_receivedFromIpv4;
+
+  return *this;
+}
 /**
  *
  * Class Blockchain functions
@@ -186,6 +212,20 @@ Blockchain::HasBlock (const Block &newBlock) const
   }
   return false;
 }
+
+
+Block 
+Blockchain::ReturnBlock(int height, int minerId)
+{
+  std::vector<Block>::iterator  block_it;
+
+  for (block_it = m_blocks[height].begin();  block_it < m_blocks[height].end(); block_it++)
+  {
+    if (block_it->GetBlockHeight() == height && block_it->GetMinerId() == minerId)
+	  return *block_it;
+  }
+}
+
 
 bool 
 Blockchain::IsOrphan (const Block &newBlock) const
