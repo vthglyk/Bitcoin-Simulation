@@ -138,6 +138,11 @@ BitcoinMiner::StartApplication ()    // Called at time specified by Start
     m_blockSizeDistribution = std::piecewise_constant_distribution<double> (intervals.begin(), intervals.end(), weights.begin());
   }
   
+/*   if (GetNode()->GetId() == 0)
+  {
+    Block newBlock(1, 0, -1, 500000, 0, 0, Ipv4Address("0.0.0.0"));
+    m_blockchain.AddBlock(newBlock); 
+  } */
   ScheduleNextMiningEvent ();
 }
 
@@ -271,16 +276,17 @@ BitcoinMiner::MineBlock (void)
   
   
 /*   //For attacks
-    if (GetNode ()->GetId () == 0)
-    height = 2 - m_minerGeneratedBlocks; 
+   if (GetNode ()->GetId () == 0)
+     height = 2 - m_minerGeneratedBlocks; 
    
    if (GetNode ()->GetId () == 0)
-  {
+   {
 	if (height == 1)
-      minerId = -1;
+      parentBlockMinerId = -1;
     else 
-	  minerId = 0;
-  } */
+	  parentBlockMinerId = 0;
+   } */
+   
   
   rapidjson::Value value(INV);
   rapidjson::Value array(rapidjson::kArrayType);
@@ -298,7 +304,7 @@ BitcoinMiner::MineBlock (void)
   stringStream.str(std::string());
   blockHash.clear();
   
-  stringStream << height+1 << "/" << minerId+100;
+  stringStream << height << "/" << minerId;
   blockHash = stringStream.str();
   value.SetString(blockHash.c_str(), blockHash.size(), d.GetAllocator()); 
   array.PushBack(value, d.GetAllocator()); */

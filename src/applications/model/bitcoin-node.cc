@@ -430,6 +430,78 @@ BitcoinNode::HandleRead (Ptr<Socket> socket)
             case HEADERS:
             {
               NS_LOG_DEBUG ("HEADERS");
+			  
+			  std::vector<std::string> requestBlocks;
+			  std::vector<std::string>::iterator  block_it;
+			  int j;
+			  
+			  for (j=0; j<d["blocks"].Size(); j++)
+			  {  
+		        int parentHeight = d["blocks"][j]["height"].GetInt() - 1;
+                int parentMinerId = d["blocks"][j]["parentBlockMinerId"].GetInt();			
+                std::ostringstream stringStream;  
+                std::string blockHash = stringStream.str();
+				
+				stringStream << parentHeight << "/" << parentMinerId;
+                blockHash = stringStream.str();
+				
+				if (!m_blockchain.HasBlock(parentHeight, parentMinerId))
+				{				  
+				  NS_LOG_DEBUG("The Block with height = " << d["blocks"][j]["height"].GetInt() 
+				               << " and minerId = " << d["blocks"][j]["minerId"].GetInt() 
+							   << " is an orphan\n");
+				  
+				  /**
+	               * Acquire parent
+	               */
+	  
+				  if (m_queueInv.find(blockHash) == m_queueInv.end())
+				  {
+				     NS_LOG_DEBUG("INV: Bitcoin node " << GetNode ()->GetId ()
+				                  << " has not requested the block yet");
+				     requestBlocks.push_back(blockHash.c_str());
+				  }
+				  else
+				  {
+				     NS_LOG_DEBUG("INV: Bitcoin node " << GetNode ()->GetId ()
+				                  << " has already requested the block");
+				  }
+				  
+				  m_queueInv[blockHash].push_back(from);
+				  //PrintQueueInv();
+				  
+				}
+				else
+				{
+				  /**
+	               * Block is not orphan, so we can go on validating
+	               */
+				  NS_LOG_DEBUG("The Block with height = " << d["blocks"][j]["height"].GetInt() 
+				               << " and minerId = " << d["blocks"][j]["minerId"].GetInt() 
+							   << " is NOT an orphan\n");			    }
+			  }
+			  
+			  if (!requestBlocks.empty())
+			  {
+			    rapidjson::Value value;
+                rapidjson::Value array(rapidjson::kArrayType);
+			  
+			    d.RemoveMember("blocks");
+
+                for (block_it = requestBlocks.begin(); block_it < requestBlocks.end(); block_it++) 
+                {
+                  value.SetString(block_it->c_str(), block_it->size(), d.GetAllocator());
+                  array.PushBack(value, d.GetAllocator());
+                }		
+			  
+			    d.AddMember("blocks", array, d.GetAllocator());
+		        Ptr<Socket> ns3TcpSocket = Socket::CreateSocket (GetNode (), TcpSocketFactory::GetTypeId ());
+                ns3TcpSocket->Connect(InetSocketAddress (InetSocketAddress::ConvertFrom(from).GetIpv4 (), m_bitcoinPort));
+					
+                SendMessage(HEADERS, GET_HEADERS, d, ns3TcpSocket);				
+                SendMessage(HEADERS, GET_DATA, d, ns3TcpSocket);
+                ns3TcpSocket->Close();
+			  }
               break;
             }
 		    case BLOCK:
@@ -516,12 +588,7 @@ BitcoinNode::ValidateBlock(const Block &newBlock)
     NS_LOG_DEBUG("ValidateBlock: Block " << newBlock << " is an orphan\n"); 
 	 
 	 m_blockchain.AddOrphan(newBlock);
-	 //m_blockchain.PrintOrphans();
-	 
-	/**
-	 * Acquire parent
-	 */
-	 
+	 m_blockchain.PrintOrphans();
   }
   else 
   {
