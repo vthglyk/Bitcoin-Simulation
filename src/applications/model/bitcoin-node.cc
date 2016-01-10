@@ -180,7 +180,7 @@ BitcoinNode::HandleRead (Ptr<Socket> socket)
          * We may receive more than one packets simultaneously on the socket,
          * so we have to parse each one of them.
          */
-        std::string delimiter = "}";
+        std::string delimiter = "#";
         std::string parsedPacket;
         size_t pos = 0;
         char *packetInfo = new char[packet->GetSize () + 1];
@@ -192,7 +192,7 @@ BitcoinNode::HandleRead (Ptr<Socket> socket)
 		  
         while ((pos = totalReceivedData.find(delimiter)) != std::string::npos) 
         {
-          parsedPacket = totalReceivedData.substr(0, pos + 1);
+          parsedPacket = totalReceivedData.substr(0, pos);
           NS_LOG_DEBUG("Node " << GetNode ()->GetId () << " Parsed Packet: " << parsedPacket);
 		  
           rapidjson::Document d;
@@ -230,14 +230,14 @@ BitcoinNode::HandleRead (Ptr<Socket> socket)
                 								  
                 if (m_blockchain.HasBlock(height, minerId))
                 {
-                  NS_LOG_DEBUG("Bitcoin node " << GetNode ()->GetId () 
+                  NS_LOG_DEBUG("INV: Bitcoin node " << GetNode ()->GetId () 
 				  << " has the block with height = " 
 				  << height << " and minerId = " << minerId);
 				  requestBlocks.push_back(parsedInv);				  
                 }
                 else
                 {
-                  NS_LOG_DEBUG("Bitcoin node " << GetNode ()->GetId () 
+                  NS_LOG_DEBUG("INV: Bitcoin node " << GetNode ()->GetId () 
 				  << " does not have the block with height = " 
 				  << height << " and minerId = " << minerId);
 				  requestBlocks.push_back(parsedInv);
@@ -285,7 +285,7 @@ BitcoinNode::HandleRead (Ptr<Socket> socket)
 				
                 if (m_blockchain.HasBlock(height, minerId))
                 {
-                  NS_LOG_DEBUG("Bitcoin node " << GetNode ()->GetId () 
+                  NS_LOG_DEBUG("GET_HEADERS: Bitcoin node " << GetNode ()->GetId () 
 				  << " has the block with height = " 
 				  << height << " and minerId = " << minerId);
 				  Block newBlock (m_blockchain.ReturnBlock (height, minerId));
@@ -293,7 +293,7 @@ BitcoinNode::HandleRead (Ptr<Socket> socket)
                 }
                 else
                 {
-                  NS_LOG_DEBUG("Bitcoin node " << GetNode ()->GetId () 
+                  NS_LOG_DEBUG("GET_HEADERS: Bitcoin node " << GetNode ()->GetId () 
 				  << " does not have the block with height = " 
 				  << height << " and minerId = " << minerId);                }	
 			  }
@@ -356,7 +356,7 @@ BitcoinNode::HandleRead (Ptr<Socket> socket)
 				
                 if (m_blockchain.HasBlock(height, minerId))
                 {
-                  NS_LOG_DEBUG("Bitcoin node " << GetNode ()->GetId () 
+                  NS_LOG_DEBUG("GET_DATA: Bitcoin node " << GetNode ()->GetId () 
 				  << " has the block with height = " 
 				  << height << " and minerId = " << minerId);
 				  Block newBlock (m_blockchain.ReturnBlock (height, minerId));
@@ -364,7 +364,7 @@ BitcoinNode::HandleRead (Ptr<Socket> socket)
                 }
                 else
                 {
-                  NS_LOG_DEBUG("Bitcoin node " << GetNode ()->GetId () 
+                  NS_LOG_DEBUG("GET_DATA: Bitcoin node " << GetNode ()->GetId () 
 				  << " does not have the block with height = " 
 				  << height << " and minerId = " << minerId);                }	
 			  }
@@ -418,13 +418,19 @@ BitcoinNode::HandleRead (Ptr<Socket> socket)
 		    case BLOCK:
 		    {
               NS_LOG_DEBUG ("BLOCK");
+              int j;
+			  double fullBlockReceiveTime = 0;
+			  
+			  for (j=0; j<d["blocks"].Size(); j++)
+			  {  
+                fullBlockReceiveTime = d["blocks"][j]["size"].GetInt() / static_cast<double>(1000000) + fullBlockReceiveTime; //FIX ME: constant MB/s
+                Block newBlock (d["blocks"][j]["height"].GetInt(), d["blocks"][j]["minerId"].GetInt(), d["blocks"][j]["parentBlockMinerId"].GetInt(), 
+				                d["blocks"][j]["size"].GetInt(), d["blocks"][j]["timeCreated"].GetDouble(), 
+							    Simulator::Now ().GetSeconds () + fullBlockReceiveTime, InetSocketAddress::ConvertFrom(from).GetIpv4 ());
 
-              double fullBlockReceiveTime = d["size"].GetInt() / static_cast<double>(1000000) ; //FIX ME: constant MB/s
-              Block newBlock (d["height"].GetInt(), d["minerId"].GetInt(), d["parentBlockMinerId"].GetInt(), d["size"].GetInt(),
-                              d["timeCreated"].GetDouble(), Simulator::Now ().GetSeconds () + fullBlockReceiveTime, InetSocketAddress::ConvertFrom(from).GetIpv4 ());
-
-              Simulator::Schedule (Seconds(fullBlockReceiveTime), &BitcoinNode::ReceiveBlock, this, newBlock);
-              NS_LOG_DEBUG("The full block will be received in " << fullBlockReceiveTime << "s");
+                Simulator::Schedule (Seconds(fullBlockReceiveTime), &BitcoinNode::ReceiveBlock, this, newBlock);
+				NS_LOG_DEBUG("The full block " << newBlock << " will be received in " << fullBlockReceiveTime << "s");
+			  }
               break;
             }
             default:
@@ -490,7 +496,8 @@ BitcoinNode::SendMessage(enum Messages receivedMessage,  enum Messages responseM
 			   << " message: " << buffer.GetString());
 				
   outgoingSocket->Send (reinterpret_cast<const uint8_t*>(buffer.GetString()), buffer.GetSize(), 0);
-				
+  const uint8_t delimiter[] = "#";
+  outgoingSocket->Send (delimiter, 1, 0);		
 }
 
 void 
@@ -570,29 +577,23 @@ BitcoinNode::AdvertiseNewBlock (const Block &newBlock) const
 {
   NS_LOG_FUNCTION (this);
 
-  rapidjson::Document d; 
+  rapidjson::Document d;
+  rapidjson::Value value(INV);
+  rapidjson::Value array(rapidjson::kArrayType);  
+  char buffer[20];
+  int len;
   d.SetObject();
   
-  rapidjson::Value value (INV);
-  d.AddMember("message", value, d.GetAllocator ());
+  d.AddMember("message", value, d.GetAllocator());
   
-  value = newBlock.GetBlockHeight ();
-  d.AddMember("height", value, d.GetAllocator ());
+  value.SetString("block");
+  d.AddMember("type", value, d.GetAllocator());
   
-  value = newBlock.GetMinerId ();
-  d.AddMember("minerId", value, d.GetAllocator ());
-
-  value = newBlock.GetParentBlockMinerId ();
-  d.AddMember("parentBlockMinerId", value, d.GetAllocator ());
-  
-  value = newBlock.GetBlockSizeBytes ();
-  d.AddMember("size", value, d.GetAllocator ());
-  
-  value = newBlock.GetTimeCreated ();
-  d.AddMember("timeCreated", value, d.GetAllocator ());
-  
-  value = newBlock.GetTimeReceived ();							
-  d.AddMember("timeReceived", value, d.GetAllocator ());
+  len = sprintf(buffer, "%d/%d", newBlock.GetBlockHeight (), newBlock.GetMinerId ());
+  value.SetString(buffer, len, d.GetAllocator());
+  array.PushBack(value, d.GetAllocator());
+  memset(buffer, 0, sizeof(buffer));
+  d.AddMember("inv", array, d.GetAllocator());
 
   // Stringify the DOM
   rapidjson::StringBuffer packetInfo;
@@ -607,6 +608,8 @@ BitcoinNode::AdvertiseNewBlock (const Block &newBlock) const
       Ptr<Socket> ns3TcpSocket = Socket::CreateSocket (GetNode (), TcpSocketFactory::GetTypeId ());
       ns3TcpSocket->Connect(*i);
       ns3TcpSocket->Send (reinterpret_cast<const uint8_t*>(packetInfo.GetString()), packetInfo.GetSize(), 0);
+	  const uint8_t delimiter[] = "#";
+	  ns3TcpSocket->Send (delimiter, 1, 0);
       ns3TcpSocket->Close();
 	  
 

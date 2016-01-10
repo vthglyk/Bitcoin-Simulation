@@ -326,6 +326,8 @@ BitcoinMiner::MineBlock (void)
     Ptr<Socket> ns3TcpSocket = Socket::CreateSocket (GetNode (), TcpSocketFactory::GetTypeId ());
     ns3TcpSocket->Connect(*i);
     ns3TcpSocket->Send (reinterpret_cast<const uint8_t*>(packetInfo.GetString()), packetInfo.GetSize(), 0);
+	const uint8_t delimiter[] = "#";
+	ns3TcpSocket->Send (delimiter, 1, 0);
     ns3TcpSocket->Close();
   }
 
