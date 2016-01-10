@@ -145,8 +145,9 @@ BitcoinNode::StopApplication ()     // Called at time specified by Stop
 
   NS_LOG_WARN("\n\nBITCOIN NODE " << GetNode ()->GetId () << ":");
   NS_LOG_WARN ("Current Top Block is:\n" << *(m_blockchain.GetCurrentTopBlock()));
-  NS_LOG_WARN ("Current Blockchain is:\n" << m_blockchain);
+  NS_LOG_DEBUG ("Current Blockchain is:\n" << m_blockchain);
   m_blockchain.PrintOrphans();
+  PrintQueueInv();
   NS_LOG_WARN("Mean Block Receive Time = " << m_meanBlockReceiveTime << " or " 
                << static_cast<int>(m_meanBlockReceiveTime) / 60 << "min and " 
 			   << m_meanBlockReceiveTime - static_cast<int>(m_meanBlockReceiveTime) / 60 * 60 << "s");
@@ -232,15 +233,32 @@ BitcoinNode::HandleRead (Ptr<Socket> socket)
                 {
                   NS_LOG_DEBUG("INV: Bitcoin node " << GetNode ()->GetId () 
 				  << " has the block with height = " 
-				  << height << " and minerId = " << minerId);
-				  requestBlocks.push_back(parsedInv);				  
+				  << height << " and minerId = " << minerId);				  
                 }
                 else
                 {
                   NS_LOG_DEBUG("INV: Bitcoin node " << GetNode ()->GetId () 
 				  << " does not have the block with height = " 
 				  << height << " and minerId = " << minerId);
-				  requestBlocks.push_back(parsedInv);
+				  
+				  /**
+				   * Check if we have already request the block
+				   */
+				   
+				  if (m_queueInv.find(parsedInv) == m_queueInv.end())
+				  {
+				     NS_LOG_DEBUG("INV: Bitcoin node " << GetNode ()->GetId ()
+				                  << " has not requested the block yet");
+				     requestBlocks.push_back(parsedInv);
+				  }
+				  else
+				  {
+				     NS_LOG_DEBUG("INV: Bitcoin node " << GetNode ()->GetId ()
+				                  << " has already requested the block");
+				  }
+				  
+				  m_queueInv[parsedInv].push_back(from);
+				  //PrintQueueInv();
                 }								  
 		      }
 			
@@ -253,7 +271,6 @@ BitcoinNode::HandleRead (Ptr<Socket> socket)
 
                 for (block_it = requestBlocks.begin(); block_it < requestBlocks.end(); block_it++) 
                 {
-                  NS_LOG_DEBUG (*block_it << " size = " << block_it->size());
                   value.SetString(block_it->c_str(), block_it->size(), d.GetAllocator());
                   array.PushBack(value, d.GetAllocator());
                 }		
@@ -468,6 +485,12 @@ BitcoinNode::ReceiveBlock(const Block &newBlock)
   }
   else
   {
+	std::ostringstream stringStream;
+    stringStream << newBlock.GetBlockHeight() << "/" << newBlock.GetMinerId();
+    std::string blockHash = stringStream.str();
+	//PrintQueueInv();
+	m_queueInv.erase(blockHash);
+    //PrintQueueInv();
 	ValidateBlock (newBlock);
   }
 
@@ -480,25 +503,6 @@ BitcoinNode::ReceivedHigherBlock(const Block &newBlock)
   NS_LOG_DEBUG("ReceivedHigherBlock: Bitcoin node " << GetNode ()->GetId () << " added a new block in the m_blockchain with higher height: " << newBlock);
 }
 
-void
-BitcoinNode::SendMessage(enum Messages receivedMessage,  enum Messages responseMessage, rapidjson::Document &d, Ptr<Socket> outgoingSocket)
-{
-  NS_LOG_FUNCTION (this);
-  
-  rapidjson::StringBuffer buffer;
-  rapidjson::Writer<rapidjson::StringBuffer> writer(buffer);
-				
-  d["message"].SetInt(responseMessage);
-  d.Accept(writer);
-  NS_LOG_DEBUG ("Node " << GetNode ()->GetId () << " got a " 
-               << getMessageName(receivedMessage) << " message" 
-               << " and sent a " << getMessageName(responseMessage) 
-			   << " message: " << buffer.GetString());
-				
-  outgoingSocket->Send (reinterpret_cast<const uint8_t*>(buffer.GetString()), buffer.GetSize(), 0);
-  const uint8_t delimiter[] = "#";
-  outgoingSocket->Send (delimiter, 1, 0);		
-}
 
 void 
 BitcoinNode::ValidateBlock(const Block &newBlock) 
@@ -512,7 +516,7 @@ BitcoinNode::ValidateBlock(const Block &newBlock)
     NS_LOG_DEBUG("ValidateBlock: Block " << newBlock << " is an orphan\n"); 
 	 
 	 m_blockchain.AddOrphan(newBlock);
-	 m_blockchain.PrintOrphans();
+	 //m_blockchain.PrintOrphans();
 	 
 	/**
 	 * Acquire parent
@@ -572,6 +576,32 @@ BitcoinNode::AfterBlockValidation(const Block &newBlock)
   ValidateOrphanChildren(newBlock);
 }  
 
+
+void 
+BitcoinNode::ValidateOrphanChildren(const Block &newBlock) 
+{
+  NS_LOG_FUNCTION (this);
+
+  std::vector<const Block *> children = m_blockchain.GetOrphanChildrenPointers(newBlock);
+
+  if (children.size() == 0)
+  {
+    NS_LOG_DEBUG("ValidateOrphanChildren: Block " << newBlock << " has no orphan children\n");
+  }
+  else 
+  {
+    std::vector<const Block *>::iterator  block_it;
+	NS_LOG_DEBUG("ValidateOrphanChildren: Block " << newBlock << " has orphan children:");
+	
+	for (block_it = children.begin();  block_it < children.end(); block_it++)
+    {
+       NS_LOG_DEBUG ("\t" << **block_it);
+	   ValidateBlock (**block_it);
+    }
+  }
+}
+
+
 void 
 BitcoinNode::AdvertiseNewBlock (const Block &newBlock) const
 {
@@ -580,8 +610,8 @@ BitcoinNode::AdvertiseNewBlock (const Block &newBlock) const
   rapidjson::Document d;
   rapidjson::Value value(INV);
   rapidjson::Value array(rapidjson::kArrayType);  
-  char buffer[20];
-  int len;
+  std::ostringstream stringStream;  
+  std::string blockHash = stringStream.str();
   d.SetObject();
   
   d.AddMember("message", value, d.GetAllocator());
@@ -589,10 +619,10 @@ BitcoinNode::AdvertiseNewBlock (const Block &newBlock) const
   value.SetString("block");
   d.AddMember("type", value, d.GetAllocator());
   
-  len = sprintf(buffer, "%d/%d", newBlock.GetBlockHeight (), newBlock.GetMinerId ());
-  value.SetString(buffer, len, d.GetAllocator());
+  stringStream << newBlock.GetBlockHeight () << "/" << newBlock.GetMinerId ();
+  blockHash = stringStream.str();
+  value.SetString(blockHash.c_str(), blockHash.size(), d.GetAllocator());
   array.PushBack(value, d.GetAllocator());
-  memset(buffer, 0, sizeof(buffer));
   d.AddMember("inv", array, d.GetAllocator());
 
   // Stringify the DOM
@@ -621,28 +651,45 @@ BitcoinNode::AdvertiseNewBlock (const Block &newBlock) const
  
 }
 
-void 
-BitcoinNode::ValidateOrphanChildren(const Block &newBlock) 
+
+void
+BitcoinNode::SendMessage(enum Messages receivedMessage,  enum Messages responseMessage, rapidjson::Document &d, Ptr<Socket> outgoingSocket)
 {
   NS_LOG_FUNCTION (this);
+  
+  rapidjson::StringBuffer buffer;
+  rapidjson::Writer<rapidjson::StringBuffer> writer(buffer);
+				
+  d["message"].SetInt(responseMessage);
+  d.Accept(writer);
+  NS_LOG_DEBUG ("Node " << GetNode ()->GetId () << " got a " 
+               << getMessageName(receivedMessage) << " message" 
+               << " and sent a " << getMessageName(responseMessage) 
+			   << " message: " << buffer.GetString());
+				
+  outgoingSocket->Send (reinterpret_cast<const uint8_t*>(buffer.GetString()), buffer.GetSize(), 0);
+  const uint8_t delimiter[] = "#";
+  outgoingSocket->Send (delimiter, 1, 0);		
+}
 
-  std::vector<const Block *> children = m_blockchain.GetOrphanChildrenPointers(newBlock);
 
-  if (children.size() == 0)
+void 
+BitcoinNode::PrintQueueInv()
+{
+  std::cout << "The queueINV is:\n";
+  
+  for(auto &elem : m_queueInv)
   {
-    NS_LOG_DEBUG("ValidateOrphanChildren: Block " << newBlock << " has no orphan children\n");
-  }
-  else 
-  {
-    std::vector<const Block *>::iterator  block_it;
-	NS_LOG_DEBUG("ValidateOrphanChildren: Block " << newBlock << " has orphan children:");
+    std::vector<Address>::iterator  block_it;
+    std::cout << "  " << elem.first << ":";
 	
-	for (block_it = children.begin();  block_it < children.end(); block_it++)
+	for (block_it = elem.second.begin();  block_it < elem.second.end(); block_it++)
     {
-       NS_LOG_DEBUG ("\t" << **block_it);
-	   ValidateBlock (**block_it);
+      std::cout << " " << InetSocketAddress::ConvertFrom(*block_it).GetIpv4 ();
     }
+    std::cout << "\n";
   }
+  std::cout << "\n";
 }
 
 

@@ -89,10 +89,12 @@ protected:
   void AfterBlockValidation(const Block &newBlock);
   void ValidateOrphanChildren(const Block &newBlock);
   
-  void SendMessage(enum Messages receivedMessage,  enum Messages responseMessage, rapidjson::Document &d, Ptr<Socket> outgoingSocket);
- 
   void AdvertiseNewBlock (const Block &newBlock) const;
 
+  void SendMessage(enum Messages receivedMessage,  enum Messages responseMessage, rapidjson::Document &d, Ptr<Socket> outgoingSocket);
+
+  void PrintQueueInv();
+  
   // In the case of TCP, each socket accept returns a new socket, so the 
   // listening socket is stored separately from the accepted sockets
   Ptr<Socket>     m_socket;       //!< Listening socket
@@ -106,6 +108,7 @@ protected:
   double		  m_meanBlockPropagationTime;
 
   std::vector<Address>		  m_peersAddresses; //!< The addresses of peers
+  std::map<std::string, std::vector<Address>> m_queueInv; //map holding the addresses of nodes which sent an INV for a particular block
   Blockchain 				  m_blockchain;
   
   /// Traced Callback: received packets, source address.

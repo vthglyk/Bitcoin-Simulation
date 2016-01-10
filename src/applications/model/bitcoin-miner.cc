@@ -263,16 +263,18 @@ BitcoinMiner::MineBlock (void)
   int minerId = GetNode ()->GetId ();
   int parentBlockMinerId = m_blockchain.GetCurrentTopBlock()->GetMinerId();
   int currentTime = Simulator::Now ().GetSeconds ();
-  char buffer[20];
-  int len;
+  std::ostringstream stringStream;  
+  std::string blockHash = stringStream.str();
   d.SetObject();
   
 
   
-/*   if (GetNode ()->GetId () == 0)
-    height = 2 - m_minerGeneratedBlocks; */
+  
+/*   //For attacks
+    if (GetNode ()->GetId () == 0)
+    height = 2 - m_minerGeneratedBlocks; 
    
-/*   if (GetNode ()->GetId () == 0)
+   if (GetNode ()->GetId () == 0)
   {
 	if (height == 1)
       minerId = -1;
@@ -287,13 +289,20 @@ BitcoinMiner::MineBlock (void)
   value.SetString("block");
   d.AddMember("type", value, d.GetAllocator());
   
-  len = sprintf(buffer, "%d/%d", height, minerId);
-  value.SetString(buffer, len, d.GetAllocator());
+  stringStream << height << "/" << minerId;
+  blockHash = stringStream.str();
+  value.SetString(blockHash.c_str(), blockHash.size(), d.GetAllocator());
   array.PushBack(value, d.GetAllocator());
-  len = sprintf(buffer, "%d/%d", height+1, minerId+100);
-  value.SetString(buffer, len, d.GetAllocator());
-  array.PushBack(value, d.GetAllocator());
-  memset(buffer, 0, sizeof(buffer));
+ 
+/*   stringStream.clear();
+  stringStream.str(std::string());
+  blockHash.clear();
+  
+  stringStream << height+1 << "/" << minerId+100;
+  blockHash = stringStream.str();
+  value.SetString(blockHash.c_str(), blockHash.size(), d.GetAllocator()); 
+  array.PushBack(value, d.GetAllocator()); */
+  
   d.AddMember("inv", array, d.GetAllocator());
   
   if (m_fixedBlockSize > 0)

@@ -37,7 +37,7 @@ main (int argc, char *argv[])
   const int secsPerMin = 60;
   int xSize = 2;
   int ySize = 2;
-  int targetNumberOfBlocks = 1;
+  int targetNumberOfBlocks = 1000;
   int averageBlockGenerationTime = 10;
   double fixedHashRate = 0.5;
   int start = 0;
@@ -50,9 +50,9 @@ main (int argc, char *argv[])
   CommandLine cmd;
   cmd.Parse(argc, argv);
   
-  LogComponentEnable("BitcoinNode", LOG_LEVEL_DEBUG);
-  LogComponentEnable("BitcoinMiner", LOG_LEVEL_DEBUG);
-  //LogComponentEnable("OnOffApplication", LOG_LEVEL_FUNCTION);
+  LogComponentEnable("BitcoinNode", LOG_LEVEL_WARN);
+  LogComponentEnable("BitcoinMiner", LOG_LEVEL_WARN);
+  //LogComponentEnable("OnOffApplication", LOG_LEVEL_DEBUG);
 
   PointToPointHelper pointToPoint;
   pointToPoint.SetDeviceAttribute ("DataRate", StringValue ("8Mbps"));
@@ -82,9 +82,9 @@ main (int argc, char *argv[])
     std::cout << "testAddress: " << InetSocketAddress::ConvertFrom(*i).GetIpv4 () << std::endl;
 	
   BitcoinMinerHelper bitcoinMinerHelper ("ns3::TcpSocketFactory", InetSocketAddress (Ipv4Address::GetAny (), bitcoinPort), peers, 0.67, blockGenBinSize, blockGenParameter);
-  bitcoinMinerHelper.SetAttribute("FixedBlockIntervalGeneration", DoubleValue(300));
+  //bitcoinMinerHelper.SetAttribute("FixedBlockIntervalGeneration", DoubleValue(300));
   ApplicationContainer bitcoinMiners = bitcoinMinerHelper.Install (grid.GetNode (0,0));
-  bitcoinMinerHelper.SetAttribute("FixedBlockIntervalGeneration", DoubleValue(1300.1));
+  //bitcoinMinerHelper.SetAttribute("FixedBlockIntervalGeneration", DoubleValue(1300.1));
   bitcoinMinerHelper.SetAttribute("HashRate", DoubleValue(0.33));
   bitcoinMiners.Add(bitcoinMinerHelper.Install (grid.GetNode (xSize - 1, ySize - 1)));
 
@@ -94,7 +94,7 @@ main (int argc, char *argv[])
 
   
   Address testAddress2[] =  {bitcoinMiner1Address, bitcoinMiner2Address};
-  peers.assign (testAddress2,testAddress2+2);
+  peers.assign (testAddress2,testAddress2 + sizeof(testAddress2) / sizeof(Address));
   for (std::vector<Address>::const_iterator i = peers.begin(); i != peers.end(); ++i)
     std::cout << "testAddress2: " << InetSocketAddress::ConvertFrom(*i).GetIpv4 () << std::endl;
 	
@@ -104,13 +104,6 @@ main (int argc, char *argv[])
   bitcoinNodes.Start (Seconds (start));
   bitcoinNodes.Stop (Minutes (stop));
 
-   // Create the OnOff applications to send TCP to the server
-/*   OnOffHelper onoff = OnOffHelper ("ns3::TcpSocketFactory", bitcoinMinerAddress);
-  onoff.SetConstantRate (DataRate (12000));
-  onoff.SetAttribute ("PacketSize", UintegerValue (1200));  
-  ApplicationContainer sourceNodes = onoff.Install (nodes.Get (0));
-  sourceNodes.Start (Seconds (0));
-  sourceNodes.Stop (Seconds (2)); */
   
   // Set up the actual simulation
   Ipv4GlobalRoutingHelper::PopulateRoutingTables ();

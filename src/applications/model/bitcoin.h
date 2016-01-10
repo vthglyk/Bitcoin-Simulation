@@ -2,6 +2,7 @@
 #define BITCOIN_H
 
 #include <vector>
+#include <map>
 #include "ns3/address.h"
 
 namespace ns3 {
