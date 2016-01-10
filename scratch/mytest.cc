@@ -53,6 +53,7 @@ main (int argc, char *argv[])
   LogComponentEnable("BitcoinNode", LOG_LEVEL_WARN);
   LogComponentEnable("BitcoinMiner", LOG_LEVEL_WARN);
   //LogComponentEnable("OnOffApplication", LOG_LEVEL_DEBUG);
+  //LogComponentEnable("OnOffApplication", LOG_LEVEL_WARN);
 
   PointToPointHelper pointToPoint;
   pointToPoint.SetDeviceAttribute ("DataRate", StringValue ("8Mbps"));

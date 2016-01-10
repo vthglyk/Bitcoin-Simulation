@@ -262,7 +262,7 @@ BitcoinMiner::MineBlock (void)
   int height =  m_blockchain.GetCurrentTopBlock()->GetBlockHeight() + 1;
   int minerId = GetNode ()->GetId ();
   int parentBlockMinerId = m_blockchain.GetCurrentTopBlock()->GetMinerId();
-  int currentTime = Simulator::Now ().GetSeconds ();
+  double currentTime = Simulator::Now ().GetSeconds ();
   std::ostringstream stringStream;  
   std::string blockHash = stringStream.str();
   d.SetObject();
