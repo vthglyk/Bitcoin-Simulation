@@ -95,10 +95,11 @@ protected:
 
   void PrintQueueInv();
   
+  void InvTimeoutExpired(std::string blockHash);
+  
   // In the case of TCP, each socket accept returns a new socket, so the 
   // listening socket is stored separately from the accepted sockets
   Ptr<Socket>     m_socket;       //!< Listening socket
-  std::list<Ptr<Socket> > m_socketList; //!< the accepted sockets
   const int		  m_bitcoinPort;
   Address         m_local;        //!< Local address to bind to
   TypeId          m_tid;          //!< Protocol TypeId
@@ -106,10 +107,13 @@ protected:
   double		  m_meanBlockReceiveTime;
   double		  m_previousBlockReceiveTime;
   double		  m_meanBlockPropagationTime;
-
-  std::vector<Address>		  m_peersAddresses; //!< The addresses of peers
-  std::map<std::string, std::vector<Address>> m_queueInv; //map holding the addresses of nodes which sent an INV for a particular block
-  Blockchain 				  m_blockchain;
+  Blockchain 	  m_blockchain;
+  Time            m_invTimeoutMinutes;
+  
+  std::list<Ptr<Socket> >                         m_socketList; //!< the accepted sockets
+  std::vector<Address>		                      m_peersAddresses; //!< The addresses of peers
+  std::map<std::string, std::vector<Address>>     m_queueInv; //map holding the addresses of nodes which sent an INV for a particular block
+  std::map<std::string, EventId>                  m_invTimeouts; //map holding the event timeouts of inv messages
   
   /// Traced Callback: received packets, source address.
   TracedCallback<Ptr<const Packet>, const Address &> m_rxTrace;
