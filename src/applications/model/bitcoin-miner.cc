@@ -264,17 +264,15 @@ BitcoinMiner::MineBlock (void)
 {
   NS_LOG_FUNCTION (this);
   rapidjson::Document d; 
-  int height =  m_blockchain.GetCurrentTopBlock()->GetBlockHeight() + 2;
+  int height =  m_blockchain.GetCurrentTopBlock()->GetBlockHeight() + 1;
   int minerId = GetNode ()->GetId ();
   int parentBlockMinerId = m_blockchain.GetCurrentTopBlock()->GetMinerId();
   double currentTime = Simulator::Now ().GetSeconds ();
   std::ostringstream stringStream;  
   std::string blockHash = stringStream.str();
+  
   d.SetObject();
-  
 
-  
-  
 /*   //For attacks
    if (GetNode ()->GetId () == 0)
      height = 2 - m_minerGeneratedBlocks; 

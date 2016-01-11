@@ -94,7 +94,8 @@ protected:
   void SendMessage(enum Messages receivedMessage,  enum Messages responseMessage, rapidjson::Document &d, Ptr<Socket> outgoingSocket);
 
   void PrintQueueInv();
-  
+  void PrintInvTimeouts();
+
   void InvTimeoutExpired(std::string blockHash);
   
   // In the case of TCP, each socket accept returns a new socket, so the 

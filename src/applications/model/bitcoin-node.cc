@@ -51,7 +51,7 @@ BitcoinNode::GetTypeId (void)
   return tid;
 }
 
-BitcoinNode::BitcoinNode (void) : m_bitcoinPort (8333), m_invTimeoutMinutes(Minutes(2))
+BitcoinNode::BitcoinNode (void) : m_bitcoinPort (8333), m_invTimeoutMinutes(Minutes(20))
 {
   NS_LOG_FUNCTION (this);
   m_socket = 0;
@@ -148,6 +148,7 @@ BitcoinNode::StopApplication ()     // Called at time specified by Stop
   NS_LOG_DEBUG ("Current Blockchain is:\n" << m_blockchain);
   m_blockchain.PrintOrphans();
   PrintQueueInv();
+  PrintInvTimeouts();
   NS_LOG_WARN("Mean Block Receive Time = " << m_meanBlockReceiveTime << " or " 
                << static_cast<int>(m_meanBlockReceiveTime) / 60 << "min and " 
 			   << m_meanBlockReceiveTime - static_cast<int>(m_meanBlockReceiveTime) / 60 * 60 << "s");
@@ -239,37 +240,38 @@ BitcoinNode::HandleRead (Ptr<Socket> socket)
                 else
                 {
                   NS_LOG_DEBUG("INV: Bitcoin node " << GetNode ()->GetId () 
-				  << " does not have the block with height = " 
-				  << height << " and minerId = " << minerId);
+                  << " does not have the block with height = " 
+                  << height << " and minerId = " << minerId);
 				  
-				  /**
-				   * Check if we have already request the block
-				   */
+                  /**
+                   * Check if we have already request the block
+                   */
 				   
-				  if (m_queueInv.find(parsedInv) == m_queueInv.end())
-				  {
-				     NS_LOG_DEBUG("INV: Bitcoin node " << GetNode ()->GetId ()
-				                  << " has not requested the block yet");
-				     requestBlocks.push_back(parsedInv);
-				     timeout = Simulator::Schedule (m_invTimeoutMinutes, &BitcoinNode::InvTimeoutExpired, this, parsedInv);
-				     m_invTimeouts[parsedInv] = timeout;
-				  }
-				  else
-				  {
-				     NS_LOG_DEBUG("INV: Bitcoin node " << GetNode ()->GetId ()
-				                  << " has already requested the block");
-				  }
+                  if (m_queueInv.find(parsedInv) == m_queueInv.end())
+                  {
+                    NS_LOG_DEBUG("INV: Bitcoin node " << GetNode ()->GetId ()
+                                 << " has not requested the block yet");
+                    requestBlocks.push_back(parsedInv);
+                    timeout = Simulator::Schedule (m_invTimeoutMinutes, &BitcoinNode::InvTimeoutExpired, this, parsedInv);
+                    m_invTimeouts[parsedInv] = timeout;
+                  }
+                  else
+                  {
+                    NS_LOG_DEBUG("INV: Bitcoin node " << GetNode ()->GetId ()
+                                 << " has already requested the block");
+                  }
 				  
-				  m_queueInv[parsedInv].push_back(from);
-				  //PrintQueueInv();
+                  m_queueInv[parsedInv].push_back(from);
+                  //PrintQueueInv();
+				  //PrintInvTimeouts();
                 }								  
-		      }
+              }
 			
-			  if (!requestBlocks.empty())
-			  {
-			    rapidjson::Value   value;
+              if (!requestBlocks.empty())
+              {
+                rapidjson::Value   value;
                 rapidjson::Value   array(rapidjson::kArrayType);
-			    d.RemoveMember("inv");
+                d.RemoveMember("inv");
 
                 for (block_it = requestBlocks.begin(); block_it < requestBlocks.end(); block_it++) 
                 {
@@ -277,8 +279,8 @@ BitcoinNode::HandleRead (Ptr<Socket> socket)
                   array.PushBack(value, d.GetAllocator());
                 }		
 			  
-			    d.AddMember("blocks", array, d.GetAllocator());
-		        Ptr<Socket> ns3TcpSocket = Socket::CreateSocket (GetNode (), TcpSocketFactory::GetTypeId ());
+                d.AddMember("blocks", array, d.GetAllocator());
+                Ptr<Socket> ns3TcpSocket = Socket::CreateSocket (GetNode (), TcpSocketFactory::GetTypeId ());
                 ns3TcpSocket->Connect(InetSocketAddress (InetSocketAddress::ConvertFrom(from).GetIpv4 (), m_bitcoinPort));
 					
                 SendMessage(INV, GET_HEADERS, d, ns3TcpSocket);				
@@ -290,41 +292,42 @@ BitcoinNode::HandleRead (Ptr<Socket> socket)
             }
             case GET_HEADERS:
             {
-			  int j;
-			  std::vector<Block>              requestBlocks;
-			  std::vector<Block>::iterator    block_it;
+              int j;
+              std::vector<Block>              requestBlocks;
+              std::vector<Block>::iterator    block_it;
 			  
-			  for (j=0; j<d["blocks"].Size(); j++)
-			  {  
-			    std::string   invDelimiter = "/";
-				std::string   parsedInv = d["blocks"][j].GetString();
-				size_t        invPos = parsedInv.find(invDelimiter);
+              for (j=0; j<d["blocks"].Size(); j++)
+              {  
+                std::string   invDelimiter = "/";
+                std::string   parsedInv = d["blocks"][j].GetString();
+                size_t        invPos = parsedInv.find(invDelimiter);
 				  
-				int height = atoi(parsedInv.substr(0, invPos).c_str());
-				int minerId = atoi(parsedInv.substr(invPos+1, parsedInv.size()).c_str());
+                int height = atoi(parsedInv.substr(0, invPos).c_str());
+                int minerId = atoi(parsedInv.substr(invPos+1, parsedInv.size()).c_str());
 				
                 if (m_blockchain.HasBlock(height, minerId))
                 {
                   NS_LOG_DEBUG("GET_HEADERS: Bitcoin node " << GetNode ()->GetId () 
-				  << " has the block with height = " 
-				  << height << " and minerId = " << minerId);
-				  Block newBlock (m_blockchain.ReturnBlock (height, minerId));
-				  requestBlocks.push_back(newBlock);
+                  << " has the block with height = " 
+                  << height << " and minerId = " << minerId);
+                  Block newBlock (m_blockchain.ReturnBlock (height, minerId));
+                  requestBlocks.push_back(newBlock);
                 }
                 else
                 {
                   NS_LOG_DEBUG("GET_HEADERS: Bitcoin node " << GetNode ()->GetId () 
-				  << " does not have the block with height = " 
-				  << height << " and minerId = " << minerId);                }	
-			  }
+                  << " does not have the block with height = " 
+                  << height << " and minerId = " << minerId);                
+                }	
+              }
 			  
-			  if (!requestBlocks.empty())
-			  {
-			    rapidjson::Value value;
+              if (!requestBlocks.empty())
+              {
+                rapidjson::Value value;
                 rapidjson::Value array(rapidjson::kArrayType);
-			    rapidjson::Value blockInfo(rapidjson::kObjectType);
+                rapidjson::Value blockInfo(rapidjson::kObjectType);
 
-			    d.RemoveMember("blocks");
+                d.RemoveMember("blocks");
 				
                 for (block_it = requestBlocks.begin(); block_it < requestBlocks.end(); block_it++) 
                 {
@@ -351,51 +354,52 @@ BitcoinNode::HandleRead (Ptr<Socket> socket)
                   array.PushBack(blockInfo, d.GetAllocator());
                 }	
 				
-				d.AddMember("blocks", array, d.GetAllocator());
+                d.AddMember("blocks", array, d.GetAllocator());
                 Ptr<Socket> ns3TcpSocket = Socket::CreateSocket (GetNode (), TcpSocketFactory::GetTypeId ());
                 ns3TcpSocket->Connect(InetSocketAddress (InetSocketAddress::ConvertFrom(from).GetIpv4 (), m_bitcoinPort));
                 SendMessage(GET_HEADERS, HEADERS, d, ns3TcpSocket);
                 ns3TcpSocket->Close();
-			  }
+              }
               break;
             }
             case GET_DATA:
             {
-			  int j;
-			  std::vector<Block>              requestBlocks;
-			  std::vector<Block>::iterator    block_it;
+              int j;
+              std::vector<Block>              requestBlocks;
+              std::vector<Block>::iterator    block_it;
 			  
-			  for (j=0; j<d["blocks"].Size(); j++)
-			  {  
-			    std::string    invDelimiter = "/";
-				std::string    parsedInv = d["blocks"][j].GetString();
-				size_t         invPos = parsedInv.find(invDelimiter);
+              for (j=0; j<d["blocks"].Size(); j++)
+              {  
+                std::string    invDelimiter = "/";
+                std::string    parsedInv = d["blocks"][j].GetString();
+                size_t         invPos = parsedInv.find(invDelimiter);
 				  
-				int height = atoi(parsedInv.substr(0, invPos).c_str());
-				int minerId = atoi(parsedInv.substr(invPos+1, parsedInv.size()).c_str());
+                int height = atoi(parsedInv.substr(0, invPos).c_str());
+                int minerId = atoi(parsedInv.substr(invPos+1, parsedInv.size()).c_str());
 				
                 if (m_blockchain.HasBlock(height, minerId))
                 {
                   NS_LOG_DEBUG("GET_DATA: Bitcoin node " << GetNode ()->GetId () 
-				  << " has the block with height = " 
-				  << height << " and minerId = " << minerId);
-				  Block newBlock (m_blockchain.ReturnBlock (height, minerId));
-				  requestBlocks.push_back(newBlock);
+                  << " has the block with height = " 
+                  << height << " and minerId = " << minerId);
+                  Block newBlock (m_blockchain.ReturnBlock (height, minerId));
+                  requestBlocks.push_back(newBlock);
                 }
                 else
                 {
                   NS_LOG_DEBUG("GET_DATA: Bitcoin node " << GetNode ()->GetId () 
-				  << " does not have the block with height = " 
-				  << height << " and minerId = " << minerId);                }	
-			  }
+                  << " does not have the block with height = " 
+                  << height << " and minerId = " << minerId);                
+                }	
+              }
 			  
-			  if (!requestBlocks.empty())
-			  {
-			    rapidjson::Value value;
+              if (!requestBlocks.empty())
+              {
+                rapidjson::Value value;
                 rapidjson::Value array(rapidjson::kArrayType);
-			    rapidjson::Value blockInfo(rapidjson::kObjectType);
+                rapidjson::Value blockInfo(rapidjson::kObjectType);
 
-			    d.RemoveMember("blocks");
+                d.RemoveMember("blocks");
 				
                 for (block_it = requestBlocks.begin(); block_it < requestBlocks.end(); block_it++) 
                 {
@@ -422,79 +426,81 @@ BitcoinNode::HandleRead (Ptr<Socket> socket)
                   array.PushBack(blockInfo, d.GetAllocator());
                 }	
 				
-				d.AddMember("blocks", array, d.GetAllocator());
+                d.AddMember("blocks", array, d.GetAllocator());
                 Ptr<Socket> ns3TcpSocket = Socket::CreateSocket (GetNode (), TcpSocketFactory::GetTypeId ());
                 ns3TcpSocket->Connect(InetSocketAddress (InetSocketAddress::ConvertFrom(from).GetIpv4 (), m_bitcoinPort));
                 SendMessage(GET_DATA, BLOCK, d, ns3TcpSocket);
                 ns3TcpSocket->Close();
-			  }
+              }
               break;
             }
             case HEADERS:
             {
               NS_LOG_DEBUG ("HEADERS");
+
+              std::vector<std::string>              requestBlocks;
+              std::vector<std::string>::iterator    block_it;
+              int j;
 			  
-			  std::vector<std::string>              requestBlocks;
-			  std::vector<std::string>::iterator    block_it;
-			  int j;
-			  
-			  for (j=0; j<d["blocks"].Size(); j++)
-			  {  
-		        int parentHeight = d["blocks"][j]["height"].GetInt() - 1;
+              for (j=0; j<d["blocks"].Size(); j++)
+              {  
+                int parentHeight = d["blocks"][j]["height"].GetInt() - 1;
                 int parentMinerId = d["blocks"][j]["parentBlockMinerId"].GetInt();
 
-			    EventId              timeout;
+                EventId              timeout;
                 std::ostringstream   stringStream;  
                 std::string          blockHash = stringStream.str();
 				
-				stringStream << parentHeight << "/" << parentMinerId;
+                stringStream << parentHeight << "/" << parentMinerId;
                 blockHash = stringStream.str();
 				
-				if (!m_blockchain.HasBlock(parentHeight, parentMinerId))
-				{				  
-				  NS_LOG_DEBUG("The Block with height = " << d["blocks"][j]["height"].GetInt() 
-				               << " and minerId = " << d["blocks"][j]["minerId"].GetInt() 
-							   << " is an orphan\n");
+                if (!m_blockchain.HasBlock(parentHeight, parentMinerId))
+                {				  
+                  NS_LOG_DEBUG("The Block with height = " << d["blocks"][j]["height"].GetInt() 
+                               << " and minerId = " << d["blocks"][j]["minerId"].GetInt() 
+                               << " is an orphan\n");
 				  
-				  /**
-	               * Acquire parent
-	               */
+                  /**
+                   * Acquire parent
+                   */
 	  
-				  if (m_queueInv.find(blockHash) == m_queueInv.end())
-				  {
-				     NS_LOG_DEBUG("INV: Bitcoin node " << GetNode ()->GetId ()
-				                  << " has not requested the block yet");
-				     requestBlocks.push_back(blockHash.c_str());
-					 timeout = Simulator::Schedule (m_invTimeoutMinutes, &BitcoinNode::InvTimeoutExpired, this, blockHash);
-				     m_invTimeouts[blockHash] = timeout;
-				  }
-				  else
-				  {
-				     NS_LOG_DEBUG("INV: Bitcoin node " << GetNode ()->GetId ()
-				                  << " has already requested the block");
-				  }
+                  if (m_queueInv.find(blockHash) == m_queueInv.end())
+                  {
+                    NS_LOG_DEBUG("INV: Bitcoin node " << GetNode ()->GetId ()
+                                 << " has not requested its parent block yet");
+                    requestBlocks.push_back(blockHash.c_str());
+                    timeout = Simulator::Schedule (m_invTimeoutMinutes, &BitcoinNode::InvTimeoutExpired, this, blockHash);
+                    m_invTimeouts[blockHash] = timeout;
+                  }
+                  else
+                  {
+                    NS_LOG_DEBUG("INV: Bitcoin node " << GetNode ()->GetId ()
+                                 << " has already requested the block");
+                  }
 				  
-				  m_queueInv[blockHash].push_back(from);
-				  //PrintQueueInv();
+                  m_queueInv[blockHash].push_back(from);
+                  //PrintQueueInv();
+				  //PrintInvTimeouts();
 				  
-				}
-				else
-				{
+                }
+                else
+                {
 				  /**
 	               * Block is not orphan, so we can go on validating
 	               */
 				  NS_LOG_DEBUG("The Block with height = " << d["blocks"][j]["height"].GetInt() 
 				               << " and minerId = " << d["blocks"][j]["minerId"].GetInt() 
-							   << " is NOT an orphan\n");			    }
-			  }
+							   << " is NOT an orphan\n");			   
+                }
+              }
 			  
-			  if (!requestBlocks.empty())
-			  {
-			    rapidjson::Value   value;
+              if (!requestBlocks.empty())
+              {
+                rapidjson::Value   value;
                 rapidjson::Value   array(rapidjson::kArrayType);
-			    Time               timeout;
+                Time               timeout;
 
-			    d.RemoveMember("blocks");
+                d.RemoveMember("blocks");
 
                 for (block_it = requestBlocks.begin(); block_it < requestBlocks.end(); block_it++) 
                 {
@@ -502,32 +508,32 @@ BitcoinNode::HandleRead (Ptr<Socket> socket)
                   array.PushBack(value, d.GetAllocator());
                 }		
 			  
-			    d.AddMember("blocks", array, d.GetAllocator());
-		        Ptr<Socket> ns3TcpSocket = Socket::CreateSocket (GetNode (), TcpSocketFactory::GetTypeId ());
+                d.AddMember("blocks", array, d.GetAllocator());
+                Ptr<Socket> ns3TcpSocket = Socket::CreateSocket (GetNode (), TcpSocketFactory::GetTypeId ());
                 ns3TcpSocket->Connect(InetSocketAddress (InetSocketAddress::ConvertFrom(from).GetIpv4 (), m_bitcoinPort));
 					
                 SendMessage(HEADERS, GET_HEADERS, d, ns3TcpSocket);				
                 SendMessage(HEADERS, GET_DATA, d, ns3TcpSocket);
                 ns3TcpSocket->Close();
-			  }
+              }
               break;
             }
-		    case BLOCK:
-		    {
+            case BLOCK:
+            {
               NS_LOG_DEBUG ("BLOCK");
               int j;
-			  double fullBlockReceiveTime = 0;
+              double fullBlockReceiveTime = 0;
 			  
-			  for (j=0; j<d["blocks"].Size(); j++)
-			  {  
+              for (j=0; j<d["blocks"].Size(); j++)
+              {  
                 fullBlockReceiveTime = d["blocks"][j]["size"].GetInt() / static_cast<double>(1000000) + fullBlockReceiveTime; //FIX ME: constant MB/s
                 Block newBlock (d["blocks"][j]["height"].GetInt(), d["blocks"][j]["minerId"].GetInt(), d["blocks"][j]["parentBlockMinerId"].GetInt(), 
-				                d["blocks"][j]["size"].GetInt(), d["blocks"][j]["timeCreated"].GetDouble(), 
-							    Simulator::Now ().GetSeconds () + fullBlockReceiveTime, InetSocketAddress::ConvertFrom(from).GetIpv4 ());
+                                d["blocks"][j]["size"].GetInt(), d["blocks"][j]["timeCreated"].GetDouble(), 
+                                Simulator::Now ().GetSeconds () + fullBlockReceiveTime, InetSocketAddress::ConvertFrom(from).GetIpv4 ());
 
                 Simulator::Schedule (Seconds(fullBlockReceiveTime), &BitcoinNode::ReceiveBlock, this, newBlock);
-				NS_LOG_DEBUG("The full block " << newBlock << " will be received in " << fullBlockReceiveTime << "s");
-			  }
+                NS_LOG_DEBUG("The full block " << newBlock << " will be received in " << fullBlockReceiveTime << "s");
+              }
               break;
             }
             default:
@@ -535,10 +541,10 @@ BitcoinNode::HandleRead (Ptr<Socket> socket)
               break;
           }
 			
-		  totalReceivedData.erase(0, pos + delimiter.length());
-		}
+          totalReceivedData.erase(0, pos + delimiter.length());
+        }
 		  
-		delete[] packetInfo;
+        delete[] packetInfo;
       }
       else if (Inet6SocketAddress::IsMatchingType (from))
       {
@@ -568,11 +574,16 @@ BitcoinNode::ReceiveBlock(const Block &newBlock)
 	std::ostringstream stringStream;
     stringStream << newBlock.GetBlockHeight() << "/" << newBlock.GetMinerId();
     std::string blockHash = stringStream.str();
+	
 	//PrintQueueInv();
+	//PrintInvTimeouts();
+	
 	m_queueInv.erase(blockHash);
 	Simulator::Cancel (m_invTimeouts[blockHash]);
 	m_invTimeouts.erase(blockHash);
+	
     //PrintQueueInv();
+	//PrintInvTimeouts();
 	ValidateBlock (newBlock);
   }
 
@@ -768,7 +779,23 @@ BitcoinNode::PrintQueueInv()
     }
     std::cout << "\n";
   }
-  std::cout << "\n";
+  std::cout << std::endl;
+}
+
+
+void 
+BitcoinNode::PrintInvTimeouts()
+{
+  NS_LOG_FUNCTION (this);
+
+  std::cout << "The m_invTimeouts is:\n";
+  
+  for(auto &elem : m_invTimeouts)
+  {
+    std::vector<Address>::iterator  block_it;
+    std::cout << "  " << elem.first << ":\n";
+  }
+  std::cout << std::endl;
 }
 
 
@@ -777,13 +804,48 @@ BitcoinNode::InvTimeoutExpired(std::string blockHash)
 {
   NS_LOG_FUNCTION (this);
 
-  NS_LOG_DEBUG ("Node " << GetNode ()->GetId () << ": The timeout for block " 
-                << blockHash << " expired");
+  NS_LOG_DEBUG ("Node " << GetNode ()->GetId () << ": At time "  << Simulator::Now ().GetSeconds ()
+                << " the timeout for block " << blockHash << " expired");
 
-  PrintQueueInv();
+  //PrintQueueInv();
+  //PrintInvTimeouts();
   m_queueInv[blockHash].erase(m_queueInv[blockHash].begin());
-  PrintQueueInv();
+  m_invTimeouts.erase(blockHash);
+  //PrintQueueInv();
+  //PrintInvTimeouts();
+  
+  if (!m_queueInv[blockHash].empty())
+  {
+    rapidjson::Document   d; 
+	EventId               timeout;
+    rapidjson::Value      value(INV);
+    rapidjson::Value      array(rapidjson::kArrayType);
+	
+    d.SetObject();
 
+    d.AddMember("message", value, d.GetAllocator());
+  
+    value.SetString("block");
+    d.AddMember("type", value, d.GetAllocator());
+	
+    value.SetString(blockHash.c_str(), blockHash.size(), d.GetAllocator());
+    array.PushBack(value, d.GetAllocator());
+    d.AddMember("blocks", array, d.GetAllocator());
+	
+    Ptr<Socket> ns3TcpSocket = Socket::CreateSocket (GetNode (), TcpSocketFactory::GetTypeId ());
+    ns3TcpSocket->Connect(InetSocketAddress (InetSocketAddress::ConvertFrom(*(m_queueInv[blockHash].begin())).GetIpv4 (), m_bitcoinPort));
+					
+    SendMessage(INV, GET_HEADERS, d, ns3TcpSocket);				
+    SendMessage(INV, GET_DATA, d, ns3TcpSocket);
+				
+    ns3TcpSocket->Close();
+	
+    timeout = Simulator::Schedule (m_invTimeoutMinutes, &BitcoinNode::InvTimeoutExpired, this, blockHash);
+    m_invTimeouts[blockHash] = timeout;
+  }
+  
+  //PrintQueueInv();
+  //PrintInvTimeouts();
 }
 
 
