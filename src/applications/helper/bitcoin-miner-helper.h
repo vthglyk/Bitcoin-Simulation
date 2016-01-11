@@ -43,7 +43,7 @@ class BitcoinMinerHelper : public BitcoinNodeHelper
    *
    */
   BitcoinMinerHelper (std::string protocol, Address address, std::vector<Address> peers,
-					  double hashRate, double blockGenBinSize, double blockGenParameter);
+					  double hashRate, double blockGenBinSize, double blockGenParameter, double averageBlockGenIntervalSeconds);
   
 protected:
   /**

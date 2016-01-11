@@ -101,7 +101,6 @@ protected:
   // In the case of TCP, each socket accept returns a new socket, so the 
   // listening socket is stored separately from the accepted sockets
   Ptr<Socket>     m_socket;       //!< Listening socket
-  const int		  m_bitcoinPort;
   Address         m_local;        //!< Local address to bind to
   TypeId          m_tid;          //!< Protocol TypeId
   int			  m_numberOfPeers; //!< Number of node's peers
@@ -116,6 +115,8 @@ protected:
   std::map<std::string, std::vector<Address>>     m_queueInv; //map holding the addresses of nodes which sent an INV for a particular block
   std::map<std::string, EventId>                  m_invTimeouts; //map holding the event timeouts of inv messages
   
+  const int		  m_bitcoinPort;   //!< 8333
+  const int       m_secondsPerMin; //!< 8333
   /// Traced Callback: received packets, source address.
   TracedCallback<Ptr<const Packet>, const Address &> m_rxTrace;
 

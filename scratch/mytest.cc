@@ -35,16 +35,18 @@ main (int argc, char *argv[])
 {
   double tStart = get_wall_time(), tFinish;
   const int secsPerMin = 60;
+  const double realAverageBlockGenIntervalMinutes = 10; //minites
   int xSize = 2;
   int ySize = 2;
-  int targetNumberOfBlocks = 1;
-  int averageBlockGenerationTime = 10;
+  int targetNumberOfBlocks = 10000;
+  double averageBlockGenIntervalSeconds = 10 * secsPerMin; //seconds
+  double averageBlockGenIntervalMinutes = averageBlockGenIntervalSeconds/secsPerMin;
   double fixedHashRate = 0.5;
   int start = 0;
   
-  int stop = targetNumberOfBlocks * averageBlockGenerationTime; //minutes
-  double blockGenBinSize = 1./secsPerMin/1000;					//minutes
-  double blockGenParameter = 0.19 * blockGenBinSize / 2 * (10 / averageBlockGenerationTime);	//0.19 for blockGenBinSize = 2mins
+  double stop = targetNumberOfBlocks * averageBlockGenIntervalMinutes; //seconds
+  double blockGenBinSize = 1./secsPerMin/1000;					   //minutes
+  double blockGenParameter = 0.19 * blockGenBinSize / 2 * (realAverageBlockGenIntervalMinutes / averageBlockGenIntervalMinutes);	//0.19 for blockGenBinSize = 2mins
 
   
   CommandLine cmd;
@@ -82,7 +84,8 @@ main (int argc, char *argv[])
   for (std::vector<Address>::const_iterator i = peers.begin(); i != peers.end(); ++i)
     std::cout << "testAddress: " << InetSocketAddress::ConvertFrom(*i).GetIpv4 () << std::endl;
 	
-  BitcoinMinerHelper bitcoinMinerHelper ("ns3::TcpSocketFactory", InetSocketAddress (Ipv4Address::GetAny (), bitcoinPort), peers, 0.67, blockGenBinSize, blockGenParameter);
+  BitcoinMinerHelper bitcoinMinerHelper ("ns3::TcpSocketFactory", InetSocketAddress (Ipv4Address::GetAny (), bitcoinPort),
+                                          peers, 0.67, blockGenBinSize, blockGenParameter, averageBlockGenIntervalSeconds);
   //bitcoinMinerHelper.SetAttribute("FixedBlockIntervalGeneration", DoubleValue(300));
   ApplicationContainer bitcoinMiners = bitcoinMinerHelper.Install (grid.GetNode (0,0));
   //bitcoinMinerHelper.SetAttribute("FixedBlockIntervalGeneration", DoubleValue(1300.1));

@@ -130,14 +130,17 @@ protected:
   double			m_blockGenParameter; 			//!< The block generation distribution parameter
   double 			m_nextBlockTime;
   double		    m_previousBlockGenerationTime;
-  float				m_minerAverageBlockGenTime;
+  float				m_minerAverageBlockGenInterval;
   int				m_minerGeneratedBlocks;
   double			m_hashRate;
   std::geometric_distribution<int> m_blockGenTimeDistribution ;
   
-  int 				m_nextBlockSize;
-  double			m_minerAverageBlockSize;
-  std::piecewise_constant_distribution<double> m_blockSizeDistribution;
+  int                                            m_nextBlockSize;
+  double                                         m_minerAverageBlockSize;
+  std::piecewise_constant_distribution<double>   m_blockSizeDistribution;
+  
+  const double  m_realAverageBlockGenIntervalSeconds;  //!< in seconds, 10 mins
+  double        m_averageBlockGenIntervalSeconds;		//
 };
 
 } // namespace ns3

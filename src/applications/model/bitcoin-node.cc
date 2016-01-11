@@ -52,7 +52,7 @@ BitcoinNode::GetTypeId (void)
   return tid;
 }
 
-BitcoinNode::BitcoinNode (void) : m_bitcoinPort (8333)
+BitcoinNode::BitcoinNode (void) : m_bitcoinPort (8333), m_secondsPerMin(60)
 {
   NS_LOG_FUNCTION (this);
   m_socket = 0;
@@ -165,11 +165,12 @@ BitcoinNode::StopApplication ()     // Called at time specified by Stop
   PrintQueueInv();
   PrintInvTimeouts();
   NS_LOG_WARN("Mean Block Receive Time = " << m_meanBlockReceiveTime << " or " 
-               << static_cast<int>(m_meanBlockReceiveTime) / 60 << "min and " 
-			   << m_meanBlockReceiveTime - static_cast<int>(m_meanBlockReceiveTime) / 60 * 60 << "s");
+               << static_cast<int>(m_meanBlockReceiveTime) / m_secondsPerMin << "min and " 
+			   << m_meanBlockReceiveTime - static_cast<int>(m_meanBlockReceiveTime) / m_secondsPerMin * m_secondsPerMin << "s");
   NS_LOG_WARN("Mean Block Propagation Time = " << m_meanBlockPropagationTime << "s");
   NS_LOG_WARN("Total Blocks = " << m_blockchain.GetTotalBlocks());
-  NS_LOG_WARN("Stale Blocks = " << m_blockchain.GetNoStaleBlocks());
+  NS_LOG_WARN("Stale Blocks = " << m_blockchain.GetNoStaleBlocks() << " (" 
+              << 100. * m_blockchain.GetNoStaleBlocks() / m_blockchain.GetTotalBlocks() << "%)");
 }
 
 void 
@@ -624,7 +625,7 @@ BitcoinNode::ValidateBlock(const Block &newBlock)
     NS_LOG_DEBUG("ValidateBlock: Block " << newBlock << " is an orphan\n"); 
 	 
 	 m_blockchain.AddOrphan(newBlock);
-	 m_blockchain.PrintOrphans();
+	 //m_blockchain.PrintOrphans();
   }
   else 
   {
@@ -824,8 +825,10 @@ BitcoinNode::InvTimeoutExpired(std::string blockHash)
 
   //PrintQueueInv();
   //PrintInvTimeouts();
+  
   m_queueInv[blockHash].erase(m_queueInv[blockHash].begin());
   m_invTimeouts.erase(blockHash);
+  
   //PrintQueueInv();
   //PrintInvTimeouts();
   
@@ -859,6 +862,9 @@ BitcoinNode::InvTimeoutExpired(std::string blockHash)
     m_invTimeouts[blockHash] = timeout;
   }
   
+  if (m_queueInv[blockHash].size() == 0)
+    m_queueInv.erase(blockHash);
+    
   //PrintQueueInv();
   //PrintInvTimeouts();
 }

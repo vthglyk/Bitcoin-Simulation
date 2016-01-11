@@ -71,7 +71,12 @@ BitcoinMiner::GetTypeId (void)
 				   "The block generation distribution parameter",
                    DoubleValue (0.183/120),
                    MakeDoubleAccessor (&BitcoinMiner::m_blockGenParameter),
-                   MakeDoubleChecker<double> ())					   
+                   MakeDoubleChecker<double> ())	
+    .AddAttribute ("AverageBlockGenIntervalSeconds", 
+				   "The average block generation interval we aim at (in seconds)",
+                   DoubleValue (10*60),
+                   MakeDoubleAccessor (&BitcoinMiner::m_averageBlockGenIntervalSeconds),
+                   MakeDoubleChecker<double> ())
     .AddTraceSource ("Rx",
                      "A packet has been received",
                      MakeTraceSourceAccessor (&BitcoinMiner::m_rxTrace),
@@ -80,10 +85,10 @@ BitcoinMiner::GetTypeId (void)
   return tid;
 }
 
-BitcoinMiner::BitcoinMiner () : BitcoinNode()
+BitcoinMiner::BitcoinMiner () : BitcoinNode(), m_realAverageBlockGenIntervalSeconds(10*m_secondsPerMin)
 {
   NS_LOG_FUNCTION (this);
-  m_minerAverageBlockGenTime = 0;
+  m_minerAverageBlockGenInterval = 0;
   m_minerGeneratedBlocks = 0;
   m_previousBlockGenerationTime = 0;
   
@@ -105,6 +110,9 @@ void
 BitcoinMiner::StartApplication ()    // Called at time specified by Start
 {
   BitcoinNode::StartApplication ();
+  NS_LOG_WARN ("Miner " << GetNode()->GetId() << " m_realAverageBlockGenIntervalSeconds = " << m_realAverageBlockGenIntervalSeconds << "s");
+  NS_LOG_WARN ("Miner " << GetNode()->GetId() << " m_averageBlockGenIntervalSeconds = " << m_averageBlockGenIntervalSeconds << "s");
+
   m_blockGenParameter *= m_hashRate;
 	
   if (m_fixedBlockTimeGeneration == 0)
@@ -154,9 +162,9 @@ BitcoinMiner::StopApplication ()
   
   NS_LOG_WARN ("The miner " << GetNode ()->GetId () << " generated " << m_minerGeneratedBlocks 
                 << " blocks "<< "(" << 100. * m_minerGeneratedBlocks / (m_blockchain.GetTotalBlocks() - 1) 
-                << "%) with average block generation time = " << m_minerAverageBlockGenTime
-                << "s or " << static_cast<int>(m_minerAverageBlockGenTime) / 60 << "min and " 
-                << m_minerAverageBlockGenTime - static_cast<int>(m_minerAverageBlockGenTime) / 60 * 60 << "s"
+                << "%) with average block generation time = " << m_minerAverageBlockGenInterval
+                << "s or " << static_cast<int>(m_minerAverageBlockGenInterval) / m_secondsPerMin << "min and " 
+                << m_minerAverageBlockGenInterval - static_cast<int>(m_minerAverageBlockGenInterval) / m_secondsPerMin * m_secondsPerMin << "s"
                 << " and average size " << m_minerAverageBlockSize << " Bytes");
 }
 
@@ -246,15 +254,13 @@ BitcoinMiner::ScheduleNextMiningEvent (void)
   }
   else
   {
-    const int secondsPerMin = 60;
-	
-    m_nextBlockTime = m_blockGenTimeDistribution(m_generator)*m_blockGenBinSize*secondsPerMin;
+    m_nextBlockTime = m_blockGenTimeDistribution(m_generator)*m_blockGenBinSize*m_secondsPerMin;
     //NS_LOG_DEBUG("m_nextBlockTime = " << m_nextBlockTime << ", binsize = " << m_blockGenBinSize << ", m_blockGenParameter = " << m_blockGenParameter << ", hashrate = " << m_hashRate);
     m_nextMiningEvent = Simulator::Schedule (Seconds(m_nextBlockTime), &BitcoinMiner::MineBlock, this);
 	
     NS_LOG_INFO ("Time " << Simulator::Now ().GetSeconds () << ": Miner " << GetNode ()->GetId () << " will generate a block in " 
-                 << m_nextBlockTime << "s or " << static_cast<int>(m_nextBlockTime) / secondsPerMin 
-                 << "  min and  " << static_cast<int>(m_nextBlockTime) % secondsPerMin 
+                 << m_nextBlockTime << "s or " << static_cast<int>(m_nextBlockTime) / m_secondsPerMin 
+                 << "  min and  " << static_cast<int>(m_nextBlockTime) % m_secondsPerMin 
                  << "s using Geometric Block Time Generation with parameter = "<< m_blockGenParameter);
   }
 }
@@ -312,7 +318,8 @@ BitcoinMiner::MineBlock (void)
   if (m_fixedBlockSize > 0)
     m_nextBlockSize = m_fixedBlockSize;
   else
-    m_nextBlockSize = m_blockSizeDistribution(m_generator) * 1000;	// *1000 because the m_blockSizeDistribution returns KBytes
+    m_nextBlockSize = m_blockSizeDistribution(m_generator) * 1000 * // *1000 because the m_blockSizeDistribution returns KBytes
+                      m_averageBlockGenIntervalSeconds / m_realAverageBlockGenIntervalSeconds;	// The block size is linearly dependent on the averageBlockGenIntervalSeconds
 
 
   Block newBlock (height, minerId, parentBlockMinerId, m_nextBlockSize,
@@ -344,7 +351,7 @@ BitcoinMiner::MineBlock (void)
     ns3TcpSocket->Close();
   }
 
-  m_minerAverageBlockGenTime = m_minerGeneratedBlocks/static_cast<double>(m_minerGeneratedBlocks+1)*m_minerAverageBlockGenTime 
+  m_minerAverageBlockGenInterval = m_minerGeneratedBlocks/static_cast<double>(m_minerGeneratedBlocks+1)*m_minerAverageBlockGenInterval 
                              + (Simulator::Now ().GetSeconds () - m_previousBlockGenerationTime)/(m_minerGeneratedBlocks+1);
   m_minerAverageBlockSize = m_minerGeneratedBlocks/static_cast<double>(m_minerGeneratedBlocks+1)*m_minerAverageBlockSize 
                             + static_cast<double>(m_nextBlockSize)/(m_minerGeneratedBlocks+1);
