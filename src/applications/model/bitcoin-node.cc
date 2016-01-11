@@ -13,6 +13,7 @@
 #include "ns3/udp-socket-factory.h"
 #include "ns3/tcp-socket-factory.h"
 #include "ns3/uinteger.h"
+#include "ns3/double.h"
 #include "bitcoin-node.h"
 
 namespace ns3 {
@@ -38,11 +39,11 @@ BitcoinNode::GetTypeId (void)
                    TypeIdValue (UdpSocketFactory::GetTypeId ()),
                    MakeTypeIdAccessor (&BitcoinNode::m_tid),
                    MakeTypeIdChecker ())
-    .AddAttribute ("NumberOfPeers", 
-				   "The number of peers for the node",
-                   UintegerValue (0),
-                   MakeUintegerAccessor (&BitcoinNode::m_numberOfPeers),
-                   MakeUintegerChecker<uint32_t> ())
+    .AddAttribute ("InvTimeoutMinutes", 
+				   "The timeout of inv messages in minutes",
+                   TimeValue (Minutes (20)),
+                   MakeTimeAccessor (&BitcoinNode::m_invTimeoutMinutes),
+                   MakeTimeChecker())
     .AddTraceSource ("Rx",
                      "A packet has been received",
                      MakeTraceSourceAccessor (&BitcoinNode::m_rxTrace),
@@ -51,13 +52,14 @@ BitcoinNode::GetTypeId (void)
   return tid;
 }
 
-BitcoinNode::BitcoinNode (void) : m_bitcoinPort (8333), m_invTimeoutMinutes(Minutes(20))
+BitcoinNode::BitcoinNode (void) : m_bitcoinPort (8333)
 {
   NS_LOG_FUNCTION (this);
   m_socket = 0;
   m_meanBlockReceiveTime = 0;
   m_previousBlockReceiveTime = 0;
   m_meanBlockPropagationTime = 0;
+  m_numberOfPeers = m_peersAddresses.size();
 }
 
 BitcoinNode::~BitcoinNode(void)
@@ -79,6 +81,16 @@ BitcoinNode::GetAcceptedSockets (void) const
   return m_socketList;
 }
 
+
+void 
+BitcoinNode::SetPeersAddresses (std::vector<Address> peers)
+{
+  NS_LOG_FUNCTION (this);
+  m_peersAddresses = peers;
+  m_numberOfPeers = m_peersAddresses.size();
+}
+
+
 void 
 BitcoinNode::DoDispose (void)
 {
@@ -97,6 +109,9 @@ BitcoinNode::StartApplication ()    // Called at time specified by Start
 {
   NS_LOG_FUNCTION (this);
   // Create the socket if not already
+  NS_LOG_WARN ("Node " << GetNode()->GetId() << " m_numberOfPeers = " << m_numberOfPeers);
+  NS_LOG_WARN ("Node " << GetNode()->GetId() << " m_invTimeoutMinutes = " << m_invTimeoutMinutes.GetMinutes() << "mins");
+
   if (!m_socket)
     {
       m_socket = Socket::CreateSocket (GetNode (), m_tid);
@@ -848,13 +863,6 @@ BitcoinNode::InvTimeoutExpired(std::string blockHash)
   //PrintInvTimeouts();
 }
 
-
-void 
-BitcoinNode::SetPeersAddresses (std::vector<Address> peers)
-{
-  NS_LOG_FUNCTION (this);
-  m_peersAddresses = peers;
-}
   
 std::vector<Address> 
 BitcoinNode::GetPeersAddresses (void) const

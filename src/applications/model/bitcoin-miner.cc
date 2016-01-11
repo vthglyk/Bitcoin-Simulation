@@ -52,11 +52,11 @@ BitcoinMiner::GetTypeId (void)
                    DoubleValue (0),
                    MakeDoubleAccessor (&BitcoinMiner::m_fixedBlockTimeGeneration),
                    MakeDoubleChecker<double> ())
-    .AddAttribute ("NumberOfPeers", 
-				   "The number of peers for the node",
-                   UintegerValue (0),
-                   MakeUintegerAccessor (&BitcoinMiner::m_numberOfPeers),
-                   MakeUintegerChecker<uint32_t> ())	
+    .AddAttribute ("InvTimeoutMinutes", 
+				   "The timeout of inv messages in minutes",
+                   TimeValue (Minutes (20)),
+                   MakeTimeAccessor (&BitcoinMiner::m_invTimeoutMinutes),
+                   MakeTimeChecker())
     .AddAttribute ("HashRate", 
 				   "The hash rate of the miner",
                    DoubleValue (0.2),

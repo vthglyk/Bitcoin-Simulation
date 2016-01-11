@@ -41,7 +41,7 @@ BitcoinNodeHelper::commonConstructor(std::string protocol, Address address, std:
 {
   m_factory.Set ("Protocol", StringValue (protocol));
   m_factory.Set ("Local", AddressValue (address));
-  m_factory.Set ("NumberOfPeers", UintegerValue(peers.size()));
+  //m_factory.Set ("NumberOfPeers", UintegerValue(peers.size()));
   m_peersAddresses = peers;
 }
 
@@ -80,7 +80,7 @@ BitcoinNodeHelper::Install (NodeContainer c) const
 Ptr<Application>
 BitcoinNodeHelper::InstallPriv (Ptr<Node> node) const
 {
-  Ptr<BitcoinNode> app = m_factory.Create<BitcoinNode> ();////////Application
+  Ptr<BitcoinNode> app = m_factory.Create<BitcoinNode> ();
   app->SetPeersAddresses(m_peersAddresses);
   node->AddApplication (app);
 

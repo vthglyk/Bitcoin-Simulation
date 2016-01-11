@@ -37,7 +37,7 @@ main (int argc, char *argv[])
   const int secsPerMin = 60;
   int xSize = 2;
   int ySize = 2;
-  int targetNumberOfBlocks = 1000;
+  int targetNumberOfBlocks = 1;
   int averageBlockGenerationTime = 10;
   double fixedHashRate = 0.5;
   int start = 0;
