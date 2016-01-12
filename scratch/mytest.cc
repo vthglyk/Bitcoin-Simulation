@@ -35,19 +35,20 @@ main (int argc, char *argv[])
 {
   double tStart = get_wall_time(), tFinish;
   const int secsPerMin = 60;
-  const double realAverageBlockGenIntervalMinutes = 10; //minites
+  const double realAverageBlockGenIntervalMinutes = 10; //minutes
   int xSize = 2;
   int ySize = 2;
-  int targetNumberOfBlocks = 10000;
+  int targetNumberOfBlocks = 10;
   double averageBlockGenIntervalSeconds = 10 * secsPerMin; //seconds
-  double averageBlockGenIntervalMinutes = averageBlockGenIntervalSeconds/secsPerMin;
   double fixedHashRate = 0.5;
   int start = 0;
   
+  double averageBlockGenIntervalMinutes = averageBlockGenIntervalSeconds/secsPerMin;
   double stop = targetNumberOfBlocks * averageBlockGenIntervalMinutes; //seconds
-  double blockGenBinSize = 1./secsPerMin/1000;					   //minutes
+  double blockGenBinSize = 1./secsPerMin/1000;					       //minutes
   double blockGenParameter = 0.19 * blockGenBinSize / 2 * (realAverageBlockGenIntervalMinutes / averageBlockGenIntervalMinutes);	//0.19 for blockGenBinSize = 2mins
 
+  Time::SetResolution (Time::NS);
   
   CommandLine cmd;
   cmd.Parse(argc, argv);

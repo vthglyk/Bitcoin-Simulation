@@ -59,6 +59,7 @@ BitcoinNode::BitcoinNode (void) : m_bitcoinPort (8333), m_secondsPerMin(60)
   m_meanBlockReceiveTime = 0;
   m_previousBlockReceiveTime = 0;
   m_meanBlockPropagationTime = 0;
+  m_meanBlockSize = 0;
   m_numberOfPeers = m_peersAddresses.size();
 }
 
@@ -168,6 +169,7 @@ BitcoinNode::StopApplication ()     // Called at time specified by Stop
                << static_cast<int>(m_meanBlockReceiveTime) / m_secondsPerMin << "min and " 
 			   << m_meanBlockReceiveTime - static_cast<int>(m_meanBlockReceiveTime) / m_secondsPerMin * m_secondsPerMin << "s");
   NS_LOG_WARN("Mean Block Propagation Time = " << m_meanBlockPropagationTime << "s");
+  NS_LOG_WARN("Mean Block Size = " << m_meanBlockSize << " Bytes");
   NS_LOG_WARN("Total Blocks = " << m_blockchain.GetTotalBlocks());
   NS_LOG_WARN("Stale Blocks = " << m_blockchain.GetNoStaleBlocks() << " (" 
               << 100. * m_blockchain.GetNoStaleBlocks() / m_blockchain.GetTotalBlocks() << "%)");
@@ -176,7 +178,7 @@ BitcoinNode::StopApplication ()     // Called at time specified by Stop
 void 
 BitcoinNode::HandleRead (Ptr<Socket> socket)
 {	
-  NS_LOG_DEBUG (this << socket);
+  NS_LOG_FUNCTION (this << socket);
   Ptr<Packet> packet;
   Address from;
   double newBlockReceiveTime = Simulator::Now ().GetSeconds();
@@ -187,11 +189,7 @@ BitcoinNode::HandleRead (Ptr<Socket> socket)
       { //EOF
          break;
       }
-	  if (packet->GetSize () == 536)
-      { //EOF
-         NS_LOG_WARN("Packet size == 536");
-         break;
-      }
+
       if (InetSocketAddress::IsMatchingType (from))
       {
         /**
@@ -202,10 +200,16 @@ BitcoinNode::HandleRead (Ptr<Socket> socket)
         std::string parsedPacket;
         size_t pos = 0;
         char *packetInfo = new char[packet->GetSize () + 1];
+		std::ostringstream totalStream;
+		
         packet->CopyData (reinterpret_cast<uint8_t*>(packetInfo), packet->GetSize ());
         packetInfo[packet->GetSize ()] = '\0'; // ensure that it is null terminated to avoid bugs
 		  
-        std::string totalReceivedData(packetInfo);
+		/**
+         * Add the buffered data to complete the packet
+        */
+        totalStream << m_bufferedData[from] << packetInfo; 
+        std::string totalReceivedData(totalStream.str());
         NS_LOG_DEBUG("Node " << GetNode ()->GetId () << " Total Received Data: " << totalReceivedData);
 		  
         while ((pos = totalReceivedData.find(delimiter)) != std::string::npos) 
@@ -214,7 +218,14 @@ BitcoinNode::HandleRead (Ptr<Socket> socket)
           NS_LOG_DEBUG("Node " << GetNode ()->GetId () << " Parsed Packet: " << parsedPacket);
 		  
           rapidjson::Document d;
-          d.Parse(parsedPacket.c_str());
+		  d.Parse(parsedPacket.c_str());
+		  
+		  if(!d.IsObject())
+          {
+            NS_LOG_WARN("The parsed packet is corrupted");
+            totalReceivedData.erase(0, pos + delimiter.length()); 
+            continue;
+          }			
 		  
           rapidjson::StringBuffer buffer;
           rapidjson::Writer<rapidjson::StringBuffer> writer(buffer);
@@ -559,7 +570,12 @@ BitcoinNode::HandleRead (Ptr<Socket> socket)
 			
           totalReceivedData.erase(0, pos + delimiter.length());
         }
-		  
+		
+		/**
+         * Buffer the remaining data
+         */
+		 
+		m_bufferedData[from] = totalReceivedData;
         delete[] packetInfo;
       }
       else if (Inet6SocketAddress::IsMatchingType (from))
@@ -672,8 +688,13 @@ BitcoinNode::AfterBlockValidation(const Block &newBlock)
   m_meanBlockReceiveTime = (m_blockchain.GetTotalBlocks() - 1)/static_cast<double>(m_blockchain.GetTotalBlocks())*m_meanBlockReceiveTime 
                          + (newBlock.GetTimeReceived() - m_previousBlockReceiveTime)/(m_blockchain.GetTotalBlocks());
   m_previousBlockReceiveTime = newBlock.GetTimeReceived();
+  
   m_meanBlockPropagationTime = (m_blockchain.GetTotalBlocks() - 1)/static_cast<double>(m_blockchain.GetTotalBlocks())*m_meanBlockPropagationTime  
                              + (newBlock.GetTimeReceived() - newBlock.GetTimeCreated())/(m_blockchain.GetTotalBlocks());
+							 
+  m_meanBlockSize = (m_blockchain.GetTotalBlocks() - 1)/static_cast<double>(m_blockchain.GetTotalBlocks())*m_meanBlockSize  
+                  + (newBlock.GetBlockSizeBytes())/static_cast<double>(m_blockchain.GetTotalBlocks());
+				  
   m_blockchain.AddBlock(newBlock);
   
   AdvertiseNewBlock(newBlock);//////////////////////////////////////
@@ -739,10 +760,11 @@ BitcoinNode::AdvertiseNewBlock (const Block &newBlock) const
 	
     if ( InetSocketAddress::ConvertFrom(*i).GetIpv4 () != newBlock.GetReceivedFromIpv4 () )
     {
+	  const uint8_t delimiter[] = "#";
+
       Ptr<Socket> ns3TcpSocket = Socket::CreateSocket (GetNode (), TcpSocketFactory::GetTypeId ());
       ns3TcpSocket->Connect(*i);
       ns3TcpSocket->Send (reinterpret_cast<const uint8_t*>(packetInfo.GetString()), packetInfo.GetSize(), 0);
-	  const uint8_t delimiter[] = "#";
 	  ns3TcpSocket->Send (delimiter, 1, 0);
       ns3TcpSocket->Close();
 	  
@@ -761,6 +783,8 @@ BitcoinNode::SendMessage(enum Messages receivedMessage,  enum Messages responseM
 {
   NS_LOG_FUNCTION (this);
   
+  const uint8_t delimiter[] = "#";
+
   rapidjson::StringBuffer buffer;
   rapidjson::Writer<rapidjson::StringBuffer> writer(buffer);
 				
@@ -772,7 +796,6 @@ BitcoinNode::SendMessage(enum Messages receivedMessage,  enum Messages responseM
 			   << " message: " << buffer.GetString());
 				
   outgoingSocket->Send (reinterpret_cast<const uint8_t*>(buffer.GetString()), buffer.GetSize(), 0);
-  const uint8_t delimiter[] = "#";
   outgoingSocket->Send (delimiter, 1, 0);		
 }
 

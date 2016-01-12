@@ -296,7 +296,7 @@ BitcoinMiner::MineBlock (void)
   rapidjson::Value array(rapidjson::kArrayType);
   d.AddMember("message", value, d.GetAllocator());
   
-  value.SetString("block");
+  value.SetString("block"); //Remove
   d.AddMember("type", value, d.GetAllocator());
   
   stringStream << height << "/" << minerId;
@@ -331,7 +331,12 @@ BitcoinMiner::MineBlock (void)
   m_meanBlockReceiveTime = (m_blockchain.GetTotalBlocks() - 1)/static_cast<double>(m_blockchain.GetTotalBlocks())*m_meanBlockReceiveTime + 
 							(currentTime - m_previousBlockReceiveTime)/(m_blockchain.GetTotalBlocks());
   m_previousBlockReceiveTime = currentTime;	
+  
   m_meanBlockPropagationTime = (m_blockchain.GetTotalBlocks() - 1)/static_cast<double>(m_blockchain.GetTotalBlocks())*m_meanBlockPropagationTime;
+  
+  m_meanBlockSize = (m_blockchain.GetTotalBlocks() - 1)/static_cast<double>(m_blockchain.GetTotalBlocks())*m_meanBlockSize  
+                  + (m_nextBlockSize)/static_cast<double>(m_blockchain.GetTotalBlocks());
+				  
   m_blockchain.AddBlock(newBlock);
   
   // Stringify the DOM
@@ -343,11 +348,22 @@ BitcoinMiner::MineBlock (void)
   
   for (std::vector<Address>::const_iterator i = m_peersAddresses.begin(); i != m_peersAddresses.end(); ++i)
   {
+	const uint8_t delimiter[] = "#";
+
     Ptr<Socket> ns3TcpSocket = Socket::CreateSocket (GetNode (), TcpSocketFactory::GetTypeId ());
     ns3TcpSocket->Connect(*i);
+	
     ns3TcpSocket->Send (reinterpret_cast<const uint8_t*>(packetInfo.GetString()), packetInfo.GetSize(), 0);
-	const uint8_t delimiter[] = "#";
 	ns3TcpSocket->Send (delimiter, 1, 0);
+	
+/* 	//Send large packet
+	int k;
+	for (k = 0; k < 4; k++)
+	{
+      ns3TcpSocket->Send (reinterpret_cast<const uint8_t*>(packetInfo.GetString()), packetInfo.GetSize(), 0);
+	  ns3TcpSocket->Send (delimiter, 1, 0);
+	} */
+	
     ns3TcpSocket->Close();
   }
 

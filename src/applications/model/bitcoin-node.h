@@ -107,14 +107,16 @@ protected:
   double		  m_meanBlockReceiveTime;
   double		  m_previousBlockReceiveTime;
   double		  m_meanBlockPropagationTime;
+  double		  m_meanBlockSize;
   Blockchain 	  m_blockchain;
   Time            m_invTimeoutMinutes;
   
-  std::list<Ptr<Socket> >                         m_socketList; //!< the accepted sockets
-  std::vector<Address>		                      m_peersAddresses; //!< The addresses of peers
-  std::map<std::string, std::vector<Address>>     m_queueInv; //map holding the addresses of nodes which sent an INV for a particular block
-  std::map<std::string, EventId>                  m_invTimeouts; //map holding the event timeouts of inv messages
-  
+  std::list<Ptr<Socket> >                         m_socketList;        //!< the accepted sockets
+  std::vector<Address>		                      m_peersAddresses;    //!< The addresses of peers
+  std::map<std::string, std::vector<Address>>     m_queueInv;          //!< map holding the addresses of nodes which sent an INV for a particular block
+  std::map<std::string, EventId>                  m_invTimeouts;       //!< map holding the event timeouts of inv messages
+  std::map<Address, std::string>                  m_bufferedData;      //!< map holding the buffered data from previous handleRead events
+
   const int		  m_bitcoinPort;   //!< 8333
   const int       m_secondsPerMin; //!< 8333
   /// Traced Callback: received packets, source address.
