@@ -45,7 +45,7 @@ public:
    * \param address the address of the bitcoin node,
    *
    */
-  BitcoinNodeHelper (std::string protocol, Address address, std::vector<Address> peers);
+  BitcoinNodeHelper (std::string protocol, Address address, std::vector<Ipv4Address> peers);
   
   /**
    * Called by subclasses to set a different factory TypeId
@@ -55,7 +55,7 @@ public:
   /**
    * Common Constructor called both from the base class and the subclasses
    */
-   void commonConstructor(std::string protocol, Address address, std::vector<Address> peers);
+   void commonConstructor(std::string protocol, Address address, std::vector<Ipv4Address> peers);
   
   /**
    * Helper function used to set the underlying application attributes.
@@ -103,7 +103,7 @@ protected:
    */
   virtual Ptr<Application> InstallPriv (Ptr<Node> node) const;
   ObjectFactory m_factory; //!< Object factory.
-  std::vector<Address>		  m_peersAddresses; //!< The addresses of peers
+  std::vector<Ipv4Address>		  m_peersAddresses; //!< The addresses of peers
 
 };
 

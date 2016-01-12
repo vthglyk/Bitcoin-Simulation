@@ -44,14 +44,15 @@ public:
   std::list<Ptr<Socket> > GetAcceptedSockets (void) const;
 
   /**
-   * set the address of peers
-   */
-  void SetPeersAddresses (std::vector<Address> peers);
-  
-  /**
    * \return a vector containing the addresses of peers
    */  
-  std::vector<Address> GetPeersAddresses (void) const;
+  std::vector<Ipv4Address> GetPeersAddresses (void) const;
+  
+  
+  /**
+   * set the address of peers
+   */
+  void SetPeersAddresses (std::vector<Ipv4Address> peers);
 
 protected:
   virtual void DoDispose (void);
@@ -112,7 +113,7 @@ protected:
   Time            m_invTimeoutMinutes;
   
   std::list<Ptr<Socket> >                         m_socketList;        //!< the accepted sockets
-  std::vector<Address>		                      m_peersAddresses;    //!< The addresses of peers
+  std::vector<Ipv4Address>		                  m_peersAddresses;    //!< The addresses of peers
   std::map<std::string, std::vector<Address>>     m_queueInv;          //!< map holding the addresses of nodes which sent an INV for a particular block
   std::map<std::string, EventId>                  m_invTimeouts;       //!< map holding the event timeouts of inv messages
   std::map<Address, std::string>                  m_bufferedData;      //!< map holding the buffered data from previous handleRead events

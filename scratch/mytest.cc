@@ -38,8 +38,8 @@ main (int argc, char *argv[])
   const double realAverageBlockGenIntervalMinutes = 10; //minutes
   int xSize = 2;
   int ySize = 2;
-  int targetNumberOfBlocks = 10;
-  double averageBlockGenIntervalSeconds = 10 * secsPerMin; //seconds
+  int targetNumberOfBlocks = 1000;
+  double averageBlockGenIntervalSeconds = 1 * secsPerMin; //seconds
   double fixedHashRate = 0.5;
   int start = 0;
   
@@ -75,16 +75,16 @@ main (int argc, char *argv[])
                             Ipv4AddressHelper ("10.2.1.0", "255.255.255.0"));
 
   uint16_t bitcoinPort = 8333;
-  Address bitcoinMiner1Address (InetSocketAddress (grid.GetIpv4Address (0,0), bitcoinPort));
-  Address bitcoinMiner2Address (InetSocketAddress (grid.GetIpv4Address (xSize - 1, ySize - 1), bitcoinPort));
-  Address bitcoinNode1Address (InetSocketAddress (grid.GetIpv4Address (xSize - 1, 0), bitcoinPort));
-  Address bitcoinNode2Address (InetSocketAddress (grid.GetIpv4Address (0, ySize - 1), bitcoinPort));
+  Ipv4Address bitcoinMiner1Address (grid.GetIpv4Address (0,0));
+  Ipv4Address bitcoinMiner2Address (grid.GetIpv4Address (xSize - 1, ySize - 1));
+  Ipv4Address bitcoinNode1Address (grid.GetIpv4Address (xSize - 1, 0));
+  Ipv4Address bitcoinNode2Address (grid.GetIpv4Address (0, ySize - 1));
 
-  Address testAddress[] =  {bitcoinNode1Address, bitcoinNode2Address};
-  std::vector<Address> peers (testAddress, testAddress + sizeof(testAddress) / sizeof(Address) );
-  for (std::vector<Address>::const_iterator i = peers.begin(); i != peers.end(); ++i)
-    std::cout << "testAddress: " << InetSocketAddress::ConvertFrom(*i).GetIpv4 () << std::endl;
-	
+  Ipv4Address testAddress[] =  {bitcoinNode1Address, bitcoinNode2Address};
+  std::vector<Ipv4Address> peers (testAddress, testAddress + sizeof(testAddress) / sizeof(Ipv4Address) );
+  for (std::vector<Ipv4Address>::const_iterator i = peers.begin(); i != peers.end(); ++i)
+    std::cout << "testAddress: " << *i << std::endl;
+
   BitcoinMinerHelper bitcoinMinerHelper ("ns3::TcpSocketFactory", InetSocketAddress (Ipv4Address::GetAny (), bitcoinPort),
                                           peers, 0.67, blockGenBinSize, blockGenParameter, averageBlockGenIntervalSeconds);
   //bitcoinMinerHelper.SetAttribute("FixedBlockIntervalGeneration", DoubleValue(300));
@@ -98,10 +98,10 @@ main (int argc, char *argv[])
   bitcoinMiners.Stop (Minutes (stop));
 
   
-  Address testAddress2[] =  {bitcoinMiner1Address, bitcoinMiner2Address};
-  peers.assign (testAddress2,testAddress2 + sizeof(testAddress2) / sizeof(Address));
-  for (std::vector<Address>::const_iterator i = peers.begin(); i != peers.end(); ++i)
-    std::cout << "testAddress2: " << InetSocketAddress::ConvertFrom(*i).GetIpv4 () << std::endl;
+  Ipv4Address testAddress2[] =  {bitcoinMiner1Address, bitcoinMiner2Address};
+  peers.assign (testAddress2,testAddress2 + sizeof(testAddress2) / sizeof(Ipv4Address));
+  for (std::vector<Ipv4Address>::const_iterator i = peers.begin(); i != peers.end(); ++i)
+    std::cout << "testAddress2: " << *i << std::endl;
 	
   BitcoinNodeHelper bitcoinNodeHelper ("ns3::TcpSocketFactory", InetSocketAddress (Ipv4Address::GetAny (), bitcoinPort), peers);
   ApplicationContainer bitcoinNodes = bitcoinNodeHelper.Install (grid.GetNode (xSize - 1, 0));

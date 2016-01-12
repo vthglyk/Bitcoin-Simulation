@@ -29,7 +29,7 @@
 
 namespace ns3 {
 
-BitcoinMinerHelper::BitcoinMinerHelper (std::string protocol, Address address, std::vector<Address> peers,
+BitcoinMinerHelper::BitcoinMinerHelper (std::string protocol, Address address, std::vector<Ipv4Address> peers,
 										double hashRate, double blockGenBinSize, double blockGenParameter,
 										double averageBlockGenIntervalSeconds) : BitcoinNodeHelper ()
 {

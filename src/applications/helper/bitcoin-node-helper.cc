@@ -26,7 +26,7 @@
 
 namespace ns3 {
 
-BitcoinNodeHelper::BitcoinNodeHelper (std::string protocol, Address address, std::vector<Address> peers)
+BitcoinNodeHelper::BitcoinNodeHelper (std::string protocol, Address address, std::vector<Ipv4Address> peers)
 {
   m_factory.SetTypeId ("ns3::BitcoinNode");
   commonConstructor (protocol, address, peers);
@@ -37,7 +37,7 @@ BitcoinNodeHelper::BitcoinNodeHelper (void)
 }
 
 void 
-BitcoinNodeHelper::commonConstructor(std::string protocol, Address address, std::vector<Address> peers) 
+BitcoinNodeHelper::commonConstructor(std::string protocol, Address address, std::vector<Ipv4Address> peers) 
 {
   m_factory.Set ("Protocol", StringValue (protocol));
   m_factory.Set ("Local", AddressValue (address));

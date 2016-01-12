@@ -346,12 +346,12 @@ BitcoinMiner::MineBlock (void)
   
   //Ptr<Packet> packet = Create<Packet> (reinterpret_cast<const uint8_t*>(packetInfo.GetString()), packetInfo.GetSize());
   
-  for (std::vector<Address>::const_iterator i = m_peersAddresses.begin(); i != m_peersAddresses.end(); ++i)
+  for (std::vector<Ipv4Address>::const_iterator i = m_peersAddresses.begin(); i != m_peersAddresses.end(); ++i)
   {
 	const uint8_t delimiter[] = "#";
 
     Ptr<Socket> ns3TcpSocket = Socket::CreateSocket (GetNode (), TcpSocketFactory::GetTypeId ());
-    ns3TcpSocket->Connect(*i);
+    ns3TcpSocket->Connect(InetSocketAddress (*i, m_bitcoinPort));
 	
     ns3TcpSocket->Send (reinterpret_cast<const uint8_t*>(packetInfo.GetString()), packetInfo.GetSize(), 0);
 	ns3TcpSocket->Send (delimiter, 1, 0);

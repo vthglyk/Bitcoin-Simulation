@@ -82,9 +82,17 @@ BitcoinNode::GetAcceptedSockets (void) const
   return m_socketList;
 }
 
+  
+std::vector<Ipv4Address> 
+BitcoinNode::GetPeersAddresses (void) const
+{
+  NS_LOG_FUNCTION (this);
+  return m_peersAddresses;
+}
+
 
 void 
-BitcoinNode::SetPeersAddresses (std::vector<Address> peers)
+BitcoinNode::SetPeersAddresses (std::vector<Ipv4Address> peers)
 {
   NS_LOG_FUNCTION (this);
   m_peersAddresses = peers;
@@ -505,7 +513,7 @@ BitcoinNode::HandleRead (Ptr<Socket> socket)
                                  << " has already requested the block");
                   }
 				  
-                  m_queueInv[blockHash].push_back(from);
+                  m_queueInv[blockHash].push_back(from); //FIX ME: check if it should be placed inside if
                   //PrintQueueInv();
 				  //PrintInvTimeouts();
 				  
@@ -755,15 +763,15 @@ BitcoinNode::AdvertiseNewBlock (const Block &newBlock) const
   rapidjson::Writer<rapidjson::StringBuffer> writer(packetInfo);
   d.Accept(writer);
   
-  for (std::vector<Address>::const_iterator i = m_peersAddresses.begin(); i != m_peersAddresses.end(); ++i)
+  for (std::vector<Ipv4Address>::const_iterator i = m_peersAddresses.begin(); i != m_peersAddresses.end(); ++i)
   {
 	
-    if ( InetSocketAddress::ConvertFrom(*i).GetIpv4 () != newBlock.GetReceivedFromIpv4 () )
+    if ( *i != newBlock.GetReceivedFromIpv4 () )
     {
 	  const uint8_t delimiter[] = "#";
 
       Ptr<Socket> ns3TcpSocket = Socket::CreateSocket (GetNode (), TcpSocketFactory::GetTypeId ());
-      ns3TcpSocket->Connect(*i);
+      ns3TcpSocket->Connect(InetSocketAddress (*i, m_bitcoinPort));
       ns3TcpSocket->Send (reinterpret_cast<const uint8_t*>(packetInfo.GetString()), packetInfo.GetSize(), 0);
 	  ns3TcpSocket->Send (delimiter, 1, 0);
       ns3TcpSocket->Close();
@@ -771,7 +779,7 @@ BitcoinNode::AdvertiseNewBlock (const Block &newBlock) const
 
       NS_LOG_DEBUG ("AdvertiseNewBlock: At time " << Simulator::Now ().GetSeconds ()
                    << "s bitcoin node " << GetNode ()->GetId () << " advertised a new Block: " 
-                   << newBlock << " to " << InetSocketAddress::ConvertFrom(*i).GetIpv4 ());
+                   << newBlock << " to " << *i);
     }
   }
  
@@ -892,13 +900,6 @@ BitcoinNode::InvTimeoutExpired(std::string blockHash)
   //PrintInvTimeouts();
 }
 
-  
-std::vector<Address> 
-BitcoinNode::GetPeersAddresses (void) const
-{
-  NS_LOG_FUNCTION (this);
-  return m_peersAddresses;
-}
 
 void 
 BitcoinNode::HandlePeerClose (Ptr<Socket> socket)
