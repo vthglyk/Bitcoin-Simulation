@@ -90,10 +90,11 @@ protected:
   void AfterBlockValidation(const Block &newBlock);
   void ValidateOrphanChildren(const Block &newBlock);
   
-  void AdvertiseNewBlock (const Block &newBlock) const;
+  void AdvertiseNewBlock (const Block &newBlock);
 
   void SendMessage(enum Messages receivedMessage,  enum Messages responseMessage, rapidjson::Document &d, Ptr<Socket> outgoingSocket);
-
+  void SendMessage(enum Messages receivedMessage,  enum Messages responseMessage, rapidjson::Document &d, Address &outgoingAddress);
+  
   void PrintQueueInv();
   void PrintInvTimeouts();
 
@@ -114,6 +115,7 @@ protected:
   
   std::list<Ptr<Socket> >                         m_socketList;        //!< the accepted sockets
   std::vector<Ipv4Address>		                  m_peersAddresses;    //!< The addresses of peers
+  std::map<Ipv4Address, Ptr<Socket>>              m_peersSockets;           //!< The sockets of peers
   std::map<std::string, std::vector<Address>>     m_queueInv;          //!< map holding the addresses of nodes which sent an INV for a particular block
   std::map<std::string, EventId>                  m_invTimeouts;       //!< map holding the event timeouts of inv messages
   std::map<Address, std::string>                  m_bufferedData;      //!< map holding the buffered data from previous handleRead events

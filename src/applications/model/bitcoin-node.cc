@@ -149,12 +149,24 @@ BitcoinNode::StartApplication ()    // Called at time specified by Start
   m_socket->SetCloseCallbacks (
     MakeCallback (&BitcoinNode::HandlePeerClose, this),
     MakeCallback (&BitcoinNode::HandlePeerError, this));
+	
+    for (std::vector<Ipv4Address>::const_iterator i = m_peersAddresses.begin(); i != m_peersAddresses.end(); ++i)
+    {
+      m_peersSockets[*i] = Socket::CreateSocket (GetNode (), TcpSocketFactory::GetTypeId ());
+	  m_peersSockets[*i]->Connect (InetSocketAddress (*i, m_bitcoinPort));
+	}
 }
 
 void 
 BitcoinNode::StopApplication ()     // Called at time specified by Stop
 {
   NS_LOG_FUNCTION (this);
+  
+  for (std::vector<Ipv4Address>::iterator i = m_peersAddresses.begin(); i != m_peersAddresses.end(); ++i) //close the outgoing sockets
+  {
+	m_peersSockets[*i]->Close ();
+  }
+  
   while(!m_socketList.empty ()) //these are accepted sockets, close them
     {
       Ptr<Socket> acceptedSocket = m_socketList.front ();
@@ -315,13 +327,10 @@ BitcoinNode::HandleRead (Ptr<Socket> socket)
                 }		
 			  
                 d.AddMember("blocks", array, d.GetAllocator());
-                Ptr<Socket> ns3TcpSocket = Socket::CreateSocket (GetNode (), TcpSocketFactory::GetTypeId ());
-                ns3TcpSocket->Connect(InetSocketAddress (InetSocketAddress::ConvertFrom(from).GetIpv4 (), m_bitcoinPort));
 					
-                SendMessage(INV, GET_HEADERS, d, ns3TcpSocket);				
-                SendMessage(INV, GET_DATA, d, ns3TcpSocket);
+                SendMessage(INV, GET_HEADERS, d, from);				
+                SendMessage(INV, GET_DATA, d, from);	
 				
-                ns3TcpSocket->Close();
 			  }
               break;
             }
@@ -390,10 +399,8 @@ BitcoinNode::HandleRead (Ptr<Socket> socket)
                 }	
 				
                 d.AddMember("blocks", array, d.GetAllocator());
-                Ptr<Socket> ns3TcpSocket = Socket::CreateSocket (GetNode (), TcpSocketFactory::GetTypeId ());
-                ns3TcpSocket->Connect(InetSocketAddress (InetSocketAddress::ConvertFrom(from).GetIpv4 (), m_bitcoinPort));
-                SendMessage(GET_HEADERS, HEADERS, d, ns3TcpSocket);
-                ns3TcpSocket->Close();
+				
+                SendMessage(GET_HEADERS, HEADERS, d, from);
               }
               break;
             }
@@ -462,10 +469,8 @@ BitcoinNode::HandleRead (Ptr<Socket> socket)
                 }	
 				
                 d.AddMember("blocks", array, d.GetAllocator());
-                Ptr<Socket> ns3TcpSocket = Socket::CreateSocket (GetNode (), TcpSocketFactory::GetTypeId ());
-                ns3TcpSocket->Connect(InetSocketAddress (InetSocketAddress::ConvertFrom(from).GetIpv4 (), m_bitcoinPort));
-                SendMessage(GET_DATA, BLOCK, d, ns3TcpSocket);
-                ns3TcpSocket->Close();
+
+                SendMessage(GET_DATA, BLOCK, d, from);	
               }
               break;
             }
@@ -544,12 +549,10 @@ BitcoinNode::HandleRead (Ptr<Socket> socket)
                 }		
 			  
                 d.AddMember("blocks", array, d.GetAllocator());
-                Ptr<Socket> ns3TcpSocket = Socket::CreateSocket (GetNode (), TcpSocketFactory::GetTypeId ());
-                ns3TcpSocket->Connect(InetSocketAddress (InetSocketAddress::ConvertFrom(from).GetIpv4 (), m_bitcoinPort));
+
 					
-                SendMessage(HEADERS, GET_HEADERS, d, ns3TcpSocket);				
-                SendMessage(HEADERS, GET_DATA, d, ns3TcpSocket);
-                ns3TcpSocket->Close();
+                SendMessage(HEADERS, GET_HEADERS, d, from);			
+                SendMessage(HEADERS, GET_DATA, d, from);	
               }
               break;
             }
@@ -736,7 +739,7 @@ BitcoinNode::ValidateOrphanChildren(const Block &newBlock)
 
 
 void 
-BitcoinNode::AdvertiseNewBlock (const Block &newBlock) const
+BitcoinNode::AdvertiseNewBlock (const Block &newBlock) 
 {
   NS_LOG_FUNCTION (this);
 
@@ -770,11 +773,8 @@ BitcoinNode::AdvertiseNewBlock (const Block &newBlock) const
     {
 	  const uint8_t delimiter[] = "#";
 
-      Ptr<Socket> ns3TcpSocket = Socket::CreateSocket (GetNode (), TcpSocketFactory::GetTypeId ());
-      ns3TcpSocket->Connect(InetSocketAddress (*i, m_bitcoinPort));
-      ns3TcpSocket->Send (reinterpret_cast<const uint8_t*>(packetInfo.GetString()), packetInfo.GetSize(), 0);
-	  ns3TcpSocket->Send (delimiter, 1, 0);
-      ns3TcpSocket->Close();
+      m_peersSockets[*i]->Send (reinterpret_cast<const uint8_t*>(packetInfo.GetString()), packetInfo.GetSize(), 0);
+	  m_peersSockets[*i]->Send (delimiter, 1, 0);
 	  
 
       NS_LOG_DEBUG ("AdvertiseNewBlock: At time " << Simulator::Now ().GetSeconds ()
@@ -802,9 +802,39 @@ BitcoinNode::SendMessage(enum Messages receivedMessage,  enum Messages responseM
                << getMessageName(receivedMessage) << " message" 
                << " and sent a " << getMessageName(responseMessage) 
 			   << " message: " << buffer.GetString());
-				
+
   outgoingSocket->Send (reinterpret_cast<const uint8_t*>(buffer.GetString()), buffer.GetSize(), 0);
   outgoingSocket->Send (delimiter, 1, 0);		
+}
+
+void
+BitcoinNode::SendMessage(enum Messages receivedMessage,  enum Messages responseMessage, rapidjson::Document &d, Address &outgoingAddress)
+{
+  NS_LOG_FUNCTION (this);
+  
+  const uint8_t delimiter[] = "#";
+
+  rapidjson::StringBuffer buffer;
+  rapidjson::Writer<rapidjson::StringBuffer> writer(buffer);
+				
+  d["message"].SetInt(responseMessage);
+  d.Accept(writer);
+  NS_LOG_DEBUG ("Node " << GetNode ()->GetId () << " got a " 
+               << getMessageName(receivedMessage) << " message" 
+               << " and sent a " << getMessageName(responseMessage) 
+			   << " message: " << buffer.GetString());
+			
+  Ipv4Address outgoingIpv4Address = InetSocketAddress::ConvertFrom(outgoingAddress).GetIpv4 ();
+  std::map<Ipv4Address, Ptr<Socket>>::iterator it = m_peersSockets.find(outgoingIpv4Address);
+  
+  if (it == m_peersSockets.end()) //Create the socket if it doesn't exist
+  {
+    m_peersSockets[outgoingIpv4Address] = Socket::CreateSocket (GetNode (), TcpSocketFactory::GetTypeId ());  
+    m_peersSockets[outgoingIpv4Address]->Connect (InetSocketAddress (outgoingIpv4Address, m_bitcoinPort));
+  }
+  
+  m_peersSockets[outgoingIpv4Address]->Send (reinterpret_cast<const uint8_t*>(buffer.GetString()), buffer.GetSize(), 0);
+  m_peersSockets[outgoingIpv4Address]->Send (delimiter, 1, 0);		
 }
 
 
@@ -884,11 +914,9 @@ BitcoinNode::InvTimeoutExpired(std::string blockHash)
     Ptr<Socket> ns3TcpSocket = Socket::CreateSocket (GetNode (), TcpSocketFactory::GetTypeId ());
     ns3TcpSocket->Connect(InetSocketAddress (InetSocketAddress::ConvertFrom(*(m_queueInv[blockHash].begin())).GetIpv4 (), m_bitcoinPort));
 					
-    SendMessage(INV, GET_HEADERS, d, ns3TcpSocket);				
-    SendMessage(INV, GET_DATA, d, ns3TcpSocket);
-				
-    ns3TcpSocket->Close();
-	
+    SendMessage(INV, GET_HEADERS, d, m_peersSockets[InetSocketAddress::ConvertFrom(*(m_queueInv[blockHash].begin())).GetIpv4 ()]);				
+    SendMessage(INV, GET_DATA, d, m_peersSockets[InetSocketAddress::ConvertFrom(*(m_queueInv[blockHash].begin())).GetIpv4 ()]);
+					
     timeout = Simulator::Schedule (m_invTimeoutMinutes, &BitcoinNode::InvTimeoutExpired, this, blockHash);
     m_invTimeouts[blockHash] = timeout;
   }

@@ -350,11 +350,8 @@ BitcoinMiner::MineBlock (void)
   {
 	const uint8_t delimiter[] = "#";
 
-    Ptr<Socket> ns3TcpSocket = Socket::CreateSocket (GetNode (), TcpSocketFactory::GetTypeId ());
-    ns3TcpSocket->Connect(InetSocketAddress (*i, m_bitcoinPort));
-	
-    ns3TcpSocket->Send (reinterpret_cast<const uint8_t*>(packetInfo.GetString()), packetInfo.GetSize(), 0);
-	ns3TcpSocket->Send (delimiter, 1, 0);
+    m_peersSockets[*i]->Send (reinterpret_cast<const uint8_t*>(packetInfo.GetString()), packetInfo.GetSize(), 0);
+	m_peersSockets[*i]->Send (delimiter, 1, 0);
 	
 /* 	//Send large packet
 	int k;
@@ -364,7 +361,7 @@ BitcoinMiner::MineBlock (void)
 	  ns3TcpSocket->Send (delimiter, 1, 0);
 	} */
 	
-    ns3TcpSocket->Close();
+
   }
 
   m_minerAverageBlockGenInterval = m_minerGeneratedBlocks/static_cast<double>(m_minerGeneratedBlocks+1)*m_minerAverageBlockGenInterval 

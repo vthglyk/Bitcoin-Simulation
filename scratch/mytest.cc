@@ -38,8 +38,8 @@ main (int argc, char *argv[])
   const double realAverageBlockGenIntervalMinutes = 10; //minutes
   int xSize = 2;
   int ySize = 2;
-  int targetNumberOfBlocks = 1000;
-  double averageBlockGenIntervalSeconds = 1 * secsPerMin; //seconds
+  int targetNumberOfBlocks = 10000;
+  double averageBlockGenIntervalSeconds = 10 * secsPerMin; //seconds
   double fixedHashRate = 0.5;
   int start = 0;
   
