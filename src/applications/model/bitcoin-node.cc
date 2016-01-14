@@ -869,7 +869,6 @@ BitcoinNode::PrintInvTimeouts()
   
   for(auto &elem : m_invTimeouts)
   {
-    std::vector<Address>::iterator  block_it;
     std::cout << "  " << elem.first << ":\n";
   }
   std::cout << std::endl;

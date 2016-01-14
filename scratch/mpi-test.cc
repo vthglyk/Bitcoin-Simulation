@@ -23,6 +23,11 @@
 #include "ns3/point-to-point-module.h"
 #include "ns3/applications-module.h"
 #include "ns3/point-to-point-layout-module.h"
+#include "ns3/mpi-interface.h"
+
+#ifdef NS3_MPI
+#include <mpi.h>
+#endif
 
 double get_wall_time();
 
@@ -33,19 +38,19 @@ NS_LOG_COMPONENT_DEFINE ("FifthScriptExample");
 int 
 main (int argc, char *argv[])
 {
+#ifdef NS3_MPI
+  bool nullmsg = false;
   double tStart = get_wall_time(), tFinish;
   const int secsPerMin = 60;
-  const uint16_t bitcoinPort = 8333;
   const double realAverageBlockGenIntervalMinutes = 10; //minutes
-  int targetNumberOfBlocks = 1;
+  int targetNumberOfBlocks = 1000;
   double averageBlockGenIntervalSeconds = 10 * secsPerMin; //seconds
   double fixedHashRate = 0.5;
   int start = 0;
   
   int xSize = 3;
-  int ySize = 4;
+  int ySize = 3;
   int connectionsPerNode = 2;
-  int noMiners = 3;
   
   int totalNoNodes = xSize * ySize;
   double averageBlockGenIntervalMinutes = averageBlockGenIntervalSeconds/secsPerMin;
@@ -53,31 +58,40 @@ main (int argc, char *argv[])
   double blockGenBinSize = 1./secsPerMin/1000;					       //minutes
   double blockGenParameter = 0.19 * blockGenBinSize / 2 * (realAverageBlockGenIntervalMinutes / averageBlockGenIntervalMinutes);	//0.19 for blockGenBinSize = 2mins
 
-  std::map<int, Ipv4Address>    miners; // key = nodeId
-  
-  srand (1000);
   Time::SetResolution (Time::NS);
   
   CommandLine cmd;
+  cmd.AddValue ("nullmsg", "Enable the use of null-message synchronization", nullmsg);
   cmd.Parse(argc, argv);
+
+  // Distributed simulation setup; by default use granted time window algorithm.
+  if(nullmsg) 
+    {
+      GlobalValue::Bind ("SimulatorImplementationType",
+                         StringValue ("ns3::NullMessageSimulatorImpl"));
+    } 
+  else 
+    {
+      GlobalValue::Bind ("SimulatorImplementationType",
+                         StringValue ("ns3::DistributedSimulatorImpl"));
+    }
+
+  // Enable parallel simulator with the command line arguments
+  MpiInterface::Enable (&argc, &argv);
+  uint32_t systemId = MpiInterface::GetSystemId ();
+  uint32_t systemCount = MpiInterface::GetSize ();
   
   LogComponentEnable("BitcoinNode", LOG_LEVEL_WARN);
   LogComponentEnable("BitcoinMiner", LOG_LEVEL_WARN);
   //LogComponentEnable("OnOffApplication", LOG_LEVEL_DEBUG);
   //LogComponentEnable("OnOffApplication", LOG_LEVEL_WARN);
 
-  if (noMiners > totalNoNodes)
-  {
-    std::cout << "The number of miners is larger than the total number of nodes\n";
-    return 0;
-  }
-  
   PointToPointHelper pointToPoint;
   pointToPoint.SetDeviceAttribute ("DataRate", StringValue ("8Mbps"));
   pointToPoint.SetChannelAttribute ("Delay", StringValue ("1ms"));
 
   // Create Grid
-  PointToPointGridHelper grid (xSize, ySize, pointToPoint);
+  PointToPointGridHelperCustom grid (xSize, ySize, systemCount, pointToPoint);
   grid.BoundingBox(100, 100, 200, 200);
 
   // Install stack on Grid
@@ -88,44 +102,7 @@ main (int argc, char *argv[])
   grid.AssignIpv4Addresses (Ipv4AddressHelper ("10.1.1.0", "255.255.255.0"),
                             Ipv4AddressHelper ("10.2.1.0", "255.255.255.0"));
 
-  {
-    std::vector<int> nodes;
-
-    for (int i = 0; i < totalNoNodes; i++)
-    {
-      nodes.push_back(i);
-	}
-
-	
-	for (std::vector<int>::iterator j = nodes.begin(); j != nodes.end(); j++)
-	{
-	  std::cout << *j << " " ;
-	}
-	
-    for (int i = 0; i < noMiners; i++)
-	{
-      int index = rand() % nodes.size();
-      miners[nodes[index]] = grid.GetIpv4Address (nodes[index] / ySize, nodes[index] % ySize);
-      std::cout << "\n" << "Chose " << nodes[index] << "     ";
-      nodes.erase(nodes.begin() + index);
-	  
-	  
-	  for (std::vector<int>::iterator j = nodes.begin(); j != nodes.end(); j++)
-	  {
-	    std::cout << *j << " " ;
-	  }
-	}
-  }
-  
-  std::cout << "\nThe miners are:\n" << std::endl;
-
-  for(auto &elem : miners)
-  {
-    std::cout << elem.first << "     " << elem.second << ":\n";
-  }
-  std::cout << std::endl;
-  
-  
+  uint16_t bitcoinPort = 8333;
   Ipv4Address bitcoinMiner1Address (grid.GetIpv4Address (0,0));
   Ipv4Address bitcoinMiner2Address (grid.GetIpv4Address (xSize - 1, ySize - 1));
   Ipv4Address bitcoinNode1Address (grid.GetIpv4Address (xSize - 1, 0));
@@ -136,30 +113,33 @@ main (int argc, char *argv[])
   for (std::vector<Ipv4Address>::const_iterator i = peers.begin(); i != peers.end(); ++i)
     std::cout << "testAddress: " << *i << std::endl;
 
-  BitcoinMinerHelper bitcoinMinerHelper ("ns3::TcpSocketFactory", InetSocketAddress (Ipv4Address::GetAny (), bitcoinPort),
-                                          peers, 0.67, blockGenBinSize, blockGenParameter, averageBlockGenIntervalSeconds);
-  //bitcoinMinerHelper.SetAttribute("FixedBlockIntervalGeneration", DoubleValue(300));
-  ApplicationContainer bitcoinMiners = bitcoinMinerHelper.Install (grid.GetNode (0,0));
-  //bitcoinMinerHelper.SetAttribute("FixedBlockIntervalGeneration", DoubleValue(1300.1));
-  bitcoinMinerHelper.SetAttribute("HashRate", DoubleValue(0.33));
-  bitcoinMiners.Add(bitcoinMinerHelper.Install (grid.GetNode (xSize - 1, ySize - 1)));
+  if (systemId == 0)
+  {
+    BitcoinMinerHelper bitcoinMinerHelper ("ns3::TcpSocketFactory", InetSocketAddress (Ipv4Address::GetAny (), bitcoinPort),
+                                            peers, 0.67, blockGenBinSize, blockGenParameter, averageBlockGenIntervalSeconds);
+    //bitcoinMinerHelper.SetAttribute("FixedBlockIntervalGeneration", DoubleValue(300));
+    ApplicationContainer bitcoinMiners = bitcoinMinerHelper.Install (grid.GetNode (0,0));
+    //bitcoinMinerHelper.SetAttribute("FixedBlockIntervalGeneration", DoubleValue(1300.1));
+    bitcoinMinerHelper.SetAttribute("HashRate", DoubleValue(0.33));
+    bitcoinMiners.Add(bitcoinMinerHelper.Install (grid.GetNode (xSize - 1, ySize - 1)));
 
-
-  bitcoinMiners.Start (Seconds (start));
-  bitcoinMiners.Stop (Minutes (stop));
-
+    bitcoinMiners.Start (Seconds (start));
+    bitcoinMiners.Stop (Minutes (stop));
+  }
   
   Ipv4Address testAddress2[] =  {bitcoinMiner1Address, bitcoinMiner2Address};
   peers.assign (testAddress2,testAddress2 + sizeof(testAddress2) / sizeof(Ipv4Address));
   for (std::vector<Ipv4Address>::const_iterator i = peers.begin(); i != peers.end(); ++i)
     std::cout << "testAddress2: " << *i << std::endl;
-	
-  BitcoinNodeHelper bitcoinNodeHelper ("ns3::TcpSocketFactory", InetSocketAddress (Ipv4Address::GetAny (), bitcoinPort), peers);
-  ApplicationContainer bitcoinNodes = bitcoinNodeHelper.Install (grid.GetNode (xSize - 1, 0));
-  bitcoinNodes.Add(bitcoinNodeHelper.Install (grid.GetNode (0, ySize - 1)));
-  bitcoinNodes.Start (Seconds (start));
-  bitcoinNodes.Stop (Minutes (stop));
 
+  if (systemId == 1)
+  {
+    BitcoinNodeHelper bitcoinNodeHelper ("ns3::TcpSocketFactory", InetSocketAddress (Ipv4Address::GetAny (), bitcoinPort), peers);
+    ApplicationContainer bitcoinNodes = bitcoinNodeHelper.Install (grid.GetNode (xSize - 1, 0));
+    bitcoinNodes.Add(bitcoinNodeHelper.Install (grid.GetNode (0, ySize - 1)));
+    bitcoinNodes.Start (Seconds (start));
+    bitcoinNodes.Stop (Minutes (stop));
+  }
   
   // Set up the actual simulation
   Ipv4GlobalRoutingHelper::PopulateRoutingTables ();
@@ -167,12 +147,20 @@ main (int argc, char *argv[])
   //Simulator::Stop (Minutes (stop));
   Simulator::Run ();
   Simulator::Destroy ();
-
+  
+  // Exit the MPI execution environment
+  MpiInterface::Disable ();
+  
   tFinish=get_wall_time();
   std::cout << "\nThe simulation ran for " << tFinish - tStart << "s simulating "
             << stop << "mins. Performed " << stop * secsPerMin / (tFinish - tStart) 
 			<< " faster than realtime.\n";
+			
   return 0;
+  
+#else
+  NS_FATAL_ERROR ("Can't use distributed simulator without MPI compiled in");
+#endif
 }
 
 double get_wall_time()
