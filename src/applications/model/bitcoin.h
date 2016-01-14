@@ -89,6 +89,7 @@ public:
   Block ReturnBlock(int height, int minerId);  
 
   bool IsOrphan (const Block &newBlock) const;
+  bool IsOrphan (int height, int minerId) const;
   
   const Block* GetBlockPointer (const Block &newBlock) const;
   

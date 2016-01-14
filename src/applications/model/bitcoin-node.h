@@ -52,7 +52,7 @@ public:
   /**
    * set the address of peers
    */
-  void SetPeersAddresses (std::vector<Ipv4Address> peers);
+  void SetPeersAddresses (const std::vector<Ipv4Address> &peers);
 
 protected:
   virtual void DoDispose (void);

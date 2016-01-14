@@ -92,7 +92,7 @@ BitcoinNode::GetPeersAddresses (void) const
 
 
 void 
-BitcoinNode::SetPeersAddresses (std::vector<Ipv4Address> peers)
+BitcoinNode::SetPeersAddresses (const std::vector<Ipv4Address> &peers)
 {
   NS_LOG_FUNCTION (this);
   m_peersAddresses = peers;
@@ -118,8 +118,13 @@ BitcoinNode::StartApplication ()    // Called at time specified by Start
 {
   NS_LOG_FUNCTION (this);
   // Create the socket if not already
-  NS_LOG_WARN ("Node " << GetNode()->GetId() << " m_numberOfPeers = " << m_numberOfPeers);
-  NS_LOG_WARN ("Node " << GetNode()->GetId() << " m_invTimeoutMinutes = " << m_invTimeoutMinutes.GetMinutes() << "mins");
+  NS_LOG_DEBUG ("Node " << GetNode()->GetId() << ": m_numberOfPeers = " << m_numberOfPeers);
+  NS_LOG_DEBUG ("Node " << GetNode()->GetId() << ": m_invTimeoutMinutes = " << m_invTimeoutMinutes.GetMinutes() << "mins");
+  NS_LOG_DEBUG ("Node " << GetNode()->GetId() << ": My peers are");
+  
+  for (auto it = m_peersAddresses.begin(); it != m_peersAddresses.end(); it++)
+    NS_LOG_DEBUG("\t" << *it);
+
 
   if (!m_socket)
     {
@@ -278,7 +283,7 @@ BitcoinNode::HandleRead (Ptr<Socket> socket)
 				int minerId = atoi(parsedInv.substr(invPos+1, parsedInv.size()).c_str());
 				  
                 								  
-                if (m_blockchain.HasBlock(height, minerId))
+                if (m_blockchain.HasBlock(height, minerId) || m_blockchain.IsOrphan(height, minerId))
                 {
                   NS_LOG_DEBUG("INV: Bitcoin node " << GetNode ()->GetId () 
 				  << " has the block with height = " 
@@ -349,7 +354,7 @@ BitcoinNode::HandleRead (Ptr<Socket> socket)
                 int height = atoi(parsedInv.substr(0, invPos).c_str());
                 int minerId = atoi(parsedInv.substr(invPos+1, parsedInv.size()).c_str());
 				
-                if (m_blockchain.HasBlock(height, minerId))
+                if (m_blockchain.HasBlock(height, minerId) || m_blockchain.IsOrphan(height, minerId))
                 {
                   NS_LOG_DEBUG("GET_HEADERS: Bitcoin node " << GetNode ()->GetId () 
                   << " has the block with height = " 
@@ -419,7 +424,7 @@ BitcoinNode::HandleRead (Ptr<Socket> socket)
                 int height = atoi(parsedInv.substr(0, invPos).c_str());
                 int minerId = atoi(parsedInv.substr(invPos+1, parsedInv.size()).c_str());
 				
-                if (m_blockchain.HasBlock(height, minerId))
+                if (m_blockchain.HasBlock(height, minerId) || m_blockchain.IsOrphan(height, minerId))
                 {
                   NS_LOG_DEBUG("GET_DATA: Bitcoin node " << GetNode ()->GetId () 
                   << " has the block with height = " 
@@ -494,7 +499,7 @@ BitcoinNode::HandleRead (Ptr<Socket> socket)
                 stringStream << parentHeight << "/" << parentMinerId;
                 blockHash = stringStream.str();
 				
-                if (!m_blockchain.HasBlock(parentHeight, parentMinerId))
+                if (!m_blockchain.HasBlock(parentHeight, parentMinerId) || m_blockchain.IsOrphan(parentHeight, parentMinerId))
                 {				  
                   NS_LOG_DEBUG("The Block with height = " << d["blocks"][j]["height"].GetInt() 
                                << " and minerId = " << d["blocks"][j]["minerId"].GetInt() 
@@ -912,9 +917,9 @@ BitcoinNode::InvTimeoutExpired(std::string blockHash)
 	
     Ptr<Socket> ns3TcpSocket = Socket::CreateSocket (GetNode (), TcpSocketFactory::GetTypeId ());
     ns3TcpSocket->Connect(InetSocketAddress (InetSocketAddress::ConvertFrom(*(m_queueInv[blockHash].begin())).GetIpv4 (), m_bitcoinPort));
-					
-    SendMessage(INV, GET_HEADERS, d, m_peersSockets[InetSocketAddress::ConvertFrom(*(m_queueInv[blockHash].begin())).GetIpv4 ()]);				
-    SendMessage(INV, GET_DATA, d, m_peersSockets[InetSocketAddress::ConvertFrom(*(m_queueInv[blockHash].begin())).GetIpv4 ()]);
+	
+    SendMessage(INV, GET_HEADERS, d, *(m_queueInv[blockHash].begin()));				
+    SendMessage(INV, GET_DATA, d, *(m_queueInv[blockHash].begin()));	
 					
     timeout = Simulator::Schedule (m_invTimeoutMinutes, &BitcoinNode::InvTimeoutExpired, this, blockHash);
     m_invTimeouts[blockHash] = timeout;

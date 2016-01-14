@@ -45,7 +45,7 @@ public:
    * \param address the address of the bitcoin node,
    *
    */
-  BitcoinNodeHelper (std::string protocol, Address address, std::vector<Ipv4Address> peers);
+  BitcoinNodeHelper (std::string protocol, Address address, std::vector<Ipv4Address> &peers);
   
   /**
    * Called by subclasses to set a different factory TypeId
@@ -55,7 +55,7 @@ public:
   /**
    * Common Constructor called both from the base class and the subclasses
    */
-   void commonConstructor(std::string protocol, Address address, std::vector<Ipv4Address> peers);
+   void commonConstructor(std::string protocol, Address address, std::vector<Ipv4Address> &peers);
   
   /**
    * Helper function used to set the underlying application attributes.
@@ -93,6 +93,8 @@ public:
    */
   ApplicationContainer Install (std::string nodeName) const;
 
+  void SetPeersAddresses (std::vector<Ipv4Address> &peersAddresses);
+  
 protected:
   /**
    * Install an ns3::PacketSink on the node configured with all the
@@ -102,7 +104,8 @@ protected:
    * \returns Ptr to the application installed.
    */
   virtual Ptr<Application> InstallPriv (Ptr<Node> node) const;
-  ObjectFactory m_factory; //!< Object factory.
+  
+  ObjectFactory                   m_factory; //!< Object factory.
   std::vector<Ipv4Address>		  m_peersAddresses; //!< The addresses of peers
 
 };

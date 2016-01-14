@@ -260,6 +260,21 @@ Blockchain::IsOrphan (const Block &newBlock) const
   return false;
 }
 
+
+bool 
+Blockchain::IsOrphan (int height, int minerId) const
+{													
+  for (auto const &block: m_orphans) 
+  {
+    if (block.GetBlockHeight() == height && block.GetMinerId() == minerId)
+	{
+	  return true;
+	}
+  }
+  return false;
+}
+
+
 const Block* 
 Blockchain::GetBlockPointer (const Block &newBlock) const
 {
