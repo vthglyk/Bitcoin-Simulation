@@ -53,7 +53,9 @@ main (int argc, char *argv[])
   double blockGenBinSize = 1./secsPerMin/1000;					       //minutes
   double blockGenParameter = 0.19 * blockGenBinSize / 2 * (realAverageBlockGenIntervalMinutes / averageBlockGenIntervalMinutes);	//0.19 for blockGenBinSize = 2mins
 
-  std::map<int, Ipv4Address>    miners; // key = nodeId
+  std::map<int, Ipv4Address>                 miners; // key = nodeId
+  std::map<int, std::vector<Ipv4Address>>    nodesConnections; // key = nodeId
+  
   
   srand (1000);
   Time::SetResolution (Time::NS);
@@ -77,7 +79,7 @@ main (int argc, char *argv[])
   pointToPoint.SetChannelAttribute ("Delay", StringValue ("1ms"));
 
   // Create Grid
-  PointToPointGridHelper grid (xSize, ySize, pointToPoint);
+  PointToPointGridHelperCustom grid (xSize, ySize, 1, pointToPoint);
   grid.BoundingBox(100, 100, 200, 200);
 
   // Install stack on Grid
@@ -89,6 +91,7 @@ main (int argc, char *argv[])
                             Ipv4AddressHelper ("10.2.1.0", "255.255.255.0"));
 
   {
+    //nodes contain the ids of the nodes
     std::vector<int> nodes;
 
     for (int i = 0; i < totalNoNodes; i++)
@@ -96,12 +99,14 @@ main (int argc, char *argv[])
       nodes.push_back(i);
 	}
 
-	
+	//print the initialized nodes
 	for (std::vector<int>::iterator j = nodes.begin(); j != nodes.end(); j++)
 	{
 	  std::cout << *j << " " ;
 	}
-	
+
+	//Choose the miners randomly. They should be unique (no miner should be chosen twice).
+	//So, remove each chose miner from nodes vector
     for (int i = 0; i < noMiners; i++)
 	{
       int index = rand() % nodes.size();
@@ -110,20 +115,42 @@ main (int argc, char *argv[])
       nodes.erase(nodes.begin() + index);
 	  
 	  
-	  for (std::vector<int>::iterator j = nodes.begin(); j != nodes.end(); j++)
+	  for (std::vector<int>::iterator it = nodes.begin(); it != nodes.end(); it++)
 	  {
-	    std::cout << *j << " " ;
+	    std::cout << *it << " " ;
 	  }
 	}
   }
   
-  std::cout << "\nThe miners are:\n" << std::endl;
-
-  for(auto &elem : miners)
+  //Print the miners
+  std::cout << "\n\nThe miners are:\n" << std::endl;
+  for(auto &miner : miners)
   {
-    std::cout << elem.first << "     " << elem.second << ":\n";
+    std::cout << miner.first << "     " << miner.second << ":\n";
   }
   std::cout << std::endl;
+
+  //Interconnect the miners
+  for(auto &miner : miners)
+  {
+    for(auto &peer : miners)
+    {
+      if (peer.first != miner.first)
+        nodesConnections[miner.first].push_back(peer.second);
+	}
+  }
+  
+  //Print the miners' connections
+  std::cout << "The miners are interconnected:" << std::endl;
+  for(auto &miner : nodesConnections)
+  {
+	std::cout << "\nMiner " << miner.first << ":   " ;
+	for(std::vector<Ipv4Address>::const_iterator it = miner.second.begin(); it != miner.second.end(); it++)
+	{
+      std::cout << *it << " " ;
+	}
+  }
+  std::cout << "\n" << std::endl;
   
   
   Ipv4Address bitcoinMiner1Address (grid.GetIpv4Address (0,0));
@@ -136,17 +163,16 @@ main (int argc, char *argv[])
   for (std::vector<Ipv4Address>::const_iterator i = peers.begin(); i != peers.end(); ++i)
     std::cout << "testAddress: " << *i << std::endl;
 
-  BitcoinMinerHelper bitcoinMinerHelper ("ns3::TcpSocketFactory", InetSocketAddress (Ipv4Address::GetAny (), bitcoinPort),
+/*   BitcoinMinerHelper bitcoinMinerHelper ("ns3::TcpSocketFactory", InetSocketAddress (Ipv4Address::GetAny (), bitcoinPort),
                                           peers, 0.67, blockGenBinSize, blockGenParameter, averageBlockGenIntervalSeconds);
   //bitcoinMinerHelper.SetAttribute("FixedBlockIntervalGeneration", DoubleValue(300));
   ApplicationContainer bitcoinMiners = bitcoinMinerHelper.Install (grid.GetNode (0,0));
   //bitcoinMinerHelper.SetAttribute("FixedBlockIntervalGeneration", DoubleValue(1300.1));
   bitcoinMinerHelper.SetAttribute("HashRate", DoubleValue(0.33));
-  bitcoinMiners.Add(bitcoinMinerHelper.Install (grid.GetNode (xSize - 1, ySize - 1)));
-
+  //bitcoinMiners.Add(bitcoinMinerHelper.Install (grid.GetNode (xSize - 1, ySize - 1)));
 
   bitcoinMiners.Start (Seconds (start));
-  bitcoinMiners.Stop (Minutes (stop));
+  bitcoinMiners.Stop (Minutes (stop)); */
 
   
   Ipv4Address testAddress2[] =  {bitcoinMiner1Address, bitcoinMiner2Address};
@@ -154,11 +180,11 @@ main (int argc, char *argv[])
   for (std::vector<Ipv4Address>::const_iterator i = peers.begin(); i != peers.end(); ++i)
     std::cout << "testAddress2: " << *i << std::endl;
 	
-  BitcoinNodeHelper bitcoinNodeHelper ("ns3::TcpSocketFactory", InetSocketAddress (Ipv4Address::GetAny (), bitcoinPort), peers);
+/*   BitcoinNodeHelper bitcoinNodeHelper ("ns3::TcpSocketFactory", InetSocketAddress (Ipv4Address::GetAny (), bitcoinPort), peers);
   ApplicationContainer bitcoinNodes = bitcoinNodeHelper.Install (grid.GetNode (xSize - 1, 0));
   bitcoinNodes.Add(bitcoinNodeHelper.Install (grid.GetNode (0, ySize - 1)));
   bitcoinNodes.Start (Seconds (start));
-  bitcoinNodes.Stop (Minutes (stop));
+  bitcoinNodes.Stop (Minutes (stop)); */
 
   
   // Set up the actual simulation

@@ -290,4 +290,8 @@ PointToPointGridHelperCustom::GetIpv6Address (uint32_t row, uint32_t col)
     }
 }
 
+std::vector<NetDeviceContainer> 
+PointToPointGridHelperCustom::GetNetDeviceContainer (void)
+{
+}
 } // namespace ns3

@@ -141,6 +141,12 @@ public:
    */
   void BoundingBox (double ulx, double uly, double lrx, double lry);
 
+  /**
+   * Get the interface container
+   */
+   std::vector<NetDeviceContainer> GetNetDeviceContainer (void);
+   
+   
 private:
   uint32_t m_xSize;   //!< X size of the grid (number of columns)
   uint32_t m_ySize;   //!< Y size of the grid (number of rows)
