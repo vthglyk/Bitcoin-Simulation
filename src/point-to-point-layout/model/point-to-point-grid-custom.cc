@@ -51,7 +51,7 @@ PointToPointGridHelperCustom::PointToPointGridHelperCustom (uint32_t nRows,
       for (uint32_t x = 0; x < nCols; ++x)
         {
           rowNodes.Create (1,(x+y) % m_noCpus);
-          std::cout << "Creating a node with systemId = " << (x+y) % m_noCpus << "\n";
+          //std::cout << "Creating a node with systemId = " << (x+y) % m_noCpus << "\n";
           // install p2p links across the row
           if (x > 0)
             {
@@ -290,8 +290,18 @@ PointToPointGridHelperCustom::GetIpv6Address (uint32_t row, uint32_t col)
     }
 }
 
-std::vector<NetDeviceContainer> 
-PointToPointGridHelperCustom::GetNetDeviceContainer (void)
+Ipv4InterfaceContainer
+PointToPointGridHelperCustom::GetIpv4InterfaceContainer (void) const
 {
+  Ipv4InterfaceContainer ipv4InterfaceContainer;
+  
+  for (auto container = m_rowInterfaces.begin(); container != m_rowInterfaces.end(); container++)
+    ipv4InterfaceContainer.Add(*container);
+  
+  for (auto container = m_colInterfaces.begin(); container != m_colInterfaces.end(); container++)
+    ipv4InterfaceContainer.Add(*container);
+
+  
+  return ipv4InterfaceContainer;
 }
 } // namespace ns3

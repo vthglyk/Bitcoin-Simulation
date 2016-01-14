@@ -144,7 +144,7 @@ public:
   /**
    * Get the interface container
    */
-   std::vector<NetDeviceContainer> GetNetDeviceContainer (void);
+   Ipv4InterfaceContainer GetIpv4InterfaceContainer (void) const;
    
    
 private:

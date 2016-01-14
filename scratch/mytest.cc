@@ -24,9 +24,10 @@
 #include "ns3/applications-module.h"
 #include "ns3/point-to-point-layout-module.h"
 
-double get_wall_time();
-
 using namespace ns3;
+
+double get_wall_time();
+int GetNodeIdByIpv4 (Ipv4InterfaceContainer container, Ipv4Address addr);
 
 NS_LOG_COMPONENT_DEFINE ("FifthScriptExample");
 
@@ -55,7 +56,7 @@ main (int argc, char *argv[])
 
   std::map<int, Ipv4Address>                 miners; // key = nodeId
   std::map<int, std::vector<Ipv4Address>>    nodesConnections; // key = nodeId
-  
+  Ipv4InterfaceContainer                     ipv4InterfaceContainer;
   
   srand (1000);
   Time::SetResolution (Time::NS);
@@ -89,7 +90,9 @@ main (int argc, char *argv[])
   // Assign Addresses to Grid
   grid.AssignIpv4Addresses (Ipv4AddressHelper ("10.1.1.0", "255.255.255.0"),
                             Ipv4AddressHelper ("10.2.1.0", "255.255.255.0"));
-
+  ipv4InterfaceContainer = grid.GetIpv4InterfaceContainer();
+  
+  
   {
     //nodes contain the ids of the nodes
     std::vector<int> nodes;
@@ -147,7 +150,7 @@ main (int argc, char *argv[])
 	std::cout << "\nMiner " << miner.first << ":   " ;
 	for(std::vector<Ipv4Address>::const_iterator it = miner.second.begin(); it != miner.second.end(); it++)
 	{
-      std::cout << *it << " " ;
+      std::cout << GetNodeIdByIpv4(ipv4InterfaceContainer, *it) << " " ;
 	}
   }
   std::cout << "\n" << std::endl;
@@ -209,4 +212,15 @@ double get_wall_time()
         return 0;
     }
     return (double)time.tv_sec + (double)time.tv_usec * .000001;
+}
+
+int GetNodeIdByIpv4 (Ipv4InterfaceContainer container, Ipv4Address addr)
+{
+  for (auto it = container.Begin(); it != container.End(); it++)
+  {
+	int32_t interface = it->first->GetInterfaceForAddress (addr);
+	if ( interface != -1)
+      return it->first->GetNetDevice (interface)-> GetNode()->GetId();
+  }	  
+  return -1; //if not found
 }
