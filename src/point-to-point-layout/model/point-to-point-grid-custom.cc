@@ -50,7 +50,7 @@ PointToPointGridHelperCustom::PointToPointGridHelperCustom (uint32_t nRows,
 
       for (uint32_t x = 0; x < nCols; ++x)
         {
-          rowNodes.Create (1,(x+y) % m_noCpus);
+          rowNodes.Create (1,(x+y*nCols) % m_noCpus);
           //std::cout << "Creating a node with systemId = " << (x+y) % m_noCpus << "\n";
           // install p2p links across the row
           if (x > 0)

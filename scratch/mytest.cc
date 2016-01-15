@@ -29,7 +29,7 @@ using namespace ns3;
 double get_wall_time();
 int GetNodeIdByIpv4 (Ipv4InterfaceContainer container, Ipv4Address addr);
 
-NS_LOG_COMPONENT_DEFINE ("FifthScriptExample");
+NS_LOG_COMPONENT_DEFINE ("MyTest");
 
 int 
 main (int argc, char *argv[])
@@ -102,8 +102,8 @@ main (int argc, char *argv[])
   grid.InstallStack (stack);
 
   // Assign Addresses to Grid
-  grid.AssignIpv4Addresses (Ipv4AddressHelper ("10.1.1.0", "255.255.255.0"),
-                            Ipv4AddressHelper ("10.2.1.0", "255.255.255.0"));
+  grid.AssignIpv4Addresses (Ipv4AddressHelper ("10.0.0.0", "255.255.0.0"),
+                            Ipv4AddressHelper ("11.0.0.0", "255.255.0.0"));
   ipv4InterfaceContainer = grid.GetIpv4InterfaceContainer();
   
   
@@ -278,12 +278,14 @@ main (int argc, char *argv[])
   bitcoinMinerHelper.SetAttribute("FixedBlockIntervalGeneration", DoubleValue(600));
   for(auto &miner : miners)
   {
-    bitcoinMinerHelper.SetAttribute("HashRate", DoubleValue(minersHash[count]));
+	Ptr<Node> targetNode = grid.GetNode (miner.first / ySize, miner.first % ySize);
 	
+    bitcoinMinerHelper.SetAttribute("HashRate", DoubleValue(minersHash[count]));
 	bitcoinMinerHelper.SetPeersAddresses (nodesConnections[miner.first]);
-	bitcoinMiners.Add(bitcoinMinerHelper.Install (grid.GetNode (miner.first / ySize, miner.first % ySize)));
-/*     std::cout << "Miner " << miner.first << " with hash power = " << minersHash[count] << " was installed in node (" 
-              << miner.first / ySize << ", " << miner.first % ySize << ")" << std::endl; */  
+	bitcoinMiners.Add(bitcoinMinerHelper.Install (targetNode));
+    std::cout << "Miner " << miner.first << " with hash power = " << minersHash[count] 
+	          << " and systemId = " << targetNode->GetSystemId() << " was installed in node (" 
+              << miner.first / ySize << ", " << miner.first % ySize << ")" << std::endl; 
 	count++;
 	bitcoinMinerHelper.SetAttribute("FixedBlockIntervalGeneration", DoubleValue(10000));
 
@@ -299,12 +301,15 @@ main (int argc, char *argv[])
   for(auto &node : nodesConnections)
   {
 	auto it = miners.find(node.first);
+    Ptr<Node> targetNode = grid.GetNode (node.first / ySize, node.first % ySize);
+	
 	if ( it == miners.end())
 	{
 	  bitcoinNodeHelper.SetPeersAddresses (node.second);
-	  bitcoinNodes.Add(bitcoinNodeHelper.Install (grid.GetNode (node.first / ySize, node.first % ySize)));
-/*       std::cout << "Node " << node.first << " was installed in node (" 
-                << node.first / ySize << ", " << node.first % ySize << ")"<< std::endl; */
+	  bitcoinNodes.Add(bitcoinNodeHelper.Install (targetNode));
+      std::cout << "Node " << node.first << " with systemId = " << targetNode->GetSystemId() 
+		        << " was installed in node (" << node.first / ySize << ", " 
+				<< node.first % ySize << ")"<< std::endl;
 	}				
   }
   bitcoinNodes.Start (Seconds (start));
