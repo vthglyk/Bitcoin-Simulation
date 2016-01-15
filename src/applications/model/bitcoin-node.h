@@ -1,6 +1,7 @@
 #ifndef BITCOIN_NODE_H
 #define BITCOIN_NODE_H
 
+#include <algorithm>
 #include "ns3/application.h"
 #include "ns3/event-id.h"
 #include "ns3/ptr.h"
@@ -98,7 +99,12 @@ protected:
   void PrintQueueInv();
   void PrintInvTimeouts();
 
-  void InvTimeoutExpired(std::string blockHash);
+  void InvTimeoutExpired (std::string blockHash);
+
+  bool ReceivedButNotValidated (std::string blockHash);
+  
+  bool RemoveReceivedButNotValidated (std::string blockHash);
+  
   
   // In the case of TCP, each socket accept returns a new socket, so the 
   // listening socket is stored separately from the accepted sockets
@@ -113,12 +119,13 @@ protected:
   Blockchain 	  m_blockchain;
   Time            m_invTimeoutMinutes;
   
-  std::list<Ptr<Socket> >                         m_socketList;        //!< the accepted sockets
-  std::vector<Ipv4Address>		                  m_peersAddresses;    //!< The addresses of peers
-  std::map<Ipv4Address, Ptr<Socket>>              m_peersSockets;      //!< The sockets of peers
-  std::map<std::string, std::vector<Address>>     m_queueInv;          //!< map holding the addresses of nodes which sent an INV for a particular block
-  std::map<std::string, EventId>                  m_invTimeouts;       //!< map holding the event timeouts of inv messages
-  std::map<Address, std::string>                  m_bufferedData;      //!< map holding the buffered data from previous handleRead events
+  std::list<Ptr<Socket> >                         m_socketList;            //!< the accepted sockets
+  std::vector<Ipv4Address>		                  m_peersAddresses;        //!< The addresses of peers
+  std::map<Ipv4Address, Ptr<Socket>>              m_peersSockets;          //!< The sockets of peers
+  std::map<std::string, std::vector<Address>>     m_queueInv;              //!< map holding the addresses of nodes which sent an INV for a particular block
+  std::map<std::string, EventId>                  m_invTimeouts;           //!< map holding the event timeouts of inv messages
+  std::map<Address, std::string>                  m_bufferedData;          //!< map holding the buffered data from previous handleRead events
+  std::vector<std::string>                        m_receivedNotValidated;  //!< map holding the received but not yet validated blocks
 
   const int		  m_bitcoinPort;   //!< 8333
   const int       m_secondsPerMin; //!< 8333

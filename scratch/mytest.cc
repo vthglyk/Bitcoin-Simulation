@@ -45,8 +45,8 @@ main (int argc, char *argv[])
   
   int xSize = 10;
   int ySize = 10;
-  int minConnectionsPerNode = 40;
-  int maxConnectionsPerNode = 80;
+  int minConnectionsPerNode = 80;
+  int maxConnectionsPerNode = 100;
   int noMiners = 3;
   double minersHash[] = {0.4, 0.3, 0.3};
   

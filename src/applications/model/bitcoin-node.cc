@@ -198,6 +198,8 @@ BitcoinNode::StopApplication ()     // Called at time specified by Stop
   NS_LOG_WARN("Total Blocks = " << m_blockchain.GetTotalBlocks());
   NS_LOG_WARN("Stale Blocks = " << m_blockchain.GetNoStaleBlocks() << " (" 
               << 100. * m_blockchain.GetNoStaleBlocks() / m_blockchain.GetTotalBlocks() << "%)");
+  NS_LOG_WARN("receivedButNotValidated size = " << m_receivedNotValidated.size());
+
 }
 
 void 
@@ -283,10 +285,10 @@ BitcoinNode::HandleRead (Ptr<Socket> socket)
 				int minerId = atoi(parsedInv.substr(invPos+1, parsedInv.size()).c_str());
 				  
                 								  
-                if (m_blockchain.HasBlock(height, minerId) || m_blockchain.IsOrphan(height, minerId))
+                if (m_blockchain.HasBlock(height, minerId) || ReceivedButNotValidated(parsedInv))
                 {
                   NS_LOG_DEBUG("INV: Bitcoin node " << GetNode ()->GetId () 
-				  << " has the block with height = " 
+				  << " has already received the block with height = " 
 				  << height << " and minerId = " << minerId);				  
                 }
                 else
@@ -424,10 +426,10 @@ BitcoinNode::HandleRead (Ptr<Socket> socket)
                 int height = atoi(parsedInv.substr(0, invPos).c_str());
                 int minerId = atoi(parsedInv.substr(invPos+1, parsedInv.size()).c_str());
 				
-                if (m_blockchain.HasBlock(height, minerId) || m_blockchain.IsOrphan(height, minerId))
+                if (m_blockchain.HasBlock(height, minerId) || ReceivedButNotValidated(parsedInv))
                 {
                   NS_LOG_DEBUG("GET_DATA: Bitcoin node " << GetNode ()->GetId () 
-                  << " has the block with height = " 
+                  << " has already received the block with height = " 
                   << height << " and minerId = " << minerId);
                   Block newBlock (m_blockchain.ReturnBlock (height, minerId));
                   requestBlocks.push_back(newBlock);
@@ -499,7 +501,7 @@ BitcoinNode::HandleRead (Ptr<Socket> socket)
                 stringStream << parentHeight << "/" << parentMinerId;
                 blockHash = stringStream.str();
 				
-                if (!m_blockchain.HasBlock(parentHeight, parentMinerId) || m_blockchain.IsOrphan(parentHeight, parentMinerId))
+                if (!m_blockchain.HasBlock(parentHeight, parentMinerId) && !ReceivedButNotValidated(blockHash))
                 {				  
                   NS_LOG_DEBUG("The Block with height = " << d["blocks"][j]["height"].GetInt() 
                                << " and minerId = " << d["blocks"][j]["minerId"].GetInt() 
@@ -623,6 +625,7 @@ BitcoinNode::ReceiveBlock(const Block &newBlock)
     stringStream << newBlock.GetBlockHeight() << "/" << newBlock.GetMinerId();
     std::string blockHash = stringStream.str();
 	
+	m_receivedNotValidated.push_back(blockHash);
 	//PrintQueueInv();
 	//PrintInvTimeouts();
 	
@@ -683,6 +686,16 @@ BitcoinNode::AfterBlockValidation(const Block &newBlock)
 {
   NS_LOG_FUNCTION (this);
 
+  int height = newBlock.GetBlockHeight();
+  int minerId = newBlock.GetMinerId();
+  std::ostringstream   stringStream;  
+  std::string          blockHash = stringStream.str();
+				
+  stringStream << height << "/" << minerId;
+  blockHash = stringStream.str();
+  
+  RemoveReceivedButNotValidated(blockHash);
+  
   NS_LOG_DEBUG ("AfterBlockValidation: At time " << Simulator::Now ().GetSeconds ()
                << "s bitcoin node " << GetNode ()->GetId () 
 			   << " validated block " <<  newBlock);
@@ -915,9 +928,6 @@ BitcoinNode::InvTimeoutExpired(std::string blockHash)
     array.PushBack(value, d.GetAllocator());
     d.AddMember("blocks", array, d.GetAllocator());
 	
-    Ptr<Socket> ns3TcpSocket = Socket::CreateSocket (GetNode (), TcpSocketFactory::GetTypeId ());
-    ns3TcpSocket->Connect(InetSocketAddress (InetSocketAddress::ConvertFrom(*(m_queueInv[blockHash].begin())).GetIpv4 (), m_bitcoinPort));
-	
     SendMessage(INV, GET_HEADERS, d, *(m_queueInv[blockHash].begin()));				
     SendMessage(INV, GET_DATA, d, *(m_queueInv[blockHash].begin()));	
 					
@@ -930,6 +940,36 @@ BitcoinNode::InvTimeoutExpired(std::string blockHash)
     
   //PrintQueueInv();
   //PrintInvTimeouts();
+}
+
+
+bool 
+BitcoinNode::ReceivedButNotValidated (std::string blockHash)
+{
+  NS_LOG_FUNCTION (this);
+  
+  if ( std::find(m_receivedNotValidated.begin(), m_receivedNotValidated.end(), blockHash) != m_receivedNotValidated.end() )
+    return true;
+  else
+    return false;
+}
+
+
+bool 
+BitcoinNode::RemoveReceivedButNotValidated (std::string blockHash)
+{
+  NS_LOG_FUNCTION (this);
+  
+  auto it = std::find(m_receivedNotValidated.begin(), m_receivedNotValidated.end(), blockHash);
+  
+  if ( it  != m_receivedNotValidated.end())
+  {
+    m_receivedNotValidated.erase(it);
+  }
+  else
+  {
+    NS_LOG_WARN (blockHash << " was not found in m_receivedNotValidated");
+  }
 }
 
 
