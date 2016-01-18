@@ -130,7 +130,7 @@ protected:
   double			m_blockGenParameter; 			//!< The block generation distribution parameter
   double 			m_nextBlockTime;
   double		    m_previousBlockGenerationTime;
-  float				m_minerAverageBlockGenInterval;
+  double			m_minerAverageBlockGenInterval;
   int				m_minerGeneratedBlocks;
   double			m_hashRate;
   std::geometric_distribution<int> m_blockGenTimeDistribution ;

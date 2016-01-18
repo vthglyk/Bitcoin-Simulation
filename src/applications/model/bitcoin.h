@@ -24,6 +24,11 @@ typedef struct {
   double   meanBlockSize;
   int      totalBlocks;
   int      staleBlocks;
+  int      miner;
+  int      minerGeneratedBlocks;
+  double   minerAverageBlockGenInterval;
+  double   minerAverageBlockSize;
+  double   hashRate;
 } nodeStatistics;
 
 const char* getMessageName(enum Messages m);

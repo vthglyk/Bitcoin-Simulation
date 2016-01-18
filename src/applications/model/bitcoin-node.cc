@@ -214,6 +214,10 @@ BitcoinNode::StopApplication ()     // Called at time specified by Stop
   m_nodeStats->meanBlockSize = m_meanBlockSize;
   m_nodeStats->totalBlocks = m_blockchain.GetTotalBlocks();
   m_nodeStats->staleBlocks = m_blockchain.GetNoStaleBlocks();
+  m_nodeStats->miner = 0;
+  m_nodeStats->minerGeneratedBlocks = 0;
+  m_nodeStats->minerAverageBlockGenInterval = 0;
+  m_nodeStats->minerAverageBlockSize = 0;
   
 /*     std::cout << "\nNode " << m_nodeStats->nodeId << " statistics:\n";
     std::cout << "Mean Block Receive Time = " << m_nodeStats->meanBlockReceiveTime << " or " 

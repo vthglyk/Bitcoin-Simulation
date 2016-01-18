@@ -54,13 +54,13 @@ main (int argc, char *argv[])
   
   int xSize = 4;
   int ySize = 4;
-  int minConnectionsPerNode = 15;
-  int maxConnectionsPerNode = 15;
+  int minConnectionsPerNode = 80;
+  int maxConnectionsPerNode = 90;
   int noMiners = 16;
   double minersHash[] = {0.289, 0.196, 0.159, 0.133, 0.066, 0.054,
                          0.029, 0.016, 0.012, 0.012, 0.012, 0.009,
                          0.005, 0.005, 0.002, 0.002};
-/*  int noMiners = 3;
+/*   int noMiners = 3;
   double minersHash[] = {0.4, 0.3, 0.3}; */
 
   
@@ -101,6 +101,7 @@ main (int argc, char *argv[])
   
   LogComponentEnable("BitcoinNode", LOG_LEVEL_WARN);
   LogComponentEnable("BitcoinMiner", LOG_LEVEL_WARN);
+
   //LogComponentEnable("OnOffApplication", LOG_LEVEL_DEBUG);
   //LogComponentEnable("OnOffApplication", LOG_LEVEL_WARN);
 
@@ -330,14 +331,13 @@ main (int argc, char *argv[])
   // Set up the actual simulation
   Ipv4GlobalRoutingHelper::PopulateRoutingTables ();
   
-  //Simulator::Stop (Minutes (stop));
+  Simulator::Stop (Minutes (stop + 0.1));
   Simulator::Run ();
   Simulator::Destroy ();
  
-  int            base; 
-  int            blocklen[6] = {1, 1, 1, 1, 1, 1}; 
-  MPI_Aint       disp[6]; 
-  MPI_Datatype   dtypes[6] = {MPI_INT, MPI_DOUBLE, MPI_DOUBLE, MPI_DOUBLE, MPI_INT, MPI_INT}; 
+  int            blocklen[11] = {1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1}; 
+  MPI_Aint       disp[11]; 
+  MPI_Datatype   dtypes[11] = {MPI_INT, MPI_DOUBLE, MPI_DOUBLE, MPI_DOUBLE, MPI_INT, MPI_INT, MPI_INT, MPI_INT, MPI_DOUBLE, MPI_DOUBLE, MPI_DOUBLE}; 
   MPI_Datatype   mpi_nodeStatisticsType;
 
   disp[0] = offsetof(nodeStatistics, nodeId);
@@ -346,8 +346,13 @@ main (int argc, char *argv[])
   disp[3] = offsetof(nodeStatistics, meanBlockSize);
   disp[4] = offsetof(nodeStatistics, totalBlocks);
   disp[5] = offsetof(nodeStatistics, staleBlocks);
-  
-  MPI_Type_create_struct (6, blocklen, disp, dtypes, &mpi_nodeStatisticsType);
+  disp[6] = offsetof(nodeStatistics, miner);
+  disp[7] = offsetof(nodeStatistics, minerGeneratedBlocks);
+  disp[8] = offsetof(nodeStatistics, minerAverageBlockGenInterval);
+  disp[9] = offsetof(nodeStatistics, minerAverageBlockSize);
+  disp[10] = offsetof(nodeStatistics, hashRate);
+
+  MPI_Type_create_struct (11, blocklen, disp, dtypes, &mpi_nodeStatisticsType);
   MPI_Type_commit (&mpi_nodeStatisticsType);
 
   if (systemId != 0 && systemCount > 1)
@@ -387,6 +392,11 @@ main (int argc, char *argv[])
       stats[recv.nodeId].meanBlockSize = recv.meanBlockSize;
       stats[recv.nodeId].totalBlocks = recv.totalBlocks;
       stats[recv.nodeId].staleBlocks = recv.staleBlocks;
+      stats[recv.nodeId].miner = recv.miner;
+      stats[recv.nodeId].minerGeneratedBlocks = recv.minerGeneratedBlocks;
+      stats[recv.nodeId].minerAverageBlockGenInterval = recv.minerAverageBlockGenInterval;
+      stats[recv.nodeId].minerAverageBlockSize = recv.minerAverageBlockSize;
+      stats[recv.nodeId].hashRate = recv.hashRate;
 	  count++;
     }
   }	  
@@ -450,6 +460,16 @@ void PrintStatsForEachNode (nodeStatistics *stats, int totalNodes)
     std::cout << "Total Blocks = " << stats[it].totalBlocks << "\n";
     std::cout << "Stale Blocks = " << stats[it].staleBlocks << " (" 
               << 100. * stats[it].staleBlocks / stats[it].totalBlocks << "%)\n";
+	
+    if ( stats[it].miner == 1)
+    {
+      std::cout << "The miner " << stats[it].nodeId << " with hash rate = " << stats[it].hashRate*100 << "% generated " << stats[it].minerGeneratedBlocks 
+                << " blocks "<< "(" << 100. * stats[it].minerGeneratedBlocks / stats[it].totalBlocks 
+                << "%) with average block generation time = " << stats[it].minerAverageBlockGenInterval
+                << "s or " << static_cast<int>(stats[it].minerAverageBlockGenInterval) / secPerMin << "min and " 
+                << stats[it].minerAverageBlockGenInterval - static_cast<int>(stats[it].minerAverageBlockGenInterval) / secPerMin * secPerMin << "s"
+                << " and average size " << stats[it].minerAverageBlockSize << " Bytes\n";
+    }
   }
 }
 

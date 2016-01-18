@@ -166,6 +166,12 @@ BitcoinMiner::StopApplication ()
                 << "s or " << static_cast<int>(m_minerAverageBlockGenInterval) / m_secondsPerMin << "min and " 
                 << m_minerAverageBlockGenInterval - static_cast<int>(m_minerAverageBlockGenInterval) / m_secondsPerMin * m_secondsPerMin << "s"
                 << " and average size " << m_minerAverageBlockSize << " Bytes");
+				
+  m_nodeStats->miner = 1;
+  m_nodeStats->minerGeneratedBlocks = m_minerGeneratedBlocks;
+  m_nodeStats->minerAverageBlockGenInterval = m_minerAverageBlockGenInterval;
+  m_nodeStats->minerAverageBlockSize = m_minerAverageBlockSize;
+  m_nodeStats->hashRate = m_hashRate;
 }
 
 double 
