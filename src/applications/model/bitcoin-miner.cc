@@ -383,7 +383,7 @@ void
 BitcoinMiner::ReceivedHigherBlock(const Block &newBlock)
 {
   NS_LOG_FUNCTION (this);
-  NS_LOG_WARN("Bitcoin miner "<< GetNode ()->GetId () << " added a new block in the m_blockchain with higher height: " << newBlock);
+  NS_LOG_INFO("Bitcoin miner "<< GetNode ()->GetId () << " added a new block in the m_blockchain with higher height: " << newBlock);
   Simulator::Cancel (m_nextMiningEvent);
   ScheduleNextMiningEvent ();
 }
