@@ -25,6 +25,7 @@
 #include "ns3/node-container.h"
 #include "ns3/application-container.h"
 #include "ns3/uinteger.h"
+#include "ns3/bitcoin.h"
 
 namespace ns3 {
 
@@ -45,7 +46,7 @@ public:
    * \param address the address of the bitcoin node,
    *
    */
-  BitcoinNodeHelper (std::string protocol, Address address, std::vector<Ipv4Address> &peers);
+  BitcoinNodeHelper (std::string protocol, Address address, std::vector<Ipv4Address> &peers, nodeStatistics *stats);
   
   /**
    * Called by subclasses to set a different factory TypeId
@@ -55,7 +56,7 @@ public:
   /**
    * Common Constructor called both from the base class and the subclasses
    */
-   void commonConstructor(std::string protocol, Address address, std::vector<Ipv4Address> &peers);
+   void commonConstructor(std::string protocol, Address address, std::vector<Ipv4Address> &peers, nodeStatistics *stats);
   
   /**
    * Helper function used to set the underlying application attributes.
@@ -73,7 +74,7 @@ public:
    * will be installed.
    * \returns Container of Ptr to the applications installed.
    */
-  ApplicationContainer Install (NodeContainer c) const;
+  ApplicationContainer Install (NodeContainer c);
 
   /**
    * Install an ns3::PacketSinkApplication on each node of the input container
@@ -82,7 +83,7 @@ public:
    * \param node The node on which a PacketSinkApplication will be installed.
    * \returns Container of Ptr to the applications installed.
    */
-  ApplicationContainer Install (Ptr<Node> node) const;
+  ApplicationContainer Install (Ptr<Node> node);
 
   /**
    * Install an ns3::PacketSinkApplication on each node of the input container
@@ -91,9 +92,11 @@ public:
    * \param nodeName The name of the node on which a PacketSinkApplication will be installed.
    * \returns Container of Ptr to the applications installed.
    */
-  ApplicationContainer Install (std::string nodeName) const;
+  ApplicationContainer Install (std::string nodeName);
 
   void SetPeersAddresses (std::vector<Ipv4Address> &peersAddresses);
+  
+  void SetNodeStats (nodeStatistics *nodeStats);
   
 protected:
   /**
@@ -103,11 +106,11 @@ protected:
    * \param node The node on which an PacketSink will be installed.
    * \returns Ptr to the application installed.
    */
-  virtual Ptr<Application> InstallPriv (Ptr<Node> node) const;
+  virtual Ptr<Application> InstallPriv (Ptr<Node> node);
   
   ObjectFactory                   m_factory; //!< Object factory.
   std::vector<Ipv4Address>		  m_peersAddresses; //!< The addresses of peers
-
+  nodeStatistics                  *m_nodeStats;
 };
 
 } // namespace ns3

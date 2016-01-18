@@ -17,6 +17,15 @@ enum Messages
   GET_DATA			//5
 };
 
+typedef struct {
+  int      nodeId;
+  double   meanBlockReceiveTime;
+  double   meanBlockPropagationTime;
+  double   meanBlockSize;
+  int      totalBlocks;
+  int      staleBlocks;
+} nodeStatistics;
+
 const char* getMessageName(enum Messages m);
 
 class Block

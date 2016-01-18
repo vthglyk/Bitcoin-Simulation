@@ -101,6 +101,14 @@ BitcoinNode::SetPeersAddresses (const std::vector<Ipv4Address> &peers)
 
 
 void 
+BitcoinNode::SetNodeStats (nodeStatistics *nodeStats)
+{
+  NS_LOG_FUNCTION (this);
+  m_nodeStats = nodeStats;
+}
+
+
+void 
 BitcoinNode::DoDispose (void)
 {
   NS_LOG_FUNCTION (this);
@@ -187,9 +195,9 @@ BitcoinNode::StopApplication ()     // Called at time specified by Stop
   NS_LOG_WARN("\n\nBITCOIN NODE " << GetNode ()->GetId () << ":");
   NS_LOG_WARN ("Current Top Block is:\n" << *(m_blockchain.GetCurrentTopBlock()));
   NS_LOG_DEBUG ("Current Blockchain is:\n" << m_blockchain);
-  m_blockchain.PrintOrphans();
-  PrintQueueInv();
-  PrintInvTimeouts();
+  //m_blockchain.PrintOrphans();
+  //PrintQueueInv();
+  //PrintInvTimeouts();
   NS_LOG_WARN("Mean Block Receive Time = " << m_meanBlockReceiveTime << " or " 
                << static_cast<int>(m_meanBlockReceiveTime) / m_secondsPerMin << "min and " 
 			   << m_meanBlockReceiveTime - static_cast<int>(m_meanBlockReceiveTime) / m_secondsPerMin * m_secondsPerMin << "s");
@@ -200,6 +208,22 @@ BitcoinNode::StopApplication ()     // Called at time specified by Stop
               << 100. * m_blockchain.GetNoStaleBlocks() / m_blockchain.GetTotalBlocks() << "%)");
   NS_LOG_WARN("receivedButNotValidated size = " << m_receivedNotValidated.size());
 
+  m_nodeStats->nodeId = GetNode ()->GetId ();
+  m_nodeStats->meanBlockReceiveTime = m_meanBlockReceiveTime;
+  m_nodeStats->meanBlockPropagationTime = m_meanBlockPropagationTime;
+  m_nodeStats->meanBlockSize = m_meanBlockSize;
+  m_nodeStats->totalBlocks = m_blockchain.GetTotalBlocks();
+  m_nodeStats->staleBlocks = m_blockchain.GetNoStaleBlocks();
+  
+/*     std::cout << "\nNode " << m_nodeStats->nodeId << " statistics:\n";
+    std::cout << "Mean Block Receive Time = " << m_nodeStats->meanBlockReceiveTime << " or " 
+              << static_cast<int>(m_nodeStats->meanBlockReceiveTime) / m_secondsPerMin << "min and " 
+			  << m_nodeStats->meanBlockReceiveTime - static_cast<int>(m_nodeStats->meanBlockReceiveTime) / m_secondsPerMin * m_secondsPerMin << "s\n";
+    std::cout << "Mean Block Propagation Time = " << m_nodeStats->meanBlockPropagationTime << "s\n";
+    std::cout << "Mean Block Size = " << m_nodeStats->meanBlockSize << " Bytes\n";
+    std::cout << "Total Blocks = " << m_nodeStats->totalBlocks << "\n";
+    std::cout << "Stale Blocks = " << m_nodeStats->staleBlocks << " (" 
+              << 100. * m_nodeStats->staleBlocks / m_nodeStats->totalBlocks << "%)\n"; */
 }
 
 void 

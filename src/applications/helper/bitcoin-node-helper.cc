@@ -26,10 +26,10 @@
 
 namespace ns3 {
 
-BitcoinNodeHelper::BitcoinNodeHelper (std::string protocol, Address address, std::vector<Ipv4Address> &peers)
+BitcoinNodeHelper::BitcoinNodeHelper (std::string protocol, Address address, std::vector<Ipv4Address> &peers, nodeStatistics *stats)
 {
   m_factory.SetTypeId ("ns3::BitcoinNode");
-  commonConstructor (protocol, address, peers);
+  commonConstructor (protocol, address, peers, stats);
 }
 
 BitcoinNodeHelper::BitcoinNodeHelper (void)
@@ -37,12 +37,12 @@ BitcoinNodeHelper::BitcoinNodeHelper (void)
 }
 
 void 
-BitcoinNodeHelper::commonConstructor(std::string protocol, Address address, std::vector<Ipv4Address> &peers) 
+BitcoinNodeHelper::commonConstructor(std::string protocol, Address address, std::vector<Ipv4Address> &peers, nodeStatistics *stats) 
 {
   m_factory.Set ("Protocol", StringValue (protocol));
   m_factory.Set ("Local", AddressValue (address));
-  //m_factory.Set ("NumberOfPeers", UintegerValue(peers.size()));
   m_peersAddresses = peers;
+  m_nodeStats = stats;
 }
 
 void 
@@ -52,20 +52,20 @@ BitcoinNodeHelper::SetAttribute (std::string name, const AttributeValue &value)
 }
 
 ApplicationContainer
-BitcoinNodeHelper::Install (Ptr<Node> node) const
+BitcoinNodeHelper::Install (Ptr<Node> node)
 {
   return ApplicationContainer (InstallPriv (node));
 }
 
 ApplicationContainer
-BitcoinNodeHelper::Install (std::string nodeName) const
+BitcoinNodeHelper::Install (std::string nodeName)
 {
   Ptr<Node> node = Names::Find<Node> (nodeName);
   return ApplicationContainer (InstallPriv (node));
 }
 
 ApplicationContainer
-BitcoinNodeHelper::Install (NodeContainer c) const
+BitcoinNodeHelper::Install (NodeContainer c)
 { 
 
   ApplicationContainer apps;
@@ -78,10 +78,11 @@ BitcoinNodeHelper::Install (NodeContainer c) const
 }
 
 Ptr<Application>
-BitcoinNodeHelper::InstallPriv (Ptr<Node> node) const
+BitcoinNodeHelper::InstallPriv (Ptr<Node> node)
 {
   Ptr<BitcoinNode> app = m_factory.Create<BitcoinNode> ();
   app->SetPeersAddresses(m_peersAddresses);
+  app->SetNodeStats(m_nodeStats);
   node->AddApplication (app);
 
   return app;
@@ -91,6 +92,12 @@ void
 BitcoinNodeHelper::SetPeersAddresses (std::vector<Ipv4Address> &peersAddresses)
 {
   m_peersAddresses = peersAddresses;	
+}
+
+void 
+BitcoinNodeHelper::SetNodeStats (nodeStatistics *nodeStats)
+{
+  m_nodeStats = nodeStats;
 }
 
 } // namespace ns3

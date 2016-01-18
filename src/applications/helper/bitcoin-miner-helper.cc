@@ -29,12 +29,12 @@
 
 namespace ns3 {
 
-BitcoinMinerHelper::BitcoinMinerHelper (std::string protocol, Address address, std::vector<Ipv4Address> peers,
+BitcoinMinerHelper::BitcoinMinerHelper (std::string protocol, Address address, std::vector<Ipv4Address> peers, nodeStatistics *stats,
 										double hashRate, double blockGenBinSize, double blockGenParameter,
 										double averageBlockGenIntervalSeconds) : BitcoinNodeHelper ()
 {
   m_factory.SetTypeId ("ns3::BitcoinMiner");
-  commonConstructor(protocol, address, peers);
+  commonConstructor(protocol, address, peers, stats);
   m_factory.Set ("HashRate", DoubleValue(hashRate));
   m_factory.Set ("BlockGenBinSize", DoubleValue(blockGenBinSize));
   m_factory.Set ("BlockGenParameter", DoubleValue(blockGenParameter));

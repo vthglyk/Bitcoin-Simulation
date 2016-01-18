@@ -42,7 +42,7 @@ class BitcoinMinerHelper : public BitcoinNodeHelper
    * \param address the address of the bitcoin node,
    *
    */
-  BitcoinMinerHelper (std::string protocol, Address address, std::vector<Ipv4Address> peers,
+  BitcoinMinerHelper (std::string protocol, Address address, std::vector<Ipv4Address> peers, nodeStatistics *stats,
 					  double hashRate, double blockGenBinSize, double blockGenParameter, double averageBlockGenIntervalSeconds);
   
 protected:

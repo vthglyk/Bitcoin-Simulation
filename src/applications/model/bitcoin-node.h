@@ -54,7 +54,12 @@ public:
    * set the address of peers
    */
   void SetPeersAddresses (const std::vector<Ipv4Address> &peers);
-
+  
+  /**
+   * set the node statistics
+   */
+  void SetNodeStats (nodeStatistics *nodeStats);
+  
 protected:
   virtual void DoDispose (void);
 
@@ -126,7 +131,8 @@ protected:
   std::map<std::string, EventId>                  m_invTimeouts;           //!< map holding the event timeouts of inv messages
   std::map<Address, std::string>                  m_bufferedData;          //!< map holding the buffered data from previous handleRead events
   std::vector<std::string>                        m_receivedNotValidated;  //!< map holding the received but not yet validated blocks
-
+  nodeStatistics                                  *m_nodeStats;             //!< struct holding the node stats
+  
   const int		  m_bitcoinPort;   //!< 8333
   const int       m_secondsPerMin; //!< 8333
   /// Traced Callback: received packets, source address.
