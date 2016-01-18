@@ -53,7 +53,7 @@ protected:
    * \param node The node on which an PacketSink will be installed.
    * \returns Ptr to the application installed.
    */
-  virtual Ptr<Application> InstallPriv (Ptr<Node> node) const;
+  virtual Ptr<Application> InstallPriv (Ptr<Node> node);
     
 };
 

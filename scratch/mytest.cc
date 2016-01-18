@@ -287,7 +287,7 @@ main (int argc, char *argv[])
 	          << " and systemId = " << targetNode->GetSystemId() << " was installed in node (" 
               << miner.first / ySize << ", " << miner.first % ySize << ")" << std::endl; 
 	count++;
-	bitcoinMinerHelper.SetAttribute("FixedBlockIntervalGeneration", DoubleValue(10000));
+	bitcoinMinerHelper.SetAttribute("FixedBlockIntervalGeneration", DoubleValue(1000));
 
   }
   bitcoinMiners.Start (Seconds (start));

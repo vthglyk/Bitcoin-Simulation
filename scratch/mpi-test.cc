@@ -47,15 +47,15 @@ main (int argc, char *argv[])
   const int secsPerMin = 60;
   const uint16_t bitcoinPort = 8333;
   const double realAverageBlockGenIntervalMinutes = 10; //minutes
-  int targetNumberOfBlocks = 10;
+  int targetNumberOfBlocks = 2;
   double averageBlockGenIntervalSeconds = 10 * secsPerMin; //seconds
   double fixedHashRate = 0.5;
   int start = 0;
   
-  int xSize = 3;
-  int ySize = 3;
+  int xSize = 2;
+  int ySize = 2;
   int minConnectionsPerNode = 3;
-  int maxConnectionsPerNode = 4;
+  int maxConnectionsPerNode = 3;
   int noMiners = 3;
   double minersHash[] = {0.4, 0.3, 0.3};
   
@@ -94,8 +94,8 @@ main (int argc, char *argv[])
   uint32_t systemId = MpiInterface::GetSystemId ();
   uint32_t systemCount = MpiInterface::GetSize ();
   
-  LogComponentEnable("BitcoinNode", LOG_LEVEL_ERROR);
-  LogComponentEnable("BitcoinMiner", LOG_LEVEL_ERROR);
+  LogComponentEnable("BitcoinNode", LOG_LEVEL_WARN);
+  LogComponentEnable("BitcoinMiner", LOG_LEVEL_INFO);
   //LogComponentEnable("OnOffApplication", LOG_LEVEL_DEBUG);
   //LogComponentEnable("OnOffApplication", LOG_LEVEL_WARN);
 
@@ -267,7 +267,7 @@ main (int argc, char *argv[])
                                           blockGenBinSize, blockGenParameter, averageBlockGenIntervalSeconds);
   ApplicationContainer bitcoinMiners;
   int count = 0;
-  //bitcoinMinerHelper.SetAttribute("FixedBlockIntervalGeneration", DoubleValue(600));
+  bitcoinMinerHelper.SetAttribute("FixedBlockIntervalGeneration", DoubleValue(600));
   for(auto &miner : miners)
   {
 	Ptr<Node> targetNode = grid.GetNode (miner.first / ySize, miner.first % ySize);
@@ -286,7 +286,7 @@ main (int argc, char *argv[])
         nodesInSystemId0++;
 	}				
 	count++;
-	//bitcoinMinerHelper.SetAttribute("FixedBlockIntervalGeneration", DoubleValue(10000));
+	bitcoinMinerHelper.SetAttribute("FixedBlockIntervalGeneration", DoubleValue(1000));
 
   }
   bitcoinMiners.Start (Seconds (start));

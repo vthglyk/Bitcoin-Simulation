@@ -83,6 +83,7 @@ BitcoinNodeHelper::InstallPriv (Ptr<Node> node)
   Ptr<BitcoinNode> app = m_factory.Create<BitcoinNode> ();
   app->SetPeersAddresses(m_peersAddresses);
   app->SetNodeStats(m_nodeStats);
+  
   node->AddApplication (app);
 
   return app;

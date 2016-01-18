@@ -43,11 +43,12 @@ BitcoinMinerHelper::BitcoinMinerHelper (std::string protocol, Address address, s
 }
 
 Ptr<Application>
-BitcoinMinerHelper::InstallPriv (Ptr<Node> node) const
+BitcoinMinerHelper::InstallPriv (Ptr<Node> node)
 {
 
   Ptr<BitcoinMiner> app = m_factory.Create<BitcoinMiner> ();
   app->SetPeersAddresses(m_peersAddresses);
+  app->SetNodeStats(m_nodeStats);
 
   node->AddApplication (app);
 

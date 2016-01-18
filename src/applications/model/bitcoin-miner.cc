@@ -249,7 +249,7 @@ BitcoinMiner::ScheduleNextMiningEvent (void)
   {
     m_nextBlockTime = m_fixedBlockTimeGeneration;
 
-    NS_LOG_LOGIC ("Fixed Block Time Generation " << m_fixedBlockTimeGeneration << "s");
+    NS_LOG_INFO ("Fixed Block Time Generation " << m_fixedBlockTimeGeneration << "s");
     m_nextMiningEvent = Simulator::Schedule (Seconds(m_fixedBlockTimeGeneration), &BitcoinMiner::MineBlock, this);
   }
   else
@@ -380,10 +380,10 @@ BitcoinMiner::MineBlock (void)
 }
 
 void 
-BitcoinMiner::ReceivedHigherBlock(Block newBlock)
+BitcoinMiner::ReceivedHigherBlock(const Block &newBlock)
 {
   NS_LOG_FUNCTION (this);
-  NS_LOG_INFO("Bitcoin node "<< GetNode ()->GetId () << " added a new block in the m_blockchain with higher height: " << newBlock);
+  NS_LOG_WARN("Bitcoin miner "<< GetNode ()->GetId () << " added a new block in the m_blockchain with higher height: " << newBlock);
   Simulator::Cancel (m_nextMiningEvent);
   ScheduleNextMiningEvent ();
 }
