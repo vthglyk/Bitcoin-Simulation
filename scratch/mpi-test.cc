@@ -52,8 +52,8 @@ main (int argc, char *argv[])
   double fixedHashRate = 0.5;
   int start = 0;
   
-  int xSize = 4;
-  int ySize = 4;
+  int xSize = 20;
+  int ySize = 20;
   int minConnectionsPerNode = 80;
   int maxConnectionsPerNode = 90;
   int noMiners = 16;
@@ -101,7 +101,7 @@ main (int argc, char *argv[])
   
   LogComponentEnable("BitcoinNode", LOG_LEVEL_WARN);
   LogComponentEnable("BitcoinMiner", LOG_LEVEL_WARN);
-
+  //LogComponentEnable("Ipv4AddressGenerator", LOG_LEVEL_FUNCTION);
   //LogComponentEnable("OnOffApplication", LOG_LEVEL_DEBUG);
   //LogComponentEnable("OnOffApplication", LOG_LEVEL_WARN);
 
@@ -136,8 +136,8 @@ main (int argc, char *argv[])
   grid.InstallStack (stack);
 
   // Assign Addresses to Grid
-  grid.AssignIpv4Addresses (Ipv4AddressHelper ("10.0.0.0", "255.255.0.0"),
-                            Ipv4AddressHelper ("11.0.0.0", "255.255.0.0"));
+  grid.AssignIpv4Addresses (Ipv4AddressHelper ("10.0.0.0", "255.255.255.4"),
+                            Ipv4AddressHelper ("11.0.0.0", "255.255.255.4"));
   ipv4InterfaceContainer = grid.GetIpv4InterfaceContainer();
   
   
@@ -406,12 +406,14 @@ main (int argc, char *argv[])
     tFinish=get_wall_time();
 	
     PrintStatsForEachNode(stats, totalNoNodes);
-	PrintTotalStats(stats, totalNoNodes);
+    PrintTotalStats(stats, totalNoNodes);
     std::cout << "\nThe simulation ran for " << tFinish - tStart << "s simulating "
-              << stop << "mins. Performed " << stop * secsPerMin / (tFinish - tStart) 
-		      << " faster than realtime.\n" << "It consisted of " << totalNoNodes 
-			  << " nodes (" << noMiners << " miners) with minConnectionsPerNode = "
-			  << minConnectionsPerNode << " and maxConnectionsPerNode = " << maxConnectionsPerNode << "\n";
+              << stop << "mins. Performed " << stop * secsPerMin / (tFinish - tStart)
+              << " faster than realtime.\n" << "It consisted of " << totalNoNodes
+              << " nodes (" << noMiners << " miners) with minConnectionsPerNode = "
+              << minConnectionsPerNode << " and maxConnectionsPerNode = " << maxConnectionsPerNode 
+              << ".\nThe averageBlockGenIntervalMinutes was " << averageBlockGenIntervalMinutes << "min.\n";
+
   }  
   
   
