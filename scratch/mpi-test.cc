@@ -51,9 +51,10 @@ main (int argc, char *argv[])
   double averageBlockGenIntervalSeconds = 10 * secsPerMin; //seconds
   double fixedHashRate = 0.5;
   int start = 0;
+  bool testScalability = false;
   
-  int xSize = 20;
-  int ySize = 20;
+  int xSize = 100;
+  int ySize = 100;
   int minConnectionsPerNode = 80;
   int maxConnectionsPerNode = 90;
   int noMiners = 16;
@@ -130,17 +131,22 @@ main (int argc, char *argv[])
   // Create Grid
   PointToPointGridHelperCustom grid (xSize, ySize, systemCount, pointToPoint);
   grid.BoundingBox(100, 100, 200, 200);
+  
+  if (systemId == 0 )
+    std::cout << totalNoNodes << " nodes created.\n";
 
   // Install stack on Grid
   InternetStackHelper stack;
   grid.InstallStack (stack);
 
   // Assign Addresses to Grid
-  grid.AssignIpv4Addresses (Ipv4AddressHelper ("10.0.0.0", "255.255.255.4"),
-                            Ipv4AddressHelper ("11.0.0.0", "255.255.255.4"));
+  grid.AssignIpv4Addresses (Ipv4AddressHelper ("1.0.0.0", "255.255.255.0"),
+                            Ipv4AddressHelper ("61.0.0.0", "255.255.255.0"));
   ipv4InterfaceContainer = grid.GetIpv4InterfaceContainer();
   
-  
+  if (systemId == 0 )
+    std::cout << "Ipv4 addresses were assigned.\n";
+
   {
     //nodes contain the ids of the nodes
     std::vector<int> nodes;
@@ -217,7 +223,7 @@ main (int argc, char *argv[])
     for(int i = 0; i < totalNoNodes; i++)
     {
 	  int count = 0;
-      while (nodesConnections[i].size() < minConnectionsPerNode && count < 3*minConnectionsPerNode)
+      while (nodesConnections[i].size() < minConnectionsPerNode && count < 2*minConnectionsPerNode)
       {
         int index = rand() % nodes.size();
 	    Ipv4Address candidatePeer = grid.GetIpv4Address (nodes[index] / ySize, nodes[index] % ySize);
@@ -266,14 +272,22 @@ main (int argc, char *argv[])
     std::cout << "\n" << std::endl; */
   }
   
- 
+  if (systemId == 0 )
+  {
+    std::cout << "The nodes connections were created.\n";
+    std::cout << "minConnectionsPerNode = " << minConnectionsPerNode 
+	          << " and maxConnectionsPerNode = " << maxConnectionsPerNode << "\n";
+  }
+  
   //Install miners
   BitcoinMinerHelper bitcoinMinerHelper ("ns3::TcpSocketFactory", InetSocketAddress (Ipv4Address::GetAny (), bitcoinPort),
                                           nodesConnections[miners.begin()-> first], stats, minersHash[0], 
                                           blockGenBinSize, blockGenParameter, averageBlockGenIntervalSeconds);
   ApplicationContainer bitcoinMiners;
   int count = 0;
-  //bitcoinMinerHelper.SetAttribute("FixedBlockIntervalGeneration", DoubleValue(600));
+  if (testScalability == true)
+    bitcoinMinerHelper.SetAttribute("FixedBlockIntervalGeneration", DoubleValue(600));
+
   for(auto &miner : miners)
   {
 	Ptr<Node> targetNode = grid.GetNode (miner.first / ySize, miner.first % ySize);
@@ -292,7 +306,8 @@ main (int argc, char *argv[])
         nodesInSystemId0++;
 	}				
 	count++;
-	//bitcoinMinerHelper.SetAttribute("FixedBlockIntervalGeneration", DoubleValue(1000));
+	if (testScalability == true)
+	  bitcoinMinerHelper.SetAttribute("FixedBlockIntervalGeneration", DoubleValue(1000));
 
   }
   bitcoinMiners.Start (Seconds (start));
@@ -466,7 +481,7 @@ void PrintStatsForEachNode (nodeStatistics *stats, int totalNodes)
     if ( stats[it].miner == 1)
     {
       std::cout << "The miner " << stats[it].nodeId << " with hash rate = " << stats[it].hashRate*100 << "% generated " << stats[it].minerGeneratedBlocks 
-                << " blocks "<< "(" << 100. * stats[it].minerGeneratedBlocks / stats[it].totalBlocks 
+                << " blocks "<< "(" << 100. * stats[it].minerGeneratedBlocks / (stats[it].totalBlocks - 1)
                 << "%) with average block generation time = " << stats[it].minerAverageBlockGenInterval
                 << "s or " << static_cast<int>(stats[it].minerAverageBlockGenInterval) / secPerMin << "min and " 
                 << stats[it].minerAverageBlockGenInterval - static_cast<int>(stats[it].minerAverageBlockGenInterval) / secPerMin * secPerMin << "s"
