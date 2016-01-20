@@ -89,7 +89,7 @@ protected:
    */
   void HandlePeerError (Ptr<Socket> socket);
 
-  void ReceiveBlock(const Block &newBlock);				//Called for every new block
+  void ReceiveBlock(const Block &newBlock);				    //Called for every new block
   virtual void ReceivedHigherBlock(const Block &newBlock);	//Called for blocks with better score(height)
   
   void ValidateBlock(const Block &newBlock);

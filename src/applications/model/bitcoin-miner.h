@@ -52,6 +52,8 @@ public:
   static TypeId GetTypeId (void);
   BitcoinMiner ();
   
+  virtual ~BitcoinMiner (void);
+  
   /**
    * \return fixed Block Time Generation
    */
@@ -105,14 +107,16 @@ public:
 protected:
   // inherited from Application base class.
   virtual void StartApplication (void);    // Called at time specified by Start
-  virtual void StopApplication (void);    // Called at time specified by Stop
+  virtual void StopApplication (void);     // Called at time specified by Stop
+
+  virtual void DoDispose (void);
 
   /**
    * Schedule next Mining Event
    */  
   void ScheduleNextMiningEvent (void);
   
-  void MineBlock (void);
+  virtual void MineBlock (void);
   
   virtual void ReceivedHigherBlock(const Block &newBlock);	//Called for blocks with better score(height). Remove m_nextMiningEvent and call MineBlock again.
   
@@ -140,7 +144,7 @@ protected:
   std::piecewise_constant_distribution<double>   m_blockSizeDistribution;
   
   const double  m_realAverageBlockGenIntervalSeconds;  //!< in seconds, 10 mins
-  double        m_averageBlockGenIntervalSeconds;		//
+  double        m_averageBlockGenIntervalSeconds;	   //!< the new m_averageBlockGenInterval we set
 };
 
 } // namespace ns3

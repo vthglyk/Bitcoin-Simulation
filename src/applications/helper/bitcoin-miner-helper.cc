@@ -31,14 +31,20 @@ namespace ns3 {
 
 BitcoinMinerHelper::BitcoinMinerHelper (std::string protocol, Address address, std::vector<Ipv4Address> peers, nodeStatistics *stats,
 										double hashRate, double blockGenBinSize, double blockGenParameter,
-										double averageBlockGenIntervalSeconds) : BitcoinNodeHelper ()
+										double averageBlockGenIntervalSeconds) : BitcoinNodeHelper (),  m_minerType (NORMAL_MINER), m_secureBlocks (6)
 {
   m_factory.SetTypeId ("ns3::BitcoinMiner");
   commonConstructor(protocol, address, peers, stats);
-  m_factory.Set ("HashRate", DoubleValue(hashRate));
-  m_factory.Set ("BlockGenBinSize", DoubleValue(blockGenBinSize));
-  m_factory.Set ("BlockGenParameter", DoubleValue(blockGenParameter));
-  m_factory.Set ("AverageBlockGenIntervalSeconds", DoubleValue(averageBlockGenIntervalSeconds));
+  
+  m_hashRate = hashRate;
+  m_blockGenBinSize = blockGenBinSize;
+  m_blockGenParameter = blockGenParameter;
+  m_averageBlockGenIntervalSeconds = averageBlockGenIntervalSeconds;
+  
+  m_factory.Set ("HashRate", DoubleValue(m_hashRate));
+  m_factory.Set ("BlockGenBinSize", DoubleValue(m_blockGenBinSize));
+  m_factory.Set ("BlockGenParameter", DoubleValue(m_blockGenParameter));
+  m_factory.Set ("AverageBlockGenIntervalSeconds", DoubleValue(m_averageBlockGenIntervalSeconds));
 
 }
 
@@ -46,13 +52,52 @@ Ptr<Application>
 BitcoinMinerHelper::InstallPriv (Ptr<Node> node)
 {
 
-  Ptr<BitcoinMiner> app = m_factory.Create<BitcoinMiner> ();
-  app->SetPeersAddresses(m_peersAddresses);
-  app->SetNodeStats(m_nodeStats);
+   switch (m_minerType) 
+   {
+      case NORMAL_MINER: 
+	  {
+        Ptr<BitcoinMiner> app = m_factory.Create<BitcoinMiner> ();
+        app->SetPeersAddresses(m_peersAddresses);
+        app->SetNodeStats(m_nodeStats);
 
-  node->AddApplication (app);
+        node->AddApplication (app);
+        return app;
+	  }
+      case SIMPLE_ATTACKER: 
+	  {
+        Ptr<BitcoinSimpleAttacker> app = m_factory.Create<BitcoinSimpleAttacker> ();
+        app->SetPeersAddresses(m_peersAddresses);
+        app->SetNodeStats(m_nodeStats);
 
-  return app;
+        node->AddApplication (app);
+        return app;
+	  }
+   }
+   
+}
+
+enum MinerType 
+BitcoinMinerHelper::GetMinerType(void)
+{
+  return m_minerType;
+}
+
+void 
+BitcoinMinerHelper::SetMinerType (enum MinerType m)
+{
+  m_minerType = m;
+  m_factory.SetTypeId ("ns3::BitcoinSimpleAttacker");
+  
+  m_factory.Set ("Protocol", StringValue (m_protocol));
+  m_factory.Set ("Local", AddressValue (m_address));
+  m_factory.Set ("HashRate", DoubleValue(m_hashRate));
+  m_factory.Set ("BlockGenBinSize", DoubleValue(m_blockGenBinSize));
+  m_factory.Set ("BlockGenParameter", DoubleValue(m_blockGenParameter));
+  m_factory.Set ("AverageBlockGenIntervalSeconds", DoubleValue(m_averageBlockGenIntervalSeconds));
+  
+  if (m_minerType != NORMAL_MINER)
+    m_factory.Set ("SecureBlocks", UintegerValue(m_secureBlocks));
+  std::cout << "Changed minerType to " << getMinerType(m) << std::endl;
 }
 
 } // namespace ns3

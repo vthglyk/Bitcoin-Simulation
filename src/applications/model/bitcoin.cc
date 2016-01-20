@@ -491,4 +491,12 @@ const char* getMessageName(enum Messages m)
    }
 }
 
+const char* getMinerType(enum MinerType m)
+{
+   switch (m) 
+   {
+      case NORMAL_MINER: return "NORMAL_MINER";
+      case SIMPLE_ATTACKER: return "SIMPLE_ATTACKER";
+   }
+}
 }// Namespace ns3

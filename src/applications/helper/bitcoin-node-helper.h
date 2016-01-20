@@ -109,6 +109,8 @@ protected:
   virtual Ptr<Application> InstallPriv (Ptr<Node> node);
   
   ObjectFactory                   m_factory; //!< Object factory.
+  std::string                     m_protocol;
+  Address                         m_address;
   std::vector<Ipv4Address>		  m_peersAddresses; //!< The addresses of peers
   nodeStatistics                  *m_nodeStats;
 };

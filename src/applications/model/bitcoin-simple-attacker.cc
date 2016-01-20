@@ -14,113 +14,103 @@
 #include "ns3/tcp-socket-factory.h"
 #include "ns3/uinteger.h"
 #include "ns3/double.h"
-#include "bitcoin-miner.h"
+#include "ns3/bitcoin-simple-attacker.h"
 #include "../../rapidjson/document.h"
 #include "../../rapidjson/writer.h"
 #include "../../rapidjson/stringbuffer.h"
 
 namespace ns3 {
 
-NS_LOG_COMPONENT_DEFINE ("BitcoinMiner");
+NS_LOG_COMPONENT_DEFINE ("BitcoinSimpleAttacker");
 
-NS_OBJECT_ENSURE_REGISTERED (BitcoinMiner);
+NS_OBJECT_ENSURE_REGISTERED (BitcoinSimpleAttacker);
 
 TypeId 
-BitcoinMiner::GetTypeId (void)
+BitcoinSimpleAttacker::GetTypeId (void)
 {
-  static TypeId tid = TypeId ("ns3::BitcoinMiner")
+  static TypeId tid = TypeId ("ns3::BitcoinSimpleAttacker")
     .SetParent<Application> ()
     .SetGroupName("Applications")
-    .AddConstructor<BitcoinMiner> ()
+    .AddConstructor<BitcoinSimpleAttacker> ()
     .AddAttribute ("Local",
                    "The Address on which to Bind the rx socket.",
                    AddressValue (),
-                   MakeAddressAccessor (&BitcoinMiner::m_local),
+                   MakeAddressAccessor (&BitcoinSimpleAttacker::m_local),
                    MakeAddressChecker ())
     .AddAttribute ("Protocol",
                    "The type id of the protocol to use for the rx socket.",
                    TypeIdValue (UdpSocketFactory::GetTypeId ()),
-                   MakeTypeIdAccessor (&BitcoinMiner::m_tid),
+                   MakeTypeIdAccessor (&BitcoinSimpleAttacker::m_tid),
                    MakeTypeIdChecker ())
     .AddAttribute ("FixedBlockSize", 
 				   "The fixed size of the block",
                    UintegerValue (0),
-                   MakeUintegerAccessor (&BitcoinMiner::m_fixedBlockSize),
+                   MakeUintegerAccessor (&BitcoinSimpleAttacker::m_fixedBlockSize),
                    MakeUintegerChecker<uint32_t> ())				   
     .AddAttribute ("FixedBlockIntervalGeneration", 
                    "The fixed time to wait between two consecutive block generations",
                    DoubleValue (0),
-                   MakeDoubleAccessor (&BitcoinMiner::m_fixedBlockTimeGeneration),
+                   MakeDoubleAccessor (&BitcoinSimpleAttacker::m_fixedBlockTimeGeneration),
                    MakeDoubleChecker<double> ())
     .AddAttribute ("InvTimeoutMinutes", 
 				   "The timeout of inv messages in minutes",
                    TimeValue (Minutes (20)),
-                   MakeTimeAccessor (&BitcoinMiner::m_invTimeoutMinutes),
+                   MakeTimeAccessor (&BitcoinSimpleAttacker::m_invTimeoutMinutes),
                    MakeTimeChecker())
     .AddAttribute ("HashRate", 
-				   "The hash rate of the miner",
+				   "The hash rate of the simple attacker",
                    DoubleValue (0.2),
-                   MakeDoubleAccessor (&BitcoinMiner::m_hashRate),
+                   MakeDoubleAccessor (&BitcoinSimpleAttacker::m_hashRate),
                    MakeDoubleChecker<double> ())	
     .AddAttribute ("BlockGenBinSize", 
 				   "The block generation bin size",
                    DoubleValue (1./60),
-                   MakeDoubleAccessor (&BitcoinMiner::m_blockGenBinSize),
+                   MakeDoubleAccessor (&BitcoinSimpleAttacker::m_blockGenBinSize),
                    MakeDoubleChecker<double> ())	
     .AddAttribute ("BlockGenParameter", 
 				   "The block generation distribution parameter",
                    DoubleValue (0.183/120),
-                   MakeDoubleAccessor (&BitcoinMiner::m_blockGenParameter),
+                   MakeDoubleAccessor (&BitcoinSimpleAttacker::m_blockGenParameter),
                    MakeDoubleChecker<double> ())	
     .AddAttribute ("AverageBlockGenIntervalSeconds", 
 				   "The average block generation interval we aim at (in seconds)",
                    DoubleValue (10*60),
-                   MakeDoubleAccessor (&BitcoinMiner::m_averageBlockGenIntervalSeconds),
+                   MakeDoubleAccessor (&BitcoinSimpleAttacker::m_averageBlockGenIntervalSeconds),
                    MakeDoubleChecker<double> ())
+    .AddAttribute ("SecureBlocks", 
+				   "The number of blocks required for the secure confirmation of the transactions",
+                   UintegerValue (6),
+                   MakeUintegerAccessor (&BitcoinSimpleAttacker::m_secureBlocks),
+                   MakeUintegerChecker<uint32_t> ())
     .AddTraceSource ("Rx",
                      "A packet has been received",
-                     MakeTraceSourceAccessor (&BitcoinMiner::m_rxTrace),
+                     MakeTraceSourceAccessor (&BitcoinSimpleAttacker::m_rxTrace),
                      "ns3::Packet::AddressTracedCallback")
   ;
   return tid;
 }
 
-BitcoinMiner::BitcoinMiner () : BitcoinNode(), m_realAverageBlockGenIntervalSeconds(10*m_secondsPerMin)
+
+BitcoinSimpleAttacker::BitcoinSimpleAttacker () : BitcoinMiner(), m_attackStarted (false), m_attackFinished(false)
 {
   NS_LOG_FUNCTION (this);
-  m_minerAverageBlockGenInterval = 0;
-  m_minerGeneratedBlocks = 0;
-  m_previousBlockGenerationTime = 0;
-  
-  std::random_device rd;
-  m_generator.seed(rd());
-  
-  if (m_fixedBlockTimeGeneration > 0)
-	m_nextBlockTime = m_fixedBlockTimeGeneration;  
-  else
-    m_nextBlockTime = 0;
-
-  if (m_fixedBlockSize > 0)
-    m_nextBlockSize = m_fixedBlockSize;
-  else
-    m_nextBlockSize = 0;
-
 }
 
 
-BitcoinMiner::~BitcoinMiner(void)
+BitcoinSimpleAttacker::~BitcoinSimpleAttacker(void)
 {
   NS_LOG_FUNCTION (this);
 }
 
 
 void 
-BitcoinMiner::StartApplication ()    // Called at time specified by Start
+BitcoinSimpleAttacker::StartApplication ()    // Called at time specified by Start
 {
   BitcoinNode::StartApplication ();
-  NS_LOG_WARN ("Miner " << GetNode()->GetId() << " m_realAverageBlockGenIntervalSeconds = " << m_realAverageBlockGenIntervalSeconds << "s");
-  NS_LOG_WARN ("Miner " << GetNode()->GetId() << " m_averageBlockGenIntervalSeconds = " << m_averageBlockGenIntervalSeconds << "s");
-  NS_LOG_WARN ("Miner " << GetNode()->GetId() << " m_fixedBlockTimeGeneration = " << m_fixedBlockTimeGeneration << "s");
+  NS_LOG_WARN ("Simple Attacker " << GetNode()->GetId() << " m_realAverageBlockGenIntervalSeconds = " << m_realAverageBlockGenIntervalSeconds << "s");
+  NS_LOG_WARN ("Simple Attacker " << GetNode()->GetId() << " m_averageBlockGenIntervalSeconds = " << m_averageBlockGenIntervalSeconds << "s");
+  NS_LOG_WARN ("Simple Attacker " << GetNode()->GetId() << " m_fixedBlockTimeGeneration = " << m_fixedBlockTimeGeneration << "s");
+  NS_LOG_WARN ("Simple Attacker " << GetNode()->GetId() << " m_secureBlocks = " << m_secureBlocks);
 
   m_blockGenParameter *= m_hashRate;
 	
@@ -161,173 +151,64 @@ BitcoinMiner::StartApplication ()    // Called at time specified by Start
     m_blockchain.AddBlock(newBlock); 
   } */
   
-  m_nodeStats->nodeId = GetNode ()->GetId ();
-  m_nodeStats->meanBlockReceiveTime = 0;
-  m_nodeStats->meanBlockPropagationTime = 0;
-  m_nodeStats->meanBlockSize = 0;
-  m_nodeStats->totalBlocks = 0;
-  m_nodeStats->staleBlocks = 0;
-  m_nodeStats->miner = 1;
-  m_nodeStats->minerGeneratedBlocks = 0;
-  m_nodeStats->minerAverageBlockGenInterval = 0;
-  m_nodeStats->minerAverageBlockSize = 0;
-  m_nodeStats->minerAverageBlockSize = 0;
-  m_nodeStats->hashRate = m_hashRate;
-  m_nodeStats->attackSuccess = 0;
-  ScheduleNextMiningEvent ();
+  if (m_secureBlocks == 0)
+    ScheduleNextMiningEvent ();
 }
 
 void 
-BitcoinMiner::StopApplication ()
+BitcoinSimpleAttacker::StopApplication ()
 {
   BitcoinNode::StopApplication ();  
   Simulator::Cancel (m_nextMiningEvent);
   
-  NS_LOG_WARN ("The miner " << GetNode ()->GetId () << " generated " << m_minerGeneratedBlocks 
+  NS_LOG_WARN ("The simple attacker " << GetNode ()->GetId () << " generated " << m_minerGeneratedBlocks 
                 << " blocks "<< "(" << 100. * m_minerGeneratedBlocks / (m_blockchain.GetTotalBlocks() - 1) 
                 << "%) with average block generation time = " << m_minerAverageBlockGenInterval
                 << "s or " << static_cast<int>(m_minerAverageBlockGenInterval) / m_secondsPerMin << "min and " 
                 << m_minerAverageBlockGenInterval - static_cast<int>(m_minerAverageBlockGenInterval) / m_secondsPerMin * m_secondsPerMin << "s"
                 << " and average size " << m_minerAverageBlockSize << " Bytes");
 				
-  
   m_nodeStats->minerGeneratedBlocks = m_minerGeneratedBlocks;
   m_nodeStats->minerAverageBlockGenInterval = m_minerAverageBlockGenInterval;
   m_nodeStats->minerAverageBlockSize = m_minerAverageBlockSize;
 }
 
 void 
-BitcoinMiner::DoDispose (void)
+BitcoinSimpleAttacker::DoDispose (void)
 {
   NS_LOG_FUNCTION (this);
-  BitcoinNode::DoDispose ();
-}
+  BitcoinMiner::DoDispose ();
 
-double 
-BitcoinMiner::GetFixedBlockTimeGeneration(void) const
-{
-  NS_LOG_FUNCTION (this);
-  return m_fixedBlockTimeGeneration;
 }
 
 void 
-BitcoinMiner::SetFixedBlockTimeGeneration(double fixedBlockTimeGeneration) 
-{
-  NS_LOG_FUNCTION (this);
-  m_fixedBlockTimeGeneration = fixedBlockTimeGeneration;
-}
-
-uint32_t 
-BitcoinMiner::GetFixedBlockSize(void) const
-{
-  NS_LOG_FUNCTION (this);
-  return m_fixedBlockSize;
-}
-
-void 
-BitcoinMiner::SetFixedBlockSize(uint32_t fixedBlockSize) 
-{
-  NS_LOG_FUNCTION (this);
-  m_fixedBlockSize = fixedBlockSize;
-}
-
-double 
-BitcoinMiner::GetBlockGenBinSize(void) const
-{
-  NS_LOG_FUNCTION (this);
-  return m_blockGenBinSize;	
-}
-
-void 
-BitcoinMiner::SetBlockGenBinSize (double blockGenBinSize)
-{
-  NS_LOG_FUNCTION (this);
-  m_blockGenBinSize = blockGenBinSize;	
-}
-
-double 
-BitcoinMiner::GetBlockGenParameter(void) const
-{
-  NS_LOG_FUNCTION (this);
-  return m_blockGenParameter;	
-}
-
-void 
-BitcoinMiner::SetBlockGenParameter (double blockGenParameter)
-{
-  NS_LOG_FUNCTION (this);
-  m_blockGenParameter = blockGenParameter;
-  m_blockGenTimeDistribution.param(std::geometric_distribution<int>::param_type(m_blockGenParameter));
-
-}
-
-double 
-BitcoinMiner::GetHashRate(void) const
-{
-  NS_LOG_FUNCTION (this);
-  return m_hashRate;	
-}
-
-void 
-BitcoinMiner::SetHashRate (double hashRate)
-{
-  NS_LOG_FUNCTION (this);
-  m_hashRate = hashRate;
-}
- 
-void
-BitcoinMiner::ScheduleNextMiningEvent (void)
-{
-  NS_LOG_FUNCTION (this);
-  
-  if(m_fixedBlockTimeGeneration > 0)
-  {
-    m_nextBlockTime = m_fixedBlockTimeGeneration;
-
-    NS_LOG_DEBUG ("Time " << Simulator::Now ().GetSeconds () << ": Miner " << GetNode ()->GetId ()
-                << " fixed Block Time Generation " << m_fixedBlockTimeGeneration << "s");
-    m_nextMiningEvent = Simulator::Schedule (Seconds(m_fixedBlockTimeGeneration), &BitcoinMiner::MineBlock, this);
-  }
-  else
-  {
-    m_nextBlockTime = m_blockGenTimeDistribution(m_generator)*m_blockGenBinSize*m_secondsPerMin;
-    //NS_LOG_DEBUG("m_nextBlockTime = " << m_nextBlockTime << ", binsize = " << m_blockGenBinSize << ", m_blockGenParameter = " << m_blockGenParameter << ", hashrate = " << m_hashRate);
-    m_nextMiningEvent = Simulator::Schedule (Seconds(m_nextBlockTime), &BitcoinMiner::MineBlock, this);
-	
-    NS_LOG_DEBUG ("Time " << Simulator::Now ().GetSeconds () << ": Miner " << GetNode ()->GetId () << " will generate a block in " 
-                 << m_nextBlockTime << "s or " << static_cast<int>(m_nextBlockTime) / m_secondsPerMin 
-                 << "  min and  " << static_cast<int>(m_nextBlockTime) % m_secondsPerMin 
-                 << "s using Geometric Block Time Generation with parameter = "<< m_blockGenParameter);
-  }
-}
-
-void 
-BitcoinMiner::MineBlock (void)
+BitcoinSimpleAttacker::MineBlock (void)  //FIX ME
 {
   NS_LOG_FUNCTION (this);
   rapidjson::Document d; 
-  int height =  m_blockchain.GetCurrentTopBlock()->GetBlockHeight() + 1;
+  int height =  m_minerGeneratedBlocks + 1;
   int minerId = GetNode ()->GetId ();
-  int parentBlockMinerId = m_blockchain.GetCurrentTopBlock()->GetMinerId();
+  int parentBlockMinerId;
   double currentTime = Simulator::Now ().GetSeconds ();
   std::ostringstream stringStream;  
   std::string blockHash = stringStream.str();
   
   d.SetObject();
 
-/*   //For attacks
-   if (GetNode ()->GetId () == 0)
-     height = 2 - m_minerGeneratedBlocks; 
-   
-   if (GetNode ()->GetId () == 0)
-   {
-	if (height == 1)
-      parentBlockMinerId = -1;
-    else 
-	  parentBlockMinerId = 0;
-   } */
-   
-  
+  if (m_minerGeneratedBlocks == 0)
+    parentBlockMinerId = -1;
+  else 
+	parentBlockMinerId = GetNode ()->GetId ();
+
+  if (height > m_blockchain.GetCurrentTopBlock()->GetBlockHeight())
+  {
+     NS_LOG_WARN ("The attack was successful");
+     m_attackFinished = true;
+	 m_nodeStats->attackSuccess = 1;
+	 Simulator::Stop (Seconds (0));
+  }
+
+    
   rapidjson::Value value(INV);
   rapidjson::Value array(rapidjson::kArrayType);
   d.AddMember("message", value, d.GetAllocator());
@@ -365,7 +246,7 @@ BitcoinMiner::MineBlock (void)
    * Update m_meanBlockReceiveTime with the timeCreated of the newly generated block
    */
   m_meanBlockReceiveTime = (m_blockchain.GetTotalBlocks() - 1)/static_cast<double>(m_blockchain.GetTotalBlocks())*m_meanBlockReceiveTime + 
-							(currentTime - m_previousBlockReceiveTime)/(m_blockchain.GetTotalBlocks());
+						   (currentTime - m_previousBlockReceiveTime)/(m_blockchain.GetTotalBlocks());
   m_previousBlockReceiveTime = currentTime;	
   
   m_meanBlockPropagationTime = (m_blockchain.GetTotalBlocks() - 1)/static_cast<double>(m_blockchain.GetTotalBlocks())*m_meanBlockPropagationTime;
@@ -408,19 +289,25 @@ BitcoinMiner::MineBlock (void)
   m_minerGeneratedBlocks++;
 
   NS_LOG_INFO ("At time " << Simulator::Now ().GetSeconds ()
-               << "s bitcoin miner " << GetNode ()->GetId () 
+               << "s bitcoin simple attacker " << GetNode ()->GetId () 
                << " sent a packet " << packetInfo.GetString() 
-			   << " " << m_minerAverageBlockSize);
-			   
-  ScheduleNextMiningEvent ();
+	           << " " << m_minerAverageBlockSize);
+	
+  if (m_attackFinished == false)	
+    ScheduleNextMiningEvent ();
+
 }
 
 void 
-BitcoinMiner::ReceivedHigherBlock(const Block &newBlock)
+BitcoinSimpleAttacker::ReceivedHigherBlock(const Block &newBlock) //FIX ME
 {
   NS_LOG_FUNCTION (this);
-  NS_LOG_DEBUG("Bitcoin miner "<< GetNode ()->GetId () << " added a new block in the m_blockchain with higher height: " << newBlock);
-  Simulator::Cancel (m_nextMiningEvent);
-  ScheduleNextMiningEvent ();
+  NS_LOG_INFO("Bitcoin simple attacker "<< GetNode ()->GetId () << " added a new block in the m_blockchain with higher height: " << newBlock);
+  
+  if (m_attackStarted == false && newBlock.GetBlockHeight () >= m_secureBlocks)
+  {
+	m_attackStarted = true;
+    ScheduleNextMiningEvent();
+  }
 }
 } // Namespace ns3

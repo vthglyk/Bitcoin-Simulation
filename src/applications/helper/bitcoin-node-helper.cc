@@ -39,10 +39,14 @@ BitcoinNodeHelper::BitcoinNodeHelper (void)
 void 
 BitcoinNodeHelper::commonConstructor(std::string protocol, Address address, std::vector<Ipv4Address> &peers, nodeStatistics *stats) 
 {
-  m_factory.Set ("Protocol", StringValue (protocol));
-  m_factory.Set ("Local", AddressValue (address));
+  m_protocol = protocol;
+  m_address = address;
   m_peersAddresses = peers;
   m_nodeStats = stats;
+
+  m_factory.Set ("Protocol", StringValue (m_protocol));
+  m_factory.Set ("Local", AddressValue (m_address));
+
 }
 
 void 

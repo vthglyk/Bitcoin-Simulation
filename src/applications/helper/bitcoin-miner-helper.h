@@ -20,7 +20,8 @@
 #ifndef BITCOIN_MINER_HELPER_H
 #define BITCOIN_MINER_HELPER_H
 
-#include "bitcoin-node-helper.h"
+#include "ns3/bitcoin-node-helper.h"
+#include "ns3/bitcoin-simple-attacker.h"
 
 
 namespace ns3 {
@@ -44,7 +45,10 @@ class BitcoinMinerHelper : public BitcoinNodeHelper
    */
   BitcoinMinerHelper (std::string protocol, Address address, std::vector<Ipv4Address> peers, nodeStatistics *stats,
 					  double hashRate, double blockGenBinSize, double blockGenParameter, double averageBlockGenIntervalSeconds);
-  
+					  
+  enum MinerType GetMinerType(void);
+  void SetMinerType (enum MinerType m);
+
 protected:
   /**
    * Install an ns3::PacketSink on the node configured with all the
@@ -54,7 +58,13 @@ protected:
    * \returns Ptr to the application installed.
    */
   virtual Ptr<Application> InstallPriv (Ptr<Node> node);
-    
+  
+  enum MinerType   m_minerType;
+  double           m_hashRate;
+  double           m_blockGenBinSize;
+  double           m_blockGenParameter;
+  double           m_averageBlockGenIntervalSeconds;
+  uint32_t         m_secureBlocks;
 };
 
 } // namespace ns3

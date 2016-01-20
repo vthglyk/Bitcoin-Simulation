@@ -47,22 +47,18 @@ main (int argc, char *argv[])
   const int secsPerMin = 60;
   const uint16_t bitcoinPort = 8333;
   const double realAverageBlockGenIntervalMinutes = 10; //minutes
-  int targetNumberOfBlocks = 1000;
+  int targetNumberOfBlocks = 8;
   double averageBlockGenIntervalSeconds = 10 * secsPerMin; //seconds
   double fixedHashRate = 0.5;
   int start = 0;
-  bool testScalability = false;
+  bool test = true;
   
-  int xSize = 5;
-  int ySize = 4;
-  int minConnectionsPerNode = 3;
-  int maxConnectionsPerNode = 90;
-  int noMiners = 16;
-  double minersHash[] = {0.289, 0.196, 0.159, 0.133, 0.066, 0.054,
-                         0.029, 0.016, 0.012, 0.012, 0.012, 0.009,
-                         0.005, 0.005, 0.002, 0.002};
-/*   int noMiners = 3;
-  double minersHash[] = {0.4, 0.3, 0.3}; */
+  int xSize = 1;
+  int ySize = 2;
+  int minConnectionsPerNode = 1;
+  int maxConnectionsPerNode = 1;
+  int noMiners = 2;
+  double minersHash[] = {0.6, 0.4};
 
   
   int totalNoNodes = xSize * ySize;
@@ -101,8 +97,11 @@ main (int argc, char *argv[])
   uint32_t systemCount = MpiInterface::GetSize ();
   
   LogComponentEnable("BitcoinNode", LOG_LEVEL_WARN);
-  LogComponentEnable("BitcoinMiner", LOG_LEVEL_WARN);
-  //LogComponentEnable("Ipv4AddressGenerator", LOG_LEVEL_FUNCTION);
+  LogComponentEnable("BitcoinMiner", LOG_LEVEL_DEBUG);
+  LogComponentEnable("BitcoinSimpleAttacker", LOG_LEVEL_DEBUG);
+  
+  //LogComponentEnable("ObjectFactory", LOG_LEVEL_FUNCTION);
+  //LogComponentEnable("Ipv4AddressGenerator", LOG_LEVEL_INFO);
   //LogComponentEnable("OnOffApplication", LOG_LEVEL_DEBUG);
   //LogComponentEnable("OnOffApplication", LOG_LEVEL_WARN);
 
@@ -170,7 +169,6 @@ main (int argc, char *argv[])
       miners[nodes[index]] = grid.GetIpv4Address (nodes[index] / ySize, nodes[index] % ySize);
       //std::cout << "\n" << "Chose " << nodes[index] << "     ";
       nodes.erase(nodes.begin() + index);
-	  
 	  
 /* 	  for (std::vector<int>::iterator it = nodes.begin(); it != nodes.end(); it++)
 	  {
@@ -285,7 +283,7 @@ main (int argc, char *argv[])
                                           blockGenBinSize, blockGenParameter, averageBlockGenIntervalSeconds);
   ApplicationContainer bitcoinMiners;
   int count = 0;
-  if (testScalability == true)
+  if (test == true)
     bitcoinMinerHelper.SetAttribute("FixedBlockIntervalGeneration", DoubleValue(600));
 
   for(auto &miner : miners)
@@ -306,9 +304,10 @@ main (int argc, char *argv[])
         nodesInSystemId0++;
 	}				
 	count++;
-	if (testScalability == true)
-	  bitcoinMinerHelper.SetAttribute("FixedBlockIntervalGeneration", DoubleValue(1000));
 
+    bitcoinMinerHelper.SetMinerType (SIMPLE_ATTACKER);
+	if (test == true)
+	  bitcoinMinerHelper.SetAttribute("FixedBlockIntervalGeneration", DoubleValue(100));
   }
   bitcoinMiners.Start (Seconds (start));
   bitcoinMiners.Stop (Minutes (stop));
@@ -350,79 +349,19 @@ main (int argc, char *argv[])
   Simulator::Run ();
   Simulator::Destroy ();
  
-  int            blocklen[12] = {1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1}; 
-  MPI_Aint       disp[12]; 
-  MPI_Datatype   dtypes[12] = {MPI_INT, MPI_DOUBLE, MPI_DOUBLE, MPI_DOUBLE, MPI_INT, MPI_INT, MPI_INT, MPI_INT, MPI_DOUBLE, MPI_DOUBLE, MPI_DOUBLE, MPI_INT}; 
-  MPI_Datatype   mpi_nodeStatisticsType;
 
-  disp[0] = offsetof(nodeStatistics, nodeId);
-  disp[1] = offsetof(nodeStatistics, meanBlockReceiveTime);
-  disp[2] = offsetof(nodeStatistics, meanBlockPropagationTime);
-  disp[3] = offsetof(nodeStatistics, meanBlockSize);
-  disp[4] = offsetof(nodeStatistics, totalBlocks);
-  disp[5] = offsetof(nodeStatistics, staleBlocks);
-  disp[6] = offsetof(nodeStatistics, miner);
-  disp[7] = offsetof(nodeStatistics, minerGeneratedBlocks);
-  disp[8] = offsetof(nodeStatistics, minerAverageBlockGenInterval);
-  disp[9] = offsetof(nodeStatistics, minerAverageBlockSize);
-  disp[10] = offsetof(nodeStatistics, hashRate);
-  disp[11] = offsetof(nodeStatistics, attackSuccess);
-
-  MPI_Type_create_struct (12, blocklen, disp, dtypes, &mpi_nodeStatisticsType);
-  MPI_Type_commit (&mpi_nodeStatisticsType);
-
-  if (systemId != 0 && systemCount > 1)
-  {
-    /**
-     * Sent all the systemId stats to systemId == 0
-	 */
-	/* std::cout << "SystemId = " << systemId << "\n"; */
-
-    for(int i = 0; i < totalNoNodes; i++)
-    {
-      Ptr<Node> targetNode = grid.GetNode (i / ySize, i % ySize);
-	
-	  if (systemId == targetNode->GetSystemId())
-	  {
-        MPI_Send(&stats[i], 1, mpi_nodeStatisticsType, 0, 8888, MPI_COMM_WORLD);
-	  }
-    }
-  }
-  else if (systemId == 0 && systemCount > 1)
-  {
-    int count = nodesInSystemId0;
-	
-	while (count < totalNoNodes)
-	{
-	  MPI_Status status;
-      nodeStatistics recv;
-	  
-	  /* std::cout << "SystemId = " << systemId << "\n"; */
-	  MPI_Recv(&recv, 1, mpi_nodeStatisticsType, MPI_ANY_SOURCE, 8888, MPI_COMM_WORLD, &status);
-    
-	  std::cout << "SystemId 0 received: statistics for node " << recv.nodeId 
-                <<  " from systemId = " << status.MPI_SOURCE << "\n";
-      stats[recv.nodeId].nodeId = recv.nodeId;
-      stats[recv.nodeId].meanBlockReceiveTime = recv.meanBlockReceiveTime;
-      stats[recv.nodeId].meanBlockPropagationTime = recv.meanBlockPropagationTime;
-      stats[recv.nodeId].meanBlockSize = recv.meanBlockSize;
-      stats[recv.nodeId].totalBlocks = recv.totalBlocks;
-      stats[recv.nodeId].staleBlocks = recv.staleBlocks;
-      stats[recv.nodeId].miner = recv.miner;
-      stats[recv.nodeId].minerGeneratedBlocks = recv.minerGeneratedBlocks;
-      stats[recv.nodeId].minerAverageBlockGenInterval = recv.minerAverageBlockGenInterval;
-      stats[recv.nodeId].minerAverageBlockSize = recv.minerAverageBlockSize;
-      stats[recv.nodeId].hashRate = recv.hashRate;
-	  count++;
-    }
-  }	  
   
   if (systemId == 0)
   {
     tFinish=get_wall_time();
 	
-    PrintStatsForEachNode(stats, totalNoNodes);
-    PrintTotalStats(stats, totalNoNodes);
+    //PrintStatsForEachNode(stats, totalNoNodes);
+    //PrintTotalStats(stats, totalNoNodes);
+	if (stats[1].attackSuccess == 1)
+      std::cout << "SUCCESS!\n" << std::endl;
+    else
+      std::cout << "FAIL\n" << std::endl;
+
     std::cout << "\nThe simulation ran for " << tFinish - tStart << "s simulating "
               << stop << "mins. Performed " << stop * secsPerMin / (tFinish - tStart)
               << " faster than realtime.\n" << "It consisted of " << totalNoNodes

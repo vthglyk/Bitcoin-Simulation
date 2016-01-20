@@ -17,6 +17,13 @@ enum Messages
   GET_DATA			//5
 };
 
+enum MinerType
+{
+  NORMAL_MINER,
+  SIMPLE_ATTACKER  
+};
+
+
 typedef struct {
   int      nodeId;
   double   meanBlockReceiveTime;
@@ -24,14 +31,16 @@ typedef struct {
   double   meanBlockSize;
   int      totalBlocks;
   int      staleBlocks;
-  int      miner;
+  int      miner;	//0->node, 1->miner
   int      minerGeneratedBlocks;
   double   minerAverageBlockGenInterval;
   double   minerAverageBlockSize;
   double   hashRate;
+  int      attackSuccess; //0->fail, 1->success
 } nodeStatistics;
 
 const char* getMessageName(enum Messages m);
+const char* getMinerType(enum MinerType m);
 
 class Block
 {

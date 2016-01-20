@@ -61,6 +61,7 @@ BitcoinNode::BitcoinNode (void) : m_bitcoinPort (8333), m_secondsPerMin(60)
   m_meanBlockPropagationTime = 0;
   m_meanBlockSize = 0;
   m_numberOfPeers = m_peersAddresses.size();
+  
 }
 
 BitcoinNode::~BitcoinNode(void)
@@ -168,6 +169,20 @@ BitcoinNode::StartApplication ()    // Called at time specified by Start
       m_peersSockets[*i] = Socket::CreateSocket (GetNode (), TcpSocketFactory::GetTypeId ());
 	  m_peersSockets[*i]->Connect (InetSocketAddress (*i, m_bitcoinPort));
 	}
+
+  m_nodeStats->nodeId = GetNode ()->GetId ();
+  m_nodeStats->meanBlockReceiveTime = 0;
+  m_nodeStats->meanBlockPropagationTime = 0;
+  m_nodeStats->meanBlockSize = 0;
+  m_nodeStats->totalBlocks = 0;
+  m_nodeStats->staleBlocks = 0;
+  m_nodeStats->miner = 0;
+  m_nodeStats->minerGeneratedBlocks = 0;
+  m_nodeStats->minerAverageBlockGenInterval = 0;
+  m_nodeStats->minerAverageBlockSize = 0;
+  m_nodeStats->minerAverageBlockSize = 0;
+  m_nodeStats->hashRate = 0;
+  m_nodeStats->attackSuccess = 0;
 }
 
 void 
@@ -208,16 +223,12 @@ BitcoinNode::StopApplication ()     // Called at time specified by Stop
               << 100. * m_blockchain.GetNoStaleBlocks() / m_blockchain.GetTotalBlocks() << "%)");
   NS_LOG_WARN("receivedButNotValidated size = " << m_receivedNotValidated.size());
 
-  m_nodeStats->nodeId = GetNode ()->GetId ();
   m_nodeStats->meanBlockReceiveTime = m_meanBlockReceiveTime;
   m_nodeStats->meanBlockPropagationTime = m_meanBlockPropagationTime;
   m_nodeStats->meanBlockSize = m_meanBlockSize;
   m_nodeStats->totalBlocks = m_blockchain.GetTotalBlocks();
   m_nodeStats->staleBlocks = m_blockchain.GetNoStaleBlocks();
-  m_nodeStats->miner = 0;
-  m_nodeStats->minerGeneratedBlocks = 0;
-  m_nodeStats->minerAverageBlockGenInterval = 0;
-  m_nodeStats->minerAverageBlockSize = 0;
+
   
 /*     std::cout << "\nNode " << m_nodeStats->nodeId << " statistics:\n";
     std::cout << "Mean Block Receive Time = " << m_nodeStats->meanBlockReceiveTime << " or " 
