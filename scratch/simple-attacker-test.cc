@@ -62,18 +62,20 @@ main (int argc, char *argv[])
 
   int iterations = 50;
   int successfullAttacks = 0;
+  int secureBlocks = 6;
   
   int totalNoNodes = xSize * ySize;
-  nodeStatistics stats[totalNoNodes];
+  nodeStatistics *stats = new nodeStatistics[totalNoNodes];
   double averageBlockGenIntervalMinutes = averageBlockGenIntervalSeconds/secsPerMin;
-  double stop = targetNumberOfBlocks * averageBlockGenIntervalMinutes; //seconds
-  double blockGenBinSize = 1./secsPerMin/1000;					       //minutes
-  double blockGenParameter = 0.19 * blockGenBinSize / 2 * (realAverageBlockGenIntervalMinutes / averageBlockGenIntervalMinutes);	//0.19 for blockGenBinSize = 2mins
+  double stop;                                     //seconds
+  double blockGenBinSize;					       //minutes
+  double blockGenParameter;	                       //0.19 for blockGenBinSize = 2mins
 
   std::map<int, Ipv4Address>                 miners; // key = nodeId
   std::map<int, std::vector<Ipv4Address>>    nodesConnections; // key = nodeId
   Ipv4InterfaceContainer                     ipv4InterfaceContainer;
   int                                        nodesInSystemId0 = 0;
+
   srand (1000);
   Time::SetResolution (Time::NS);
   
@@ -107,10 +109,26 @@ main (int argc, char *argv[])
     std::cout << "The minersHash entries does not match the number of miners\n";
     return 0;
   }
+  
+  CommandLine cmd;
+  cmd.AddValue ("secureBlocks", "The number of confirmations required for transactions", secureBlocks);
+  cmd.AddValue ("blockIntervalMinutes", "The average block generation interval in minutes", averageBlockGenIntervalMinutes);
+  cmd.AddValue ("noBlocks", "The number of generated blocks", targetNumberOfBlocks);
+  cmd.AddValue ("attHashRate", "The hash rate of the attacker", minersHash[1]);
+  cmd.AddValue ("iterations", "The number of iterations of the attack", iterations);
 
+  cmd.Parse(argc, argv);
+  
+  averageBlockGenIntervalSeconds = averageBlockGenIntervalMinutes * secsPerMin;
+  stop = targetNumberOfBlocks * averageBlockGenIntervalMinutes; //seconds
+  blockGenBinSize = 1./secsPerMin/1000;					       //minutes
+  blockGenParameter = 0.19 * blockGenBinSize / 2 * (realAverageBlockGenIntervalMinutes / averageBlockGenIntervalMinutes);	//0.19 for blockGenBinSize = 2mins
+  minersHash[0] = 1 - minersHash[1];
+  
   for (int i = 0; i < iterations; i++)
   { 
-    std::cout << "Iteration : " << i + 1 << "\n";
+/*     std::cout << "Iteration : " << i + 1 << " " << secureBlocks << " " << averageBlockGenIntervalSeconds 
+	          << " " << averageBlockGenIntervalMinutes << " " << targetNumberOfBlocks << "\n"; */
     PointToPointHelper pointToPoint;
     pointToPoint.SetDeviceAttribute ("DataRate", StringValue ("8Mbps"));
     pointToPoint.SetChannelAttribute ("Delay", StringValue ("1ms"));
@@ -234,9 +252,10 @@ main (int argc, char *argv[])
                                             blockGenBinSize, blockGenParameter, averageBlockGenIntervalSeconds);
     ApplicationContainer bitcoinMiners;
     int count = 0;
+	
     if (test == true)
       bitcoinMinerHelper.SetAttribute("FixedBlockIntervalGeneration", DoubleValue(600));
-
+    
     for(auto &miner : miners)
     {
 	  Ptr<Node> targetNode = grid.GetNode (miner.first / ySize, miner.first % ySize);
@@ -256,7 +275,9 @@ main (int argc, char *argv[])
 	  }				
 	  count++;
 
-     bitcoinMinerHelper.SetMinerType (SIMPLE_ATTACKER);
+    bitcoinMinerHelper.SetMinerType (SIMPLE_ATTACKER);
+	bitcoinMinerHelper.SetAttribute("SecureBlocks", UintegerValue(secureBlocks));
+
 	 if (test == true)
 	   bitcoinMinerHelper.SetAttribute("FixedBlockIntervalGeneration", DoubleValue(100));
     }
@@ -273,12 +294,12 @@ main (int argc, char *argv[])
 
 	if (stats[1].attackSuccess == 1)
 	{
-      std::cout << "SUCCESS!\n\n";
+      //std::cout << "SUCCESS!\n\n";
       successfullAttacks++;
 	}
     else
 	{
-      std::cout << "FAIL\n\n";
+      //std::cout << "FAIL\n\n";
 	}
   }
 
@@ -291,11 +312,15 @@ main (int argc, char *argv[])
     //PrintTotalStats(stats, totalNoNodes);
     std::cout << "The success rate of the attack was " << successfullAttacks / static_cast<float>(iterations) * 100 << "%\n";
     std::cout << "\nThe simulation ran for " << tFinish - tStart << "s simulating "
-              << stop << "mins. Performed " << stop * secsPerMin / (tFinish - tStart)
-              << " faster than realtime.\n" << "It consisted of " << totalNoNodes
+              << stop << "mins.\nIt consisted of " << totalNoNodes
               << " nodes (" << noMiners << " miners) with minConnectionsPerNode = "
-              << minConnectionsPerNode << " and maxConnectionsPerNode = " << maxConnectionsPerNode 
-              << ".\nThe averageBlockGenIntervalMinutes was " << averageBlockGenIntervalMinutes << "min.\n";
+              << minConnectionsPerNode << " and maxConnectionsPerNode = " << maxConnectionsPerNode << ".\n"
+              << "\nThe number of secure blocks required was " << secureBlocks << ".\n"
+              << "The averageBlockGenIntervalMinutes was " << averageBlockGenIntervalMinutes 
+			  << "min and averageBlockGenIntervalSeconds was " << averageBlockGenIntervalSeconds << ".\n"
+              << "Each attack had a duration of " << targetNumberOfBlocks << " generated blocks.\n"
+              << "The attacker's hash rate was " << minersHash[1] << ".\n"
+              << "The number of iterations was " << iterations << ".\n\n";
 
   }  
   
@@ -331,14 +356,14 @@ int GetNodeIdByIpv4 (Ipv4InterfaceContainer container, Ipv4Address addr)
 
 void PrintStatsForEachNode (nodeStatistics *stats, int totalNodes)
 {
-  int secPerMin = 60;
+  int secsPerMin = 60;
   
   for (int it = 0; it < totalNodes; it++ )
   {
     std::cout << "\nNode " << stats[it].nodeId << " statistics:\n";
     std::cout << "Mean Block Receive Time = " << stats[it].meanBlockReceiveTime << " or " 
-              << static_cast<int>(stats[it].meanBlockReceiveTime) / secPerMin << "min and " 
-			  << stats[it].meanBlockReceiveTime - static_cast<int>(stats[it].meanBlockReceiveTime) / secPerMin * secPerMin << "s\n";
+              << static_cast<int>(stats[it].meanBlockReceiveTime) / secsPerMin << "min and " 
+			  << stats[it].meanBlockReceiveTime - static_cast<int>(stats[it].meanBlockReceiveTime) / secsPerMin * secsPerMin << "s\n";
     std::cout << "Mean Block Propagation Time = " << stats[it].meanBlockPropagationTime << "s\n";
     std::cout << "Mean Block Size = " << stats[it].meanBlockSize << " Bytes\n";
     std::cout << "Total Blocks = " << stats[it].totalBlocks << "\n";
@@ -350,8 +375,8 @@ void PrintStatsForEachNode (nodeStatistics *stats, int totalNodes)
       std::cout << "The miner " << stats[it].nodeId << " with hash rate = " << stats[it].hashRate*100 << "% generated " << stats[it].minerGeneratedBlocks 
                 << " blocks "<< "(" << 100. * stats[it].minerGeneratedBlocks / (stats[it].totalBlocks - 1)
                 << "%) with average block generation time = " << stats[it].minerAverageBlockGenInterval
-                << "s or " << static_cast<int>(stats[it].minerAverageBlockGenInterval) / secPerMin << "min and " 
-                << stats[it].minerAverageBlockGenInterval - static_cast<int>(stats[it].minerAverageBlockGenInterval) / secPerMin * secPerMin << "s"
+                << "s or " << static_cast<int>(stats[it].minerAverageBlockGenInterval) / secsPerMin << "min and " 
+                << stats[it].minerAverageBlockGenInterval - static_cast<int>(stats[it].minerAverageBlockGenInterval) / secsPerMin * secsPerMin << "s"
                 << " and average size " << stats[it].minerAverageBlockSize << " Bytes\n";
     }
   }
@@ -360,7 +385,7 @@ void PrintStatsForEachNode (nodeStatistics *stats, int totalNodes)
 
 void PrintTotalStats (nodeStatistics *stats, int totalNodes)
 {
-  const int  secPerMin = 60;
+  const int  secsPerMin = 60;
   double     meanBlockReceiveTime = 0;
   double     meanBlockPropagationTime = 0;
   double     meanBlockSize = 0;
@@ -384,8 +409,8 @@ void PrintTotalStats (nodeStatistics *stats, int totalNodes)
 
   std::cout << "\nTotal Stats:\n";
   std::cout << "Mean Block Receive Time = " << meanBlockReceiveTime << " or " 
-            << static_cast<int>(meanBlockReceiveTime) / secPerMin << "min and " 
-	        << meanBlockReceiveTime - static_cast<int>(meanBlockReceiveTime) / secPerMin * secPerMin << "s\n";
+            << static_cast<int>(meanBlockReceiveTime) / secsPerMin << "min and " 
+	        << meanBlockReceiveTime - static_cast<int>(meanBlockReceiveTime) / secsPerMin * secsPerMin << "s\n";
   std::cout << "Mean Block Propagation Time = " << meanBlockPropagationTime << "s\n";
   std::cout << "Mean Block Size = " << meanBlockSize << " Bytes\n";
   std::cout << "Total Blocks = " << totalBlocks << "\n";

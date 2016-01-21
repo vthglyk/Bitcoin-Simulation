@@ -183,7 +183,7 @@ BitcoinMiner::StopApplication ()
   BitcoinNode::StopApplication ();  
   Simulator::Cancel (m_nextMiningEvent);
   
-  NS_LOG_WARN ("The miner " << GetNode ()->GetId () << " generated " << m_minerGeneratedBlocks 
+  NS_LOG_WARN ("The miner " << GetNode ()->GetId () << " with hash rate = " << m_hashRate << " generated " << m_minerGeneratedBlocks 
                 << " blocks "<< "(" << 100. * m_minerGeneratedBlocks / (m_blockchain.GetTotalBlocks() - 1) 
                 << "%) with average block generation time = " << m_minerAverageBlockGenInterval
                 << "s or " << static_cast<int>(m_minerAverageBlockGenInterval) / m_secondsPerMin << "min and " 

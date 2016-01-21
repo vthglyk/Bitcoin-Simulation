@@ -86,17 +86,37 @@ void
 BitcoinMinerHelper::SetMinerType (enum MinerType m)  //FIX ME
 {
   m_minerType = m;
-  m_factory.SetTypeId ("ns3::BitcoinSimpleAttacker");
   
-  m_factory.Set ("Protocol", StringValue (m_protocol));
-  m_factory.Set ("Local", AddressValue (m_address));
-  m_factory.Set ("HashRate", DoubleValue(m_hashRate));
-  m_factory.Set ("BlockGenBinSize", DoubleValue(m_blockGenBinSize));
-  m_factory.Set ("BlockGenParameter", DoubleValue(m_blockGenParameter));
-  m_factory.Set ("AverageBlockGenIntervalSeconds", DoubleValue(m_averageBlockGenIntervalSeconds));
-  
-  if (m_minerType != NORMAL_MINER)
-    m_factory.Set ("SecureBlocks", UintegerValue(m_secureBlocks));
+   switch (m) 
+   {
+      case NORMAL_MINER: 
+      {
+        m_factory.SetTypeId ("ns3::BitcoinMiner");
+		
+        m_factory.Set ("Protocol", StringValue (m_protocol));
+        m_factory.Set ("Local", AddressValue (m_address));
+        m_factory.Set ("HashRate", DoubleValue(m_hashRate));
+        m_factory.Set ("BlockGenBinSize", DoubleValue(m_blockGenBinSize));
+        m_factory.Set ("BlockGenParameter", DoubleValue(m_blockGenParameter));
+        m_factory.Set ("AverageBlockGenIntervalSeconds", DoubleValue(m_averageBlockGenIntervalSeconds));
+        break;
+      }
+      case SIMPLE_ATTACKER:  
+      {
+        m_factory.SetTypeId ("ns3::BitcoinSimpleAttacker");
+		
+        m_factory.Set ("Protocol", StringValue (m_protocol));
+        m_factory.Set ("Local", AddressValue (m_address));
+        m_factory.Set ("HashRate", DoubleValue(m_hashRate));
+        m_factory.Set ("BlockGenBinSize", DoubleValue(m_blockGenBinSize));
+        m_factory.Set ("BlockGenParameter", DoubleValue(m_blockGenParameter));
+        m_factory.Set ("AverageBlockGenIntervalSeconds", DoubleValue(m_averageBlockGenIntervalSeconds));
+		
+		m_factory.Set ("SecureBlocks", UintegerValue(m_secureBlocks));
+        break;
+      }
+   }
+   
   //std::cout << "Changed minerType to " << getMinerType(m) << std::endl;
 }
 
