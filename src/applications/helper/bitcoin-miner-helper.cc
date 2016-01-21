@@ -83,7 +83,7 @@ BitcoinMinerHelper::GetMinerType(void)
 }
 
 void 
-BitcoinMinerHelper::SetMinerType (enum MinerType m)
+BitcoinMinerHelper::SetMinerType (enum MinerType m)  //FIX ME
 {
   m_minerType = m;
   m_factory.SetTypeId ("ns3::BitcoinSimpleAttacker");
@@ -97,7 +97,7 @@ BitcoinMinerHelper::SetMinerType (enum MinerType m)
   
   if (m_minerType != NORMAL_MINER)
     m_factory.Set ("SecureBlocks", UintegerValue(m_secureBlocks));
-  std::cout << "Changed minerType to " << getMinerType(m) << std::endl;
+  //std::cout << "Changed minerType to " << getMinerType(m) << std::endl;
 }
 
 } // namespace ns3

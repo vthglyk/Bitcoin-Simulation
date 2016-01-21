@@ -134,7 +134,10 @@ BitcoinNode::StartApplication ()    // Called at time specified by Start
   for (auto it = m_peersAddresses.begin(); it != m_peersAddresses.end(); it++)
     NS_LOG_DEBUG("\t" << *it);
 
-
+  NS_LOG_WARN (m_socket);
+  NS_LOG_WARN (m_local);
+  NS_LOG_WARN (m_tid);
+  
   if (!m_socket)
     {
       m_socket = Socket::CreateSocket (GetNode (), m_tid);
