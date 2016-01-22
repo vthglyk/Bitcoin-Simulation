@@ -497,6 +497,7 @@ const char* getMinerType(enum MinerType m)
    {
       case NORMAL_MINER: return "NORMAL_MINER";
       case SIMPLE_ATTACKER: return "SIMPLE_ATTACKER";
+      case SELFISH_MINER: return "SELFISH_MINER";
    }
 }
 }// Namespace ns3

@@ -18,12 +18,12 @@
  * Author: Mathieu Lacage <mathieu.lacage@sophia.inria.fr>
  */
 
-#include "bitcoin-miner-helper.h"
+#include "ns3/bitcoin-miner-helper.h"
 #include "ns3/string.h"
 #include "ns3/inet-socket-address.h"
 #include "ns3/names.h"
 #include "ns3/uinteger.h"
-#include "../model/bitcoin-miner.h"
+#include "ns3/bitcoin-miner.h"
 #include "ns3/log.h"
 #include "ns3/double.h"
 
@@ -49,7 +49,7 @@ BitcoinMinerHelper::BitcoinMinerHelper (std::string protocol, Address address, s
 }
 
 Ptr<Application>
-BitcoinMinerHelper::InstallPriv (Ptr<Node> node)
+BitcoinMinerHelper::InstallPriv (Ptr<Node> node) //FIX ME
 {
 
    switch (m_minerType) 
@@ -66,6 +66,15 @@ BitcoinMinerHelper::InstallPriv (Ptr<Node> node)
       case SIMPLE_ATTACKER: 
 	  {
         Ptr<BitcoinSimpleAttacker> app = m_factory.Create<BitcoinSimpleAttacker> ();
+        app->SetPeersAddresses(m_peersAddresses);
+        app->SetNodeStats(m_nodeStats);
+
+        node->AddApplication (app);
+        return app;
+	  }
+      case SELFISH_MINER: 
+	  {
+        Ptr<BitcoinSelfishMiner> app = m_factory.Create<BitcoinSelfishMiner> ();
         app->SetPeersAddresses(m_peersAddresses);
         app->SetNodeStats(m_nodeStats);
 

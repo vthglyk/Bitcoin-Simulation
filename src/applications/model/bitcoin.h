@@ -20,7 +20,8 @@ enum Messages
 enum MinerType
 {
   NORMAL_MINER,
-  SIMPLE_ATTACKER  
+  SIMPLE_ATTACKER,
+  SELFISH_MINER
 };
 
 

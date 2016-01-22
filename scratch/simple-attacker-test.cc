@@ -43,7 +43,7 @@ main (int argc, char *argv[])
 {
 #ifdef NS3_MPI
   bool nullmsg = false;
-  double tStart = get_wall_time(), tFinish;
+  double tStart = get_wall_time(), tFinish, tSimStart, tSimFinish;
   const int secsPerMin = 60;
   const uint16_t bitcoinPort = 8333;
   const double realAverageBlockGenIntervalMinutes = 10; //minutes
@@ -71,9 +71,6 @@ main (int argc, char *argv[])
   double blockGenBinSize;					       //minutes
   double blockGenParameter;	                       //0.19 for blockGenBinSize = 2mins
 
-  std::map<int, Ipv4Address>                 miners; // key = nodeId
-  std::map<int, std::vector<Ipv4Address>>    nodesConnections; // key = nodeId
-  Ipv4InterfaceContainer                     ipv4InterfaceContainer;
   int                                        nodesInSystemId0 = 0;
 
   srand (1000);
@@ -83,9 +80,9 @@ main (int argc, char *argv[])
   uint32_t systemId = 0;
   uint32_t systemCount = 1;
   
-/*   LogComponentEnable("BitcoinNode", LOG_LEVEL_WARN);
-  LogComponentEnable("BitcoinMiner", LOG_LEVEL_WARN);
-  LogComponentEnable("BitcoinSimpleAttacker", LOG_LEVEL_WARN); */
+/*   LogComponentEnable("BitcoinNode", LOG_LEVEL_INFO);
+  LogComponentEnable("BitcoinMiner", LOG_LEVEL_INFO);
+  LogComponentEnable("BitcoinSimpleAttacker", LOG_LEVEL_INFO); */
   
   //LogComponentEnable("ObjectFactory", LOG_LEVEL_FUNCTION);
   //LogComponentEnable("Ipv4AddressGenerator", LOG_LEVEL_INFO);
@@ -125,10 +122,15 @@ main (int argc, char *argv[])
   blockGenParameter = 0.19 * blockGenBinSize / 2 * (realAverageBlockGenIntervalMinutes / averageBlockGenIntervalMinutes);	//0.19 for blockGenBinSize = 2mins
   minersHash[0] = 1 - minersHash[1];
   
-  for (int i = 0; i < iterations; i++)
+  for (int iter = 0; iter < iterations; iter++)
   { 
-/*     std::cout << "Iteration : " << i + 1 << " " << secureBlocks << " " << averageBlockGenIntervalSeconds 
+/*     std::cout << "Iteration : " << iter + 1 << " " << secureBlocks << " " << averageBlockGenIntervalSeconds 
 	          << " " << averageBlockGenIntervalMinutes << " " << targetNumberOfBlocks << "\n"; */
+			  
+    std::map<int, Ipv4Address>                 miners; // key = nodeId
+    std::map<int, std::vector<Ipv4Address>>    nodesConnections; // key = nodeId
+    Ipv4InterfaceContainer                     ipv4InterfaceContainer;
+	
     PointToPointHelper pointToPoint;
     pointToPoint.SetDeviceAttribute ("DataRate", StringValue ("8Mbps"));
     pointToPoint.SetChannelAttribute ("Delay", StringValue ("1ms"));
@@ -289,24 +291,27 @@ main (int argc, char *argv[])
     Ipv4GlobalRoutingHelper::PopulateRoutingTables ();
   
     Simulator::Stop (Minutes (stop + 0.1));
+	
+	tSimStart = get_wall_time();
     Simulator::Run ();
     Simulator::Destroy ();
+	tSimFinish = get_wall_time();
 
 	if (stats[1].attackSuccess == 1)
 	{
-      //std::cout << "SUCCESS!\n\n";
+      std::cout << "Iteration " << iter+1 << " lasted " << tSimFinish - tSimStart << "s: SUCCESS!\n\n";
       successfullAttacks++;
 	}
     else
 	{
-      //std::cout << "FAIL\n\n";
+      std::cout << "Iteration " << iter+1 << " lasted " << tSimFinish - tSimStart << "s: FAIL\n\n";
 	}
   }
 
   
   if (systemId == 0)
   {
-    tFinish=get_wall_time();
+    tFinish = get_wall_time();
 	
     //PrintStatsForEachNode(stats, totalNoNodes);
     //PrintTotalStats(stats, totalNoNodes);
@@ -324,7 +329,7 @@ main (int argc, char *argv[])
 
   }  
   
-  
+  delete[] stats;  
 
   return 0;
   
