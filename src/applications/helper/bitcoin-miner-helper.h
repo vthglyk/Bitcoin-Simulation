@@ -60,12 +60,16 @@ protected:
    */
   virtual Ptr<Application> InstallPriv (Ptr<Node> node);
   
+  void SetFactoryAttributes (void);
+  
+  
   enum MinerType   m_minerType;
   double           m_hashRate;
   double           m_blockGenBinSize;
   double           m_blockGenParameter;
   double           m_averageBlockGenIntervalSeconds;
   uint32_t         m_secureBlocks;
+  uint32_t         m_advertiseBlocks;
 };
 
 } // namespace ns3

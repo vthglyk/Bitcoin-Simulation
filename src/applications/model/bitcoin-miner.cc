@@ -121,7 +121,8 @@ BitcoinMiner::StartApplication ()    // Called at time specified by Start
   NS_LOG_WARN ("Miner " << GetNode()->GetId() << " m_realAverageBlockGenIntervalSeconds = " << m_realAverageBlockGenIntervalSeconds << "s");
   NS_LOG_WARN ("Miner " << GetNode()->GetId() << " m_averageBlockGenIntervalSeconds = " << m_averageBlockGenIntervalSeconds << "s");
   NS_LOG_WARN ("Miner " << GetNode()->GetId() << " m_fixedBlockTimeGeneration = " << m_fixedBlockTimeGeneration << "s");
-
+  NS_LOG_WARN ("Miner " << GetNode()->GetId() << " m_hashRate = " << m_hashRate );
+  
   m_blockGenParameter *= m_hashRate;
 	
   if (m_fixedBlockTimeGeneration == 0)
@@ -380,7 +381,6 @@ BitcoinMiner::MineBlock (void)
   rapidjson::Writer<rapidjson::StringBuffer> writer(packetInfo);
   d.Accept(writer);
   
-  //Ptr<Packet> packet = Create<Packet> (reinterpret_cast<const uint8_t*>(packetInfo.GetString()), packetInfo.GetSize());
   
   for (std::vector<Ipv4Address>::const_iterator i = m_peersAddresses.begin(); i != m_peersAddresses.end(); ++i)
   {
@@ -407,7 +407,7 @@ BitcoinMiner::MineBlock (void)
   m_previousBlockGenerationTime = Simulator::Now ().GetSeconds ();
   m_minerGeneratedBlocks++;
 
-  NS_LOG_INFO ("At time " << Simulator::Now ().GetSeconds ()
+  NS_LOG_WARN ("At time " << Simulator::Now ().GetSeconds ()
                << "s bitcoin miner " << GetNode ()->GetId () 
                << " sent a packet " << packetInfo.GetString() 
 			   << " " << m_minerAverageBlockSize);

@@ -58,7 +58,7 @@ BitcoinSelfishMiner::GetTypeId (void)
                    MakeTimeAccessor (&BitcoinSelfishMiner::m_invTimeoutMinutes),
                    MakeTimeChecker())
     .AddAttribute ("HashRate", 
-				   "The hash rate of the simple attacker",
+				   "The hash rate of the selfish miner",
                    DoubleValue (0.2),
                    MakeDoubleAccessor (&BitcoinSelfishMiner::m_hashRate),
                    MakeDoubleChecker<double> ())	
@@ -82,6 +82,11 @@ BitcoinSelfishMiner::GetTypeId (void)
                    UintegerValue (6),
                    MakeUintegerAccessor (&BitcoinSelfishMiner::m_secureBlocks),
                    MakeUintegerChecker<uint32_t> ())
+    .AddAttribute ("AdvertiseBlocks", 
+				   "Choose whether the attacker will advertise his generated blocks",
+                   UintegerValue (0),
+                   MakeUintegerAccessor (&BitcoinSelfishMiner::m_advertiseBlocks),
+                   MakeUintegerChecker<uint32_t> ())
     .AddTraceSource ("Rx",
                      "A packet has been received",
                      MakeTraceSourceAccessor (&BitcoinSelfishMiner::m_rxTrace),
@@ -91,7 +96,7 @@ BitcoinSelfishMiner::GetTypeId (void)
 }
 
 
-BitcoinSelfishMiner::BitcoinSelfishMiner () : BitcoinMiner(), m_attackStarted (false), m_attackFinished(false)
+BitcoinSelfishMiner::BitcoinSelfishMiner () : BitcoinMiner(), m_attackFinished(false), m_winningStreak(0)
 {
   NS_LOG_FUNCTION (this);
 }
@@ -107,10 +112,11 @@ void
 BitcoinSelfishMiner::StartApplication ()    // Called at time specified by Start
 {
   BitcoinNode::StartApplication ();
-  NS_LOG_WARN ("Simple Attacker " << GetNode()->GetId() << " m_realAverageBlockGenIntervalSeconds = " << m_realAverageBlockGenIntervalSeconds << "s");
-  NS_LOG_WARN ("Simple Attacker " << GetNode()->GetId() << " m_averageBlockGenIntervalSeconds = " << m_averageBlockGenIntervalSeconds << "s");
-  NS_LOG_WARN ("Simple Attacker " << GetNode()->GetId() << " m_fixedBlockTimeGeneration = " << m_fixedBlockTimeGeneration << "s");
-  NS_LOG_WARN ("Simple Attacker " << GetNode()->GetId() << " m_secureBlocks = " << m_secureBlocks);
+  NS_LOG_WARN ("Selfish Miner " << GetNode()->GetId() << " m_realAverageBlockGenIntervalSeconds = " << m_realAverageBlockGenIntervalSeconds << "s");
+  NS_LOG_WARN ("Selfish Miner " << GetNode()->GetId() << " m_averageBlockGenIntervalSeconds = " << m_averageBlockGenIntervalSeconds << "s");
+  NS_LOG_WARN ("Selfish Miner " << GetNode()->GetId() << " m_fixedBlockTimeGeneration = " << m_fixedBlockTimeGeneration << "s");
+  NS_LOG_WARN ("Selfish Miner " << GetNode()->GetId() << " m_secureBlocks = " << m_secureBlocks);
+  NS_LOG_WARN ("Selfish Miner " << GetNode()->GetId() << " m_hashRate = " << m_hashRate);
 
   m_blockGenParameter *= m_hashRate;
 	
@@ -151,8 +157,7 @@ BitcoinSelfishMiner::StartApplication ()    // Called at time specified by Start
     m_blockchain.AddBlock(newBlock); 
   } */
   
-  if (m_secureBlocks == 0)
-    ScheduleNextMiningEvent ();
+  ScheduleNextMiningEvent ();
 }
 
 void 
@@ -161,7 +166,7 @@ BitcoinSelfishMiner::StopApplication ()
   BitcoinNode::StopApplication ();  
   Simulator::Cancel (m_nextMiningEvent);
   
-  NS_LOG_WARN ("The simple attacker " << GetNode ()->GetId () << " with hash rate = " << m_hashRate << " generated " << m_minerGeneratedBlocks 
+  NS_LOG_WARN ("The selfish miner " << GetNode ()->GetId () << " with hash rate = " << m_hashRate << " generated " << m_minerGeneratedBlocks 
                 << " blocks "<< "(" << 100. * m_minerGeneratedBlocks / (m_blockchain.GetTotalBlocks() - 1) 
                 << "%) with average block generation time = " << m_minerAverageBlockGenInterval
                 << "s or " << static_cast<int>(m_minerAverageBlockGenInterval) / m_secondsPerMin << "min and " 
@@ -186,21 +191,17 @@ BitcoinSelfishMiner::MineBlock (void)  //FIX ME
 {
   NS_LOG_FUNCTION (this);
   rapidjson::Document d; 
-  int height =  m_minerGeneratedBlocks + 1;
+  int height =  m_blockchain.GetCurrentTopBlock()->GetBlockHeight() + 1;
   int minerId = GetNode ()->GetId ();
-  int parentBlockMinerId;
+  int parentBlockMinerId = m_blockchain.GetCurrentTopBlock()->GetMinerId();
   double currentTime = Simulator::Now ().GetSeconds ();
   std::ostringstream stringStream;  
   std::string blockHash = stringStream.str();
   
   d.SetObject();
 
-  if (m_minerGeneratedBlocks == 0)
-    parentBlockMinerId = -1;
-  else 
-	parentBlockMinerId = GetNode ()->GetId ();
-
-  if (height > m_blockchain.GetCurrentTopBlock()->GetBlockHeight())
+  m_winningStreak++;
+  if (m_winningStreak == m_secureBlocks)
   {
      NS_LOG_WARN ("The attack was successful");
      m_attackFinished = true;
@@ -261,26 +262,27 @@ BitcoinSelfishMiner::MineBlock (void)  //FIX ME
   rapidjson::Writer<rapidjson::StringBuffer> writer(packetInfo);
   d.Accept(writer);
   
-  //Ptr<Packet> packet = Create<Packet> (reinterpret_cast<const uint8_t*>(packetInfo.GetString()), packetInfo.GetSize());
-  
-  for (std::vector<Ipv4Address>::const_iterator i = m_peersAddresses.begin(); i != m_peersAddresses.end(); ++i)
+  if (m_advertiseBlocks == 1)
   {
-	const uint8_t delimiter[] = "#";
+    for (std::vector<Ipv4Address>::const_iterator i = m_peersAddresses.begin(); i != m_peersAddresses.end(); ++i)
+    {
+	  const uint8_t delimiter[] = "#";
 
-    m_peersSockets[*i]->Send (reinterpret_cast<const uint8_t*>(packetInfo.GetString()), packetInfo.GetSize(), 0);
-	m_peersSockets[*i]->Send (delimiter, 1, 0);
+      m_peersSockets[*i]->Send (reinterpret_cast<const uint8_t*>(packetInfo.GetString()), packetInfo.GetSize(), 0);
+	  m_peersSockets[*i]->Send (delimiter, 1, 0);
 	
-/* 	//Send large packet
-	int k;
-	for (k = 0; k < 4; k++)
-	{
-      ns3TcpSocket->Send (reinterpret_cast<const uint8_t*>(packetInfo.GetString()), packetInfo.GetSize(), 0);
-	  ns3TcpSocket->Send (delimiter, 1, 0);
-	} */
+/* 	  //Send large packet
+	  int k;
+	  for (k = 0; k < 4; k++)
+	  {
+        ns3TcpSocket->Send (reinterpret_cast<const uint8_t*>(packetInfo.GetString()), packetInfo.GetSize(), 0);
+	    ns3TcpSocket->Send (delimiter, 1, 0);
+	  } */
 	
 
+    }
   }
-
+  
   m_minerAverageBlockGenInterval = m_minerGeneratedBlocks/static_cast<double>(m_minerGeneratedBlocks+1)*m_minerAverageBlockGenInterval 
                              + (Simulator::Now ().GetSeconds () - m_previousBlockGenerationTime)/(m_minerGeneratedBlocks+1);
   m_minerAverageBlockSize = m_minerGeneratedBlocks/static_cast<double>(m_minerGeneratedBlocks+1)*m_minerAverageBlockSize 
@@ -288,10 +290,10 @@ BitcoinSelfishMiner::MineBlock (void)  //FIX ME
   m_previousBlockGenerationTime = Simulator::Now ().GetSeconds ();
   m_minerGeneratedBlocks++;
 
-  NS_LOG_INFO ("At time " << Simulator::Now ().GetSeconds ()
-               << "s bitcoin simple attacker " << GetNode ()->GetId () 
-               << " sent a packet " << packetInfo.GetString() 
-	           << " " << m_minerAverageBlockSize);
+  NS_LOG_WARN ("At time " << Simulator::Now ().GetSeconds ()
+               << "s bitcoin selfish miner " << GetNode ()->GetId () 
+               << " generated a block " << packetInfo.GetString()
+			   << ", winning streak = " << m_winningStreak);
 	
   if (m_attackFinished == false)	
     ScheduleNextMiningEvent ();
@@ -302,12 +304,12 @@ void
 BitcoinSelfishMiner::ReceivedHigherBlock(const Block &newBlock) //FIX ME
 {
   NS_LOG_FUNCTION (this);
-  NS_LOG_INFO("Bitcoin simple attacker "<< GetNode ()->GetId () << " added a new block in the m_blockchain with higher height: " << newBlock);
-  
-  if (m_attackStarted == false && newBlock.GetBlockHeight () >= m_secureBlocks)
-  {
-	m_attackStarted = true;
-    ScheduleNextMiningEvent();
-  }
+  NS_LOG_WARN("Bitcoin selfish miner "<< GetNode ()->GetId () << " added a new block in the m_blockchain with higher height: " << newBlock);
+  NS_LOG_WARN (m_winningStreak);
+  m_winningStreak = 0;
+  Simulator::Cancel (m_nextMiningEvent);
+  ScheduleNextMiningEvent();
+
 }
+
 } // Namespace ns3

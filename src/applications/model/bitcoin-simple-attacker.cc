@@ -261,7 +261,6 @@ BitcoinSimpleAttacker::MineBlock (void)  //FIX ME
   rapidjson::Writer<rapidjson::StringBuffer> writer(packetInfo);
   d.Accept(writer);
   
-  //Ptr<Packet> packet = Create<Packet> (reinterpret_cast<const uint8_t*>(packetInfo.GetString()), packetInfo.GetSize());
   
   for (std::vector<Ipv4Address>::const_iterator i = m_peersAddresses.begin(); i != m_peersAddresses.end(); ++i)
   {

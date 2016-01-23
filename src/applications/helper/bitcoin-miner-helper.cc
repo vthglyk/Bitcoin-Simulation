@@ -31,7 +31,8 @@ namespace ns3 {
 
 BitcoinMinerHelper::BitcoinMinerHelper (std::string protocol, Address address, std::vector<Ipv4Address> peers, nodeStatistics *stats,
 										double hashRate, double blockGenBinSize, double blockGenParameter,
-										double averageBlockGenIntervalSeconds) : BitcoinNodeHelper (),  m_minerType (NORMAL_MINER), m_secureBlocks (6)
+										double averageBlockGenIntervalSeconds) : BitcoinNodeHelper (),  m_minerType (NORMAL_MINER), 
+										m_secureBlocks (6), m_advertiseBlocks (0)
 {
   m_factory.SetTypeId ("ns3::BitcoinMiner");
   commonConstructor(protocol, address, peers, stats);
@@ -101,32 +102,40 @@ BitcoinMinerHelper::SetMinerType (enum MinerType m)  //FIX ME
       case NORMAL_MINER: 
       {
         m_factory.SetTypeId ("ns3::BitcoinMiner");
-		
-        m_factory.Set ("Protocol", StringValue (m_protocol));
-        m_factory.Set ("Local", AddressValue (m_address));
-        m_factory.Set ("HashRate", DoubleValue(m_hashRate));
-        m_factory.Set ("BlockGenBinSize", DoubleValue(m_blockGenBinSize));
-        m_factory.Set ("BlockGenParameter", DoubleValue(m_blockGenParameter));
-        m_factory.Set ("AverageBlockGenIntervalSeconds", DoubleValue(m_averageBlockGenIntervalSeconds));
+		SetFactoryAttributes();
         break;
       }
       case SIMPLE_ATTACKER:  
       {
         m_factory.SetTypeId ("ns3::BitcoinSimpleAttacker");
-		
-        m_factory.Set ("Protocol", StringValue (m_protocol));
-        m_factory.Set ("Local", AddressValue (m_address));
-        m_factory.Set ("HashRate", DoubleValue(m_hashRate));
-        m_factory.Set ("BlockGenBinSize", DoubleValue(m_blockGenBinSize));
-        m_factory.Set ("BlockGenParameter", DoubleValue(m_blockGenParameter));
-        m_factory.Set ("AverageBlockGenIntervalSeconds", DoubleValue(m_averageBlockGenIntervalSeconds));
-		
+		SetFactoryAttributes();
 		m_factory.Set ("SecureBlocks", UintegerValue(m_secureBlocks));
+        break;
+      }
+      case SELFISH_MINER:  
+      {
+        m_factory.SetTypeId ("ns3::BitcoinSelfishMiner");
+		SetFactoryAttributes();
+		m_factory.Set ("SecureBlocks", UintegerValue(m_secureBlocks));
+		m_factory.Set ("AdvertiseBlocks", UintegerValue(m_advertiseBlocks));
+
         break;
       }
    }
    
   //std::cout << "Changed minerType to " << getMinerType(m) << std::endl;
+}
+
+
+void 
+BitcoinMinerHelper::SetFactoryAttributes (void)
+{
+  m_factory.Set ("Protocol", StringValue (m_protocol));
+  m_factory.Set ("Local", AddressValue (m_address));
+  m_factory.Set ("HashRate", DoubleValue(m_hashRate));
+  m_factory.Set ("BlockGenBinSize", DoubleValue(m_blockGenBinSize));
+  m_factory.Set ("BlockGenParameter", DoubleValue(m_blockGenParameter));
+  m_factory.Set ("AverageBlockGenIntervalSeconds", DoubleValue(m_averageBlockGenIntervalSeconds));
 }
 
 } // namespace ns3
