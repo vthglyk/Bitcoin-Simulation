@@ -30,21 +30,16 @@
 namespace ns3 {
 
 BitcoinMinerHelper::BitcoinMinerHelper (std::string protocol, Address address, std::vector<Ipv4Address> peers, nodeStatistics *stats,
-										double hashRate, double blockGenBinSize, double blockGenParameter,
-										double averageBlockGenIntervalSeconds) : BitcoinNodeHelper (),  m_minerType (NORMAL_MINER), 
-										m_secureBlocks (6), m_advertiseBlocks (0)
+										double hashRate, double averageBlockGenIntervalSeconds) : BitcoinNodeHelper (),  m_minerType (NORMAL_MINER), 
+										m_secureBlocks (6), m_advertiseBlocks (0), m_blockGenBinSize (-1), m_blockGenParameter (-1)
 {
   m_factory.SetTypeId ("ns3::BitcoinMiner");
   commonConstructor(protocol, address, peers, stats);
   
   m_hashRate = hashRate;
-  m_blockGenBinSize = blockGenBinSize;
-  m_blockGenParameter = blockGenParameter;
   m_averageBlockGenIntervalSeconds = averageBlockGenIntervalSeconds;
   
   m_factory.Set ("HashRate", DoubleValue(m_hashRate));
-  m_factory.Set ("BlockGenBinSize", DoubleValue(m_blockGenBinSize));
-  m_factory.Set ("BlockGenParameter", DoubleValue(m_blockGenParameter));
   m_factory.Set ("AverageBlockGenIntervalSeconds", DoubleValue(m_averageBlockGenIntervalSeconds));
 
 }
@@ -133,9 +128,13 @@ BitcoinMinerHelper::SetFactoryAttributes (void)
   m_factory.Set ("Protocol", StringValue (m_protocol));
   m_factory.Set ("Local", AddressValue (m_address));
   m_factory.Set ("HashRate", DoubleValue(m_hashRate));
-  m_factory.Set ("BlockGenBinSize", DoubleValue(m_blockGenBinSize));
-  m_factory.Set ("BlockGenParameter", DoubleValue(m_blockGenParameter));
   m_factory.Set ("AverageBlockGenIntervalSeconds", DoubleValue(m_averageBlockGenIntervalSeconds));
+  
+  if (m_blockGenBinSize > 0 && m_blockGenParameter)
+  {
+    m_factory.Set ("BlockGenBinSize", DoubleValue(m_blockGenBinSize));
+    m_factory.Set ("BlockGenParameter", DoubleValue(m_blockGenParameter));
+  }
 }
 
 } // namespace ns3

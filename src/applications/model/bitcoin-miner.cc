@@ -64,12 +64,12 @@ BitcoinMiner::GetTypeId (void)
                    MakeDoubleChecker<double> ())	
     .AddAttribute ("BlockGenBinSize", 
 				   "The block generation bin size",
-                   DoubleValue (1./60),
+                   DoubleValue (-1),
                    MakeDoubleAccessor (&BitcoinMiner::m_blockGenBinSize),
                    MakeDoubleChecker<double> ())	
     .AddAttribute ("BlockGenParameter", 
 				   "The block generation distribution parameter",
-                   DoubleValue (0.183/120),
+                   DoubleValue (-1),
                    MakeDoubleAccessor (&BitcoinMiner::m_blockGenParameter),
                    MakeDoubleChecker<double> ())	
     .AddAttribute ("AverageBlockGenIntervalSeconds", 
@@ -123,8 +123,14 @@ BitcoinMiner::StartApplication ()    // Called at time specified by Start
   NS_LOG_WARN ("Miner " << GetNode()->GetId() << " m_fixedBlockTimeGeneration = " << m_fixedBlockTimeGeneration << "s");
   NS_LOG_WARN ("Miner " << GetNode()->GetId() << " m_hashRate = " << m_hashRate );
   
-  m_blockGenParameter *= m_hashRate;
-	
+  if (m_blockGenBinSize < 0 && m_blockGenParameter < 0)
+  {
+    m_blockGenBinSize = 1./m_secondsPerMin/1000;
+    m_blockGenParameter = 0.19 * m_blockGenBinSize / 2;
+  }
+  else
+    m_blockGenParameter *= m_hashRate;
+
   if (m_fixedBlockTimeGeneration == 0)
 	m_blockGenTimeDistribution.param(std::geometric_distribution<int>::param_type(m_blockGenParameter)); 
 
@@ -291,7 +297,8 @@ BitcoinMiner::ScheduleNextMiningEvent (void)
   }
   else
   {
-    m_nextBlockTime = m_blockGenTimeDistribution(m_generator)*m_blockGenBinSize*m_secondsPerMin;
+    m_nextBlockTime = m_blockGenTimeDistribution(m_generator)*m_blockGenBinSize*m_secondsPerMin
+                    *( m_averageBlockGenIntervalSeconds/m_realAverageBlockGenIntervalSeconds )/m_hashRate;
     //NS_LOG_DEBUG("m_nextBlockTime = " << m_nextBlockTime << ", binsize = " << m_blockGenBinSize << ", m_blockGenParameter = " << m_blockGenParameter << ", hashrate = " << m_hashRate);
     m_nextMiningEvent = Simulator::Schedule (Seconds(m_nextBlockTime), &BitcoinMiner::MineBlock, this);
 	

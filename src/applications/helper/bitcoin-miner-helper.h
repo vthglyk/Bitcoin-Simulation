@@ -45,7 +45,7 @@ class BitcoinMinerHelper : public BitcoinNodeHelper
    *
    */
   BitcoinMinerHelper (std::string protocol, Address address, std::vector<Ipv4Address> peers, nodeStatistics *stats,
-					  double hashRate, double blockGenBinSize, double blockGenParameter, double averageBlockGenIntervalSeconds);
+					  double hashRate, double averageBlockGenIntervalSeconds);
 					  
   enum MinerType GetMinerType(void);
   void SetMinerType (enum MinerType m);

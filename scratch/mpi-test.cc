@@ -56,9 +56,9 @@ main (int argc, char *argv[])
   bool testScalability = false;
 
   
-  int xSize = 5;
-  int ySize = 4;
-  int minConnectionsPerNode = 3;
+  int xSize = 20;
+  int ySize = 20;
+  int minConnectionsPerNode = 80;
   int maxConnectionsPerNode = 90;
   int noMiners = 16;
   double minersHash[] = {0.289, 0.196, 0.159, 0.133, 0.066, 0.054,
@@ -68,12 +68,9 @@ main (int argc, char *argv[])
   double minersHash[] = {0.4, 0.3, 0.3}; */
 
   
-  int totalNoNodes = xSize * ySize;
-  nodeStatistics stats[totalNoNodes];
   double averageBlockGenIntervalMinutes = averageBlockGenIntervalSeconds/secsPerMin;
-  double stop = targetNumberOfBlocks * averageBlockGenIntervalMinutes; //seconds
-  double blockGenBinSize = 1./secsPerMin/1000;					       //minutes
-  double blockGenParameter = 0.19 * blockGenBinSize / 2 * (realAverageBlockGenIntervalMinutes / averageBlockGenIntervalMinutes);	//0.19 for blockGenBinSize = 2mins
+  int totalNoNodes;
+  double stop;
 
   std::map<int, Ipv4Address>                 miners; // key = nodeId
   std::map<int, std::vector<Ipv4Address>>    nodesConnections; // key = nodeId
@@ -86,8 +83,22 @@ main (int argc, char *argv[])
   cmd.AddValue ("nullmsg", "Enable the use of null-message synchronization", nullmsg);
   cmd.AddValue ("bandwidth", "The bandwidth of the nodes", bandwidth);
   cmd.AddValue ("latency", "The latency of the nodes", latency);
-  cmd.Parse(argc, argv);
+  cmd.AddValue ("noBlocks", "The number of generated blocks", targetNumberOfBlocks);
+  cmd.AddValue ("xSize", "The xSize of the grid", xSize);
+  cmd.AddValue ("ySize", "The ySize of the grid", ySize);
+  cmd.AddValue ("minConnections", "The minConnectionsPerNode of the grid", minConnectionsPerNode);
+  cmd.AddValue ("maxConnections", "The maxConnectionsPerNode of the grid", maxConnectionsPerNode);
+  cmd.AddValue ("blockIntervalMinutes", "The average block generation interval in minutes", averageBlockGenIntervalMinutes);
+  cmd.AddValue ("test", "Test the scalability of the simulation", testScalability);
 
+  cmd.Parse(argc, argv);
+  
+  averageBlockGenIntervalSeconds = averageBlockGenIntervalMinutes * secsPerMin;
+  stop = targetNumberOfBlocks * averageBlockGenIntervalMinutes; //seconds
+  totalNoNodes = xSize * ySize;
+  nodeStatistics *stats = new nodeStatistics[totalNoNodes];
+  averageBlockGenIntervalMinutes = averageBlockGenIntervalSeconds/secsPerMin;
+  
   // Distributed simulation setup; by default use granted time window algorithm.
   if(nullmsg) 
     {
@@ -287,7 +298,7 @@ main (int argc, char *argv[])
   //Install miners
   BitcoinMinerHelper bitcoinMinerHelper ("ns3::TcpSocketFactory", InetSocketAddress (Ipv4Address::GetAny (), bitcoinPort),
                                           nodesConnections[miners.begin()-> first], stats, minersHash[0], 
-                                          blockGenBinSize, blockGenParameter, averageBlockGenIntervalSeconds);
+                                          averageBlockGenIntervalSeconds);
   ApplicationContainer bitcoinMiners;
   int count = 0;
   if (testScalability == true)
@@ -442,6 +453,7 @@ main (int argc, char *argv[])
   
   // Exit the MPI execution environment
   MpiInterface::Disable ();
+  delete[] stats;
   return 0;
   
 #else

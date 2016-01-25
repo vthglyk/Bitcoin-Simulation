@@ -69,10 +69,9 @@ main (int argc, char *argv[])
   nodeStatistics *stats = new nodeStatistics[totalNoNodes];
   double averageBlockGenIntervalMinutes = averageBlockGenIntervalSeconds/secsPerMin;
   double stop;                                     //seconds
-  double blockGenBinSize;					       //minutes
-  double blockGenParameter;	                       //0.19 for blockGenBinSize = 2mins
 
-  int                                        nodesInSystemId0 = 0;
+
+  int nodesInSystemId0 = 0;
 
   srand (1000);
   Time::SetResolution (Time::NS);
@@ -120,8 +119,6 @@ main (int argc, char *argv[])
   
   averageBlockGenIntervalSeconds = averageBlockGenIntervalMinutes * secsPerMin;
   stop = targetNumberOfBlocks * averageBlockGenIntervalMinutes; //seconds
-  blockGenBinSize = 1./secsPerMin/1000;					       //minutes
-  blockGenParameter = 0.19 * blockGenBinSize / 2 * (realAverageBlockGenIntervalMinutes / averageBlockGenIntervalMinutes);	//0.19 for blockGenBinSize = 2mins
   minersHash[0] = 1 - minersHash[1];
   
   for (int iter = 0; iter < iterations; iter++)
@@ -253,7 +250,7 @@ main (int argc, char *argv[])
     //Install miners
     BitcoinMinerHelper bitcoinMinerHelper ("ns3::TcpSocketFactory", InetSocketAddress (Ipv4Address::GetAny (), bitcoinPort),
                                             nodesConnections[miners.begin()-> first], stats, minersHash[0], 
-                                            blockGenBinSize, blockGenParameter, averageBlockGenIntervalSeconds);
+                                            averageBlockGenIntervalSeconds);
     ApplicationContainer bitcoinMiners;
     int count = 0;
 	
