@@ -297,7 +297,11 @@ BitcoinSelfishMiner::MineBlock (void)  //FIX ME
 	
   if (m_attackFinished == false)	
     ScheduleNextMiningEvent ();
-
+  else
+  {
+    NS_LOG_DEBUG ("Current Blockchain is:\n" << m_blockchain);
+    m_nodeStats->totalBlocks = m_blockchain.GetTotalBlocks();
+  }
 }
 
 void 

@@ -47,11 +47,14 @@ main (int argc, char *argv[])
   const int secsPerMin = 60;
   const uint16_t bitcoinPort = 8333;
   const double realAverageBlockGenIntervalMinutes = 10; //minutes
-  int targetNumberOfBlocks = 1000;
+  int targetNumberOfBlocks = 100;
   double averageBlockGenIntervalSeconds = 10 * secsPerMin; //seconds
   double fixedHashRate = 0.5;
   int start = 0;
+  std::string bandwidth = "8Mbps";
+  std::string latency = "40ms";
   bool testScalability = false;
+
   
   int xSize = 5;
   int ySize = 4;
@@ -81,6 +84,8 @@ main (int argc, char *argv[])
   
   CommandLine cmd;
   cmd.AddValue ("nullmsg", "Enable the use of null-message synchronization", nullmsg);
+  cmd.AddValue ("bandwidth", "The bandwidth of the nodes", bandwidth);
+  cmd.AddValue ("latency", "The latency of the nodes", latency);
   cmd.Parse(argc, argv);
 
   // Distributed simulation setup; by default use granted time window algorithm.
@@ -100,8 +105,8 @@ main (int argc, char *argv[])
   uint32_t systemId = MpiInterface::GetSystemId ();
   uint32_t systemCount = MpiInterface::GetSize ();
   
-  LogComponentEnable("BitcoinNode", LOG_LEVEL_WARN);
-  LogComponentEnable("BitcoinMiner", LOG_LEVEL_WARN);
+/*   LogComponentEnable("BitcoinNode", LOG_LEVEL_WARN);
+  LogComponentEnable("BitcoinMiner", LOG_LEVEL_WARN); */
   //LogComponentEnable("Ipv4AddressGenerator", LOG_LEVEL_FUNCTION);
   //LogComponentEnable("OnOffApplication", LOG_LEVEL_DEBUG);
   //LogComponentEnable("OnOffApplication", LOG_LEVEL_WARN);
@@ -125,8 +130,8 @@ main (int argc, char *argv[])
   }
   
   PointToPointHelper pointToPoint;
-  pointToPoint.SetDeviceAttribute ("DataRate", StringValue ("8Mbps"));
-  pointToPoint.SetChannelAttribute ("Delay", StringValue ("1ms"));
+  pointToPoint.SetDeviceAttribute ("DataRate", StringValue (bandwidth));
+  pointToPoint.SetChannelAttribute ("Delay", StringValue (latency));
 
   // Create Grid
   PointToPointGridHelperCustom grid (xSize, ySize, systemCount, pointToPoint);
@@ -428,7 +433,9 @@ main (int argc, char *argv[])
               << " faster than realtime.\n" << "It consisted of " << totalNoNodes
               << " nodes (" << noMiners << " miners) with minConnectionsPerNode = "
               << minConnectionsPerNode << " and maxConnectionsPerNode = " << maxConnectionsPerNode 
-              << ".\nThe averageBlockGenIntervalMinutes was " << averageBlockGenIntervalMinutes << "min.\n";
+              << ".\nThe averageBlockGenIntervalMinutes was " << averageBlockGenIntervalMinutes << "min."
+			  << "\nThe bandwidth of the nodes was " << bandwidth
+			  << ".\nThe latency of the nodes was " << latency << "\n";
 
   }  
   
