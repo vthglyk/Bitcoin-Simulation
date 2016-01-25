@@ -300,20 +300,20 @@ main (int argc, char *argv[])
   
     Simulator::Stop (Minutes (stop + 0.1));
 	
-	tSimStart = get_wall_time();
+    tSimStart = get_wall_time();
     Simulator::Run ();
     Simulator::Destroy ();
-	tSimFinish = get_wall_time();
+    tSimFinish = get_wall_time();
 
-	if (stats[1].attackSuccess == 1)
-	{
-      std::cout << "Iteration " << iter+1 << " lasted " << tSimFinish - tSimStart << "s: SUCCESS!\n\n";
+    if (stats[1].attackSuccess == 1)
+    {
+      //std::cout << "Iteration " << iter+1 << " lasted " << tSimFinish - tSimStart << "s: SUCCESS!\n\n";
       successfullAttacks++;
-	}
+    }
     else
-	{
-      std::cout << "Iteration " << iter+1 << " lasted " << tSimFinish - tSimStart << "s: FAIL\n\n";
-	}
+    {
+      //std::cout << "Iteration " << iter+1 << " lasted " << tSimFinish - tSimStart << "s: FAIL\n\n";
+    }
   }
 
   

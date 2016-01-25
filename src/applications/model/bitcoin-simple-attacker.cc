@@ -152,7 +152,10 @@ BitcoinSimpleAttacker::StartApplication ()    // Called at time specified by Sta
   } */
   
   if (m_secureBlocks == 0)
+  {
+    m_attackStarted = true;
     ScheduleNextMiningEvent ();
+  }
 }
 
 void 
@@ -294,7 +297,11 @@ BitcoinSimpleAttacker::MineBlock (void)  //FIX ME
 	
   if (m_attackFinished == false)	
     ScheduleNextMiningEvent ();
-
+  else
+  {
+    NS_LOG_DEBUG ("Current Blockchain is:\n" << m_blockchain);
+    m_nodeStats->totalBlocks = m_blockchain.GetTotalBlocks();
+  }
 }
 
 void 

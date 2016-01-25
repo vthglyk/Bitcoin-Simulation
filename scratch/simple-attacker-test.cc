@@ -63,7 +63,8 @@ main (int argc, char *argv[])
   int iterations = 50;
   int successfullAttacks = 0;
   int secureBlocks = 6;
-  
+  int finishedInFirstBlock = 0;
+
   int totalNoNodes = xSize * ySize;
   nodeStatistics *stats = new nodeStatistics[totalNoNodes];
   double averageBlockGenIntervalMinutes = averageBlockGenIntervalSeconds/secsPerMin;
@@ -80,8 +81,8 @@ main (int argc, char *argv[])
   uint32_t systemId = 0;
   uint32_t systemCount = 1;
   
-/*   LogComponentEnable("BitcoinNode", LOG_LEVEL_INFO);
-  LogComponentEnable("BitcoinMiner", LOG_LEVEL_INFO);
+/*   LogComponentEnable("BitcoinNode", LOG_LEVEL_DEBUG);
+  LogComponentEnable("BitcoinMiner", LOG_LEVEL_DEBUG);
   LogComponentEnable("BitcoinSimpleAttacker", LOG_LEVEL_INFO); */
   
   //LogComponentEnable("ObjectFactory", LOG_LEVEL_FUNCTION);
@@ -292,27 +293,32 @@ main (int argc, char *argv[])
   
     Simulator::Stop (Minutes (stop + 0.1));
 	
-	tSimStart = get_wall_time();
+    tSimStart = get_wall_time();
     Simulator::Run ();
     Simulator::Destroy ();
-	tSimFinish = get_wall_time();
+    tSimFinish = get_wall_time();
 
-	if (stats[1].attackSuccess == 1)
-	{
-      std::cout << "Iteration " << iter+1 << " lasted " << tSimFinish - tSimStart << "s: SUCCESS!\n\n";
+    if (stats[1].attackSuccess == 1)
+    {
+      //std::cout << "Iteration " << iter+1 << " lasted " << tSimFinish - tSimStart << "s: SUCCESS!\n\n";
       successfullAttacks++;
-	}
+    }
     else
-	{
-      std::cout << "Iteration " << iter+1 << " lasted " << tSimFinish - tSimStart << "s: FAIL\n\n";
-	}
+    {
+      //std::cout << "Iteration " << iter+1 << " lasted " << tSimFinish - tSimStart << "s: FAIL\n\n";
+    }
+	
+    if (stats[1].totalBlocks == 2)
+    {
+      finishedInFirstBlock++;
+    }
   }
 
   
   if (systemId == 0)
   {
     tFinish = get_wall_time();
-	
+	std::cout << "finishedInFirstBlock = " << finishedInFirstBlock << std::endl;
     //PrintStatsForEachNode(stats, totalNoNodes);
     //PrintTotalStats(stats, totalNoNodes);
     std::cout << "The success rate of the attack was " << successfullAttacks / static_cast<float>(iterations) * 100 << "%\n";
