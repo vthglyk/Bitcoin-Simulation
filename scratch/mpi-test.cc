@@ -60,12 +60,12 @@ main (int argc, char *argv[])
   int ySize = 20;
   int minConnectionsPerNode = 80;
   int maxConnectionsPerNode = 90;
-  int noMiners = 16;
+/*   int noMiners = 16;
   double minersHash[] = {0.289, 0.196, 0.159, 0.133, 0.066, 0.054,
                          0.029, 0.016, 0.012, 0.012, 0.012, 0.009,
-                         0.005, 0.005, 0.002, 0.002};
-/*   int noMiners = 3;
-  double minersHash[] = {0.4, 0.3, 0.3}; */
+                         0.005, 0.005, 0.002, 0.002}; */
+  int noMiners = 3;
+  double minersHash[] = {0.4, 0.3, 0.3};
 
   
   double averageBlockGenIntervalMinutes = averageBlockGenIntervalSeconds/secsPerMin;
@@ -116,7 +116,7 @@ main (int argc, char *argv[])
   uint32_t systemId = MpiInterface::GetSystemId ();
   uint32_t systemCount = MpiInterface::GetSize ();
   
-/*   LogComponentEnable("BitcoinNode", LOG_LEVEL_WARN);
+/*   LogComponentEnable("BitcoinNode", LOG_LEVEL_DEBUG);
   LogComponentEnable("BitcoinMiner", LOG_LEVEL_WARN); */
   //LogComponentEnable("Ipv4AddressGenerator", LOG_LEVEL_FUNCTION);
   //LogComponentEnable("OnOffApplication", LOG_LEVEL_DEBUG);
@@ -226,7 +226,7 @@ main (int argc, char *argv[])
   std::cout << "\n" << std::endl; */
   
   
-  //Interconnect the nodes
+/*   //Interconnect the nodes
   {
     //nodes contain the ids of the nodes
     std::vector<int> nodes;
@@ -273,8 +273,99 @@ main (int argc, char *argv[])
 	    std::cout << "Node " << i << " has only " << nodesConnections[i].size() << " connections\n";
 	  if (nodes[0] == i)
 	    nodes.erase(nodes.begin());
+    } */
+	
+/*     //Print the nodes' connections
+    std::cout << "The nodes connections are:" << std::endl;
+    for(auto &node : nodesConnections)
+    {
+  	  //std::cout << "\nNode " << node.first << ":    " ;
+	  for(std::vector<Ipv4Address>::const_iterator it = node.second.begin(); it != node.second.end(); it++)
+	  {
+        //std::cout  << "\t" << *it;//GetNodeIdByIpv4(ipv4InterfaceContainer, *it) ;
+		std::cout  << "\t" << GetNodeIdByIpv4(ipv4InterfaceContainer, *it) ;
+	  }
     }
-	//return 0;
+    std::cout << "\n" << std::endl;
+  } */
+  
+
+  //Interconnect the nodes
+  {
+	
+    //nodes contain the ids of the nodes
+    std::vector<int> nodes;
+
+    for (int i = 0; i < totalNoNodes; i++)
+    {
+      nodes.push_back(i);
+	}
+	
+    for(int i = 0; i < totalNoNodes; i++)
+    {
+      int maxHops = 1;
+	  int count = 0;
+	  int x = i / ySize;
+	  int y = i % ySize;
+	  
+	  //std::cout << "\nNode " << i << std::endl;
+	  
+      while (nodesConnections[i].size() < minConnectionsPerNode && maxHops < 10)
+      {
+        int index = 0;
+		int xCandidate = x + (rand() % (2*maxHops + 1)) - maxHops;
+		int yCandidate =  y + (rand() % (2*maxHops + 1)) - maxHops;
+		
+		//std::cout << maxHops << " " << xCandidate << " " << yCandidate << std::endl;
+		if ( xCandidate >= 0 && yCandidate >= 0 && xCandidate < xSize && yCandidate < ySize)
+        {
+          index = xCandidate*ySize + yCandidate;
+
+	      Ipv4Address candidatePeer = grid.GetIpv4Address (xCandidate, yCandidate);
+		
+		  if (xCandidate < 0 || yCandidate < 0 || xCandidate >= xSize || yCandidate >= ySize)
+          {
+            //std::cout << "Candidate node does not exist\n";
+		  }
+          else if (index == i)
+		  {
+            //std::cout << "Node " << i << " does not need a connection with itself" << "\n";
+		  }
+		  else if (std::find(nodesConnections[i].begin(), nodesConnections[i].end(), candidatePeer) != nodesConnections[i].end())
+		  {
+            //std::cout << "Node " << i << " has already a connection to Node " << nodes[index] << "\n";
+		  }
+          else if (nodesConnections[index].size() >= maxConnectionsPerNode)
+		  {
+            //std::cout << "Node " << nodes[index] << " has already " << maxConnectionsPerNode << " connections" << "\n";
+		  }
+		  else if (abs(x-xCandidate) + abs(y-yCandidate) > maxHops)
+          {
+            //std::cout << "Node " << nodes[index] << " is too far away from Node " <<  i << "\n";
+          }
+		  else
+		  {
+            //std::cout << "Node " << index << " will make a connection with " <<  i << "\n";
+		    nodesConnections[i].push_back(candidatePeer);
+		    nodesConnections[index].push_back(grid.GetIpv4Address (i / ySize, i % ySize));
+
+		  }
+		}
+
+		count++;
+		if (count % static_cast<int>(pow((4*maxHops), 2)) == 0)
+		{
+          maxHops++;
+          count = 0;
+		}
+	  }
+	  
+	  if (nodesConnections[i].size() < minConnectionsPerNode)
+	    std::cout << "Node " << i << " has only " << nodesConnections[i].size() << " connections\n";
+	  //if (nodes[0] == i)
+	    //nodes.erase(nodes.begin());
+    }
+	
 /*     //Print the nodes' connections
     std::cout << "The nodes connections are:" << std::endl;
     for(auto &node : nodesConnections)
@@ -282,12 +373,13 @@ main (int argc, char *argv[])
   	  std::cout << "\nNode " << node.first << ":    " ;
 	  for(std::vector<Ipv4Address>::const_iterator it = node.second.begin(); it != node.second.end(); it++)
 	  {
-        std::cout  << "\t" << *it;//GetNodeIdByIpv4(ipv4InterfaceContainer, *it) ;
+        //std::cout  << "\t" << *it;//GetNodeIdByIpv4(ipv4InterfaceContainer, *it) ;
+		std::cout  << "\t" << GetNodeIdByIpv4(ipv4InterfaceContainer, *it) ;
 	  }
     }
     std::cout << "\n" << std::endl; */
   }
-  
+
   if (systemId == 0 )
   {
     std::cout << "The nodes connections were created.\n";
@@ -314,9 +406,9 @@ main (int argc, char *argv[])
 	  bitcoinMinerHelper.SetPeersAddresses (nodesConnections[miner.first]);
 	  bitcoinMinerHelper.SetNodeStats (&stats[miner.first]);
 	  bitcoinMiners.Add(bitcoinMinerHelper.Install (targetNode));
-      std::cout << "SystemId " << systemId << ": Miner " << miner.first << " with hash power = " << minersHash[count] 
+/*       std::cout << "SystemId " << systemId << ": Miner " << miner.first << " with hash power = " << minersHash[count] 
 	            << " and systemId = " << targetNode->GetSystemId() << " was installed in node (" 
-                << miner.first / ySize << ", " << miner.first % ySize << ")" << std::endl; 
+                << miner.first / ySize << ", " << miner.first % ySize << ")" << std::endl;  */
 	  
 	  if (systemId == 0)
         nodesInSystemId0++;
@@ -346,9 +438,9 @@ main (int argc, char *argv[])
 	    bitcoinNodeHelper.SetPeersAddresses (node.second);
 		bitcoinNodeHelper.SetNodeStats (&stats[node.first]);
 	    bitcoinNodes.Add(bitcoinNodeHelper.Install (targetNode));
-        std::cout << "SystemId " << systemId << ": Node " << node.first << " with systemId = " << targetNode->GetSystemId() 
+/*         std::cout << "SystemId " << systemId << ": Node " << node.first << " with systemId = " << targetNode->GetSystemId() 
 		          << " was installed in node (" << node.first / ySize << ", " 
-				  << node.first % ySize << ")"<< std::endl;
+				  << node.first % ySize << ")"<< std::endl; */
 				  
 	    if (systemId == 0)
           nodesInSystemId0++;

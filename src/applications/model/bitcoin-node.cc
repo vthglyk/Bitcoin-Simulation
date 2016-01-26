@@ -189,7 +189,10 @@ void
 BitcoinNode::StopApplication ()     // Called at time specified by Stop
 {
   NS_LOG_FUNCTION (this);
-  
+
+  for (auto &elem : m_peersSockets)
+    NS_LOG_DEBUG("\t" << elem.first);
+
   for (std::vector<Ipv4Address>::iterator i = m_peersAddresses.begin(); i != m_peersAddresses.end(); ++i) //close the outgoing sockets
   {
 	m_peersSockets[*i]->Close ();
@@ -209,7 +212,7 @@ BitcoinNode::StopApplication ()     // Called at time specified by Stop
 
   NS_LOG_WARN("\n\nBITCOIN NODE " << GetNode ()->GetId () << ":");
   NS_LOG_WARN ("Current Top Block is:\n" << *(m_blockchain.GetCurrentTopBlock()));
-  NS_LOG_DEBUG ("Current Blockchain is:\n" << m_blockchain);
+  NS_LOG_INFO ("Current Blockchain is:\n" << m_blockchain);
   //m_blockchain.PrintOrphans();
   //PrintQueueInv();
   //PrintInvTimeouts();
@@ -276,12 +279,12 @@ BitcoinNode::HandleRead (Ptr<Socket> socket)
         */
         totalStream << m_bufferedData[from] << packetInfo; 
         std::string totalReceivedData(totalStream.str());
-        NS_LOG_DEBUG("Node " << GetNode ()->GetId () << " Total Received Data: " << totalReceivedData);
+        NS_LOG_INFO("Node " << GetNode ()->GetId () << " Total Received Data: " << totalReceivedData);
 		  
         while ((pos = totalReceivedData.find(delimiter)) != std::string::npos) 
         {
           parsedPacket = totalReceivedData.substr(0, pos);
-          NS_LOG_DEBUG("Node " << GetNode ()->GetId () << " Parsed Packet: " << parsedPacket);
+          NS_LOG_INFO("Node " << GetNode ()->GetId () << " Parsed Packet: " << parsedPacket);
 		  
           rapidjson::Document d;
 		  d.Parse(parsedPacket.c_str());
@@ -297,7 +300,7 @@ BitcoinNode::HandleRead (Ptr<Socket> socket)
           rapidjson::Writer<rapidjson::StringBuffer> writer(buffer);
           d.Accept(writer);
 		  
-          NS_LOG_DEBUG ("At time "  << Simulator::Now ().GetSeconds ()
+          NS_LOG_INFO ("At time "  << Simulator::Now ().GetSeconds ()
                         << "s bitcoin node " << GetNode ()->GetId () << " received "
                         <<  packet->GetSize () << " bytes from "
                         << InetSocketAddress::ConvertFrom(from).GetIpv4 ()
@@ -326,13 +329,13 @@ BitcoinNode::HandleRead (Ptr<Socket> socket)
                 								  
                 if (m_blockchain.HasBlock(height, minerId) || ReceivedButNotValidated(parsedInv))
                 {
-                  NS_LOG_DEBUG("INV: Bitcoin node " << GetNode ()->GetId () 
+                  NS_LOG_INFO("INV: Bitcoin node " << GetNode ()->GetId () 
 				  << " has already received the block with height = " 
 				  << height << " and minerId = " << minerId);				  
                 }
                 else
                 {
-                  NS_LOG_DEBUG("INV: Bitcoin node " << GetNode ()->GetId () 
+                  NS_LOG_INFO("INV: Bitcoin node " << GetNode ()->GetId () 
                   << " does not have the block with height = " 
                   << height << " and minerId = " << minerId);
 				  
@@ -342,7 +345,7 @@ BitcoinNode::HandleRead (Ptr<Socket> socket)
 				   
                   if (m_queueInv.find(parsedInv) == m_queueInv.end())
                   {
-                    NS_LOG_DEBUG("INV: Bitcoin node " << GetNode ()->GetId ()
+                    NS_LOG_INFO("INV: Bitcoin node " << GetNode ()->GetId ()
                                  << " has not requested the block yet");
                     requestBlocks.push_back(parsedInv);
                     timeout = Simulator::Schedule (m_invTimeoutMinutes, &BitcoinNode::InvTimeoutExpired, this, parsedInv);
@@ -350,7 +353,7 @@ BitcoinNode::HandleRead (Ptr<Socket> socket)
                   }
                   else
                   {
-                    NS_LOG_DEBUG("INV: Bitcoin node " << GetNode ()->GetId ()
+                    NS_LOG_INFO("INV: Bitcoin node " << GetNode ()->GetId ()
                                  << " has already requested the block");
                   }
 				  
@@ -397,7 +400,7 @@ BitcoinNode::HandleRead (Ptr<Socket> socket)
 				
                 if (m_blockchain.HasBlock(height, minerId) || m_blockchain.IsOrphan(height, minerId))
                 {
-                  NS_LOG_DEBUG("GET_HEADERS: Bitcoin node " << GetNode ()->GetId () 
+                  NS_LOG_INFO("GET_HEADERS: Bitcoin node " << GetNode ()->GetId () 
                   << " has the block with height = " 
                   << height << " and minerId = " << minerId);
                   Block newBlock (m_blockchain.ReturnBlock (height, minerId));
@@ -405,7 +408,7 @@ BitcoinNode::HandleRead (Ptr<Socket> socket)
                 }
                 else
                 {
-                  NS_LOG_DEBUG("GET_HEADERS: Bitcoin node " << GetNode ()->GetId () 
+                  NS_LOG_INFO("GET_HEADERS: Bitcoin node " << GetNode ()->GetId () 
                   << " does not have the block with height = " 
                   << height << " and minerId = " << minerId);                
                 }	
@@ -421,7 +424,7 @@ BitcoinNode::HandleRead (Ptr<Socket> socket)
 				
                 for (block_it = requestBlocks.begin(); block_it < requestBlocks.end(); block_it++) 
                 {
-                  NS_LOG_DEBUG ("In requestBlocks " << *block_it);
+                  NS_LOG_INFO ("In requestBlocks " << *block_it);
     
                   value = block_it->GetBlockHeight ();
                   blockInfo.AddMember("height", value, d.GetAllocator ());
@@ -467,7 +470,7 @@ BitcoinNode::HandleRead (Ptr<Socket> socket)
 				
                 if (m_blockchain.HasBlock(height, minerId) || ReceivedButNotValidated(parsedInv))
                 {
-                  NS_LOG_DEBUG("GET_DATA: Bitcoin node " << GetNode ()->GetId () 
+                  NS_LOG_INFO("GET_DATA: Bitcoin node " << GetNode ()->GetId () 
                   << " has already received the block with height = " 
                   << height << " and minerId = " << minerId);
                   Block newBlock (m_blockchain.ReturnBlock (height, minerId));
@@ -475,7 +478,7 @@ BitcoinNode::HandleRead (Ptr<Socket> socket)
                 }
                 else
                 {
-                  NS_LOG_DEBUG("GET_DATA: Bitcoin node " << GetNode ()->GetId () 
+                  NS_LOG_INFO("GET_DATA: Bitcoin node " << GetNode ()->GetId () 
                   << " does not have the block with height = " 
                   << height << " and minerId = " << minerId);                
                 }	
@@ -491,7 +494,7 @@ BitcoinNode::HandleRead (Ptr<Socket> socket)
 				
                 for (block_it = requestBlocks.begin(); block_it < requestBlocks.end(); block_it++) 
                 {
-                  NS_LOG_DEBUG ("In requestBlocks " << *block_it);
+                  NS_LOG_INFO ("In requestBlocks " << *block_it);
     
                   value = block_it->GetBlockHeight ();
                   blockInfo.AddMember("height", value, d.GetAllocator ());
@@ -522,7 +525,7 @@ BitcoinNode::HandleRead (Ptr<Socket> socket)
             }
             case HEADERS:
             {
-              NS_LOG_DEBUG ("HEADERS");
+              NS_LOG_INFO ("HEADERS");
 
               std::vector<std::string>              requestBlocks;
               std::vector<std::string>::iterator    block_it;
@@ -542,7 +545,7 @@ BitcoinNode::HandleRead (Ptr<Socket> socket)
 				
                 if (!m_blockchain.HasBlock(parentHeight, parentMinerId) && !ReceivedButNotValidated(blockHash))
                 {				  
-                  NS_LOG_DEBUG("The Block with height = " << d["blocks"][j]["height"].GetInt() 
+                  NS_LOG_INFO("The Block with height = " << d["blocks"][j]["height"].GetInt() 
                                << " and minerId = " << d["blocks"][j]["minerId"].GetInt() 
                                << " is an orphan\n");
 				  
@@ -552,7 +555,7 @@ BitcoinNode::HandleRead (Ptr<Socket> socket)
 	  
                   if (m_queueInv.find(blockHash) == m_queueInv.end())
                   {
-                    NS_LOG_DEBUG("INV: Bitcoin node " << GetNode ()->GetId ()
+                    NS_LOG_INFO("INV: Bitcoin node " << GetNode ()->GetId ()
                                  << " has not requested its parent block yet");
                     requestBlocks.push_back(blockHash.c_str());
                     timeout = Simulator::Schedule (m_invTimeoutMinutes, &BitcoinNode::InvTimeoutExpired, this, blockHash);
@@ -560,7 +563,7 @@ BitcoinNode::HandleRead (Ptr<Socket> socket)
                   }
                   else
                   {
-                    NS_LOG_DEBUG("INV: Bitcoin node " << GetNode ()->GetId ()
+                    NS_LOG_INFO("INV: Bitcoin node " << GetNode ()->GetId ()
                                  << " has already requested the block");
                   }
 				  
@@ -574,7 +577,7 @@ BitcoinNode::HandleRead (Ptr<Socket> socket)
 				  /**
 	               * Block is not orphan, so we can go on validating
 	               */
-				  NS_LOG_DEBUG("The Block with height = " << d["blocks"][j]["height"].GetInt() 
+				  NS_LOG_INFO("The Block with height = " << d["blocks"][j]["height"].GetInt() 
 				               << " and minerId = " << d["blocks"][j]["minerId"].GetInt() 
 							   << " is NOT an orphan\n");			   
                 }
@@ -604,7 +607,7 @@ BitcoinNode::HandleRead (Ptr<Socket> socket)
             }
             case BLOCK:
             {
-              NS_LOG_DEBUG ("BLOCK");
+              NS_LOG_INFO ("BLOCK");
               int j;
               double fullBlockReceiveTime = 0;
 			  
@@ -616,7 +619,7 @@ BitcoinNode::HandleRead (Ptr<Socket> socket)
                                 Simulator::Now ().GetSeconds () + fullBlockReceiveTime, InetSocketAddress::ConvertFrom(from).GetIpv4 ());
 
                 Simulator::Schedule (Seconds(fullBlockReceiveTime), &BitcoinNode::ReceiveBlock, this, newBlock);
-                NS_LOG_DEBUG("The full block " << newBlock << " will be received in " << fullBlockReceiveTime << "s");
+                NS_LOG_INFO("The full block " << newBlock << " will be received in " << fullBlockReceiveTime << "s");
               }
               break;
             }
@@ -651,12 +654,12 @@ void
 BitcoinNode::ReceiveBlock(const Block &newBlock) 
 {
   NS_LOG_FUNCTION (this);
-  NS_LOG_DEBUG ("ReceiveBlock: At time " << Simulator::Now ().GetSeconds ()
+  NS_LOG_INFO ("ReceiveBlock: At time " << Simulator::Now ().GetSeconds ()
                 << "s bitcoin node " << GetNode ()->GetId () << " received " << newBlock);
 				
   if (m_blockchain.HasBlock(newBlock))
   {
-    NS_LOG_DEBUG("ReceiveBlock: Bitcoin node " << GetNode ()->GetId () << " has already added this block in the m_blockchain: " << newBlock);
+    NS_LOG_INFO("ReceiveBlock: Bitcoin node " << GetNode ()->GetId () << " has already added this block in the m_blockchain: " << newBlock);
   }
   else
   {
@@ -683,7 +686,7 @@ void
 BitcoinNode::ReceivedHigherBlock(const Block &newBlock) 
 {
   NS_LOG_FUNCTION (this);
-  NS_LOG_DEBUG("ReceivedHigherBlock: Bitcoin node " << GetNode ()->GetId () << " added a new block in the m_blockchain with higher height: " << newBlock);
+  NS_LOG_INFO("ReceivedHigherBlock: Bitcoin node " << GetNode ()->GetId () << " added a new block in the m_blockchain with higher height: " << newBlock);
 }
 
 
@@ -696,14 +699,14 @@ BitcoinNode::ValidateBlock(const Block &newBlock)
   
   if (parent == nullptr)
   {
-    NS_LOG_DEBUG("ValidateBlock: Block " << newBlock << " is an orphan\n"); 
+    NS_LOG_INFO("ValidateBlock: Block " << newBlock << " is an orphan\n"); 
 	 
 	 m_blockchain.AddOrphan(newBlock);
 	 //m_blockchain.PrintOrphans();
   }
   else 
   {
-    NS_LOG_DEBUG("ValidateBlock: Block's " << newBlock << " parent is " << *parent << "\n");
+    NS_LOG_INFO("ValidateBlock: Block's " << newBlock << " parent is " << *parent << "\n");
 
 	/**
 	 * Block is not orphan, so we can go on validating
@@ -714,7 +717,7 @@ BitcoinNode::ValidateBlock(const Block &newBlock)
 	double validationTime = averageValidationTimeSeconds * newBlock.GetBlockSizeBytes() / averageBlockSizeBytes;		
 	
     Simulator::Schedule (Seconds(validationTime), &BitcoinNode::AfterBlockValidation, this, newBlock);
-    NS_LOG_DEBUG ("ValidateBlock: The Block " << newBlock << " will be validated in " 
+    NS_LOG_INFO ("ValidateBlock: The Block " << newBlock << " will be validated in " 
 	              << validationTime << "s");
   }  
 
@@ -735,7 +738,7 @@ BitcoinNode::AfterBlockValidation(const Block &newBlock)
   
   RemoveReceivedButNotValidated(blockHash);
   
-  NS_LOG_DEBUG ("AfterBlockValidation: At time " << Simulator::Now ().GetSeconds ()
+  NS_LOG_INFO ("AfterBlockValidation: At time " << Simulator::Now ().GetSeconds ()
                << "s bitcoin node " << GetNode ()->GetId () 
 			   << " validated block " <<  newBlock);
 			   
@@ -744,7 +747,7 @@ BitcoinNode::AfterBlockValidation(const Block &newBlock)
 
   if (m_blockchain.IsOrphan(newBlock))
   {
-    NS_LOG_DEBUG ("AfterBlockValidation: Block " << newBlock << " was orphan");
+    NS_LOG_INFO ("AfterBlockValidation: Block " << newBlock << " was orphan");
 	m_blockchain.RemoveOrphan(newBlock);
   }
 
@@ -779,16 +782,16 @@ BitcoinNode::ValidateOrphanChildren(const Block &newBlock)
 
   if (children.size() == 0)
   {
-    NS_LOG_DEBUG("ValidateOrphanChildren: Block " << newBlock << " has no orphan children\n");
+    NS_LOG_INFO("ValidateOrphanChildren: Block " << newBlock << " has no orphan children\n");
   }
   else 
   {
     std::vector<const Block *>::iterator  block_it;
-	NS_LOG_DEBUG("ValidateOrphanChildren: Block " << newBlock << " has orphan children:");
+	NS_LOG_INFO("ValidateOrphanChildren: Block " << newBlock << " has orphan children:");
 	
 	for (block_it = children.begin();  block_it < children.end(); block_it++)
     {
-       NS_LOG_DEBUG ("\t" << **block_it);
+       NS_LOG_INFO ("\t" << **block_it);
 	   ValidateBlock (**block_it);
     }
   }
@@ -834,7 +837,7 @@ BitcoinNode::AdvertiseNewBlock (const Block &newBlock)
 	  m_peersSockets[*i]->Send (delimiter, 1, 0);
 	  
 
-      NS_LOG_DEBUG ("AdvertiseNewBlock: At time " << Simulator::Now ().GetSeconds ()
+      NS_LOG_INFO ("AdvertiseNewBlock: At time " << Simulator::Now ().GetSeconds ()
                    << "s bitcoin node " << GetNode ()->GetId () << " advertised a new Block: " 
                    << newBlock << " to " << *i);
     }
@@ -855,7 +858,7 @@ BitcoinNode::SendMessage(enum Messages receivedMessage,  enum Messages responseM
 				
   d["message"].SetInt(responseMessage);
   d.Accept(writer);
-  NS_LOG_DEBUG ("Node " << GetNode ()->GetId () << " got a " 
+  NS_LOG_INFO ("Node " << GetNode ()->GetId () << " got a " 
                << getMessageName(receivedMessage) << " message" 
                << " and sent a " << getMessageName(responseMessage) 
 			   << " message: " << buffer.GetString());
@@ -876,7 +879,7 @@ BitcoinNode::SendMessage(enum Messages receivedMessage,  enum Messages responseM
 				
   d["message"].SetInt(responseMessage);
   d.Accept(writer);
-  NS_LOG_DEBUG ("Node " << GetNode ()->GetId () << " got a " 
+  NS_LOG_INFO ("Node " << GetNode ()->GetId () << " got a " 
                << getMessageName(receivedMessage) << " message" 
                << " and sent a " << getMessageName(responseMessage) 
 			   << " message: " << buffer.GetString());
@@ -937,7 +940,7 @@ BitcoinNode::InvTimeoutExpired(std::string blockHash)
 {
   NS_LOG_FUNCTION (this);
 
-  NS_LOG_DEBUG ("Node " << GetNode ()->GetId () << ": At time "  << Simulator::Now ().GetSeconds ()
+  NS_LOG_INFO ("Node " << GetNode ()->GetId () << ": At time "  << Simulator::Now ().GetSeconds ()
                 << " the timeout for block " << blockHash << " expired");
 
   //PrintQueueInv();

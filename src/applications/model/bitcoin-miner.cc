@@ -414,7 +414,7 @@ BitcoinMiner::MineBlock (void)
   m_previousBlockGenerationTime = Simulator::Now ().GetSeconds ();
   m_minerGeneratedBlocks++;
 
-  NS_LOG_WARN ("At time " << Simulator::Now ().GetSeconds ()
+  NS_LOG_INFO ("At time " << Simulator::Now ().GetSeconds ()
                << "s bitcoin miner " << GetNode ()->GetId () 
                << " sent a packet " << packetInfo.GetString() 
 			   << " " << m_minerAverageBlockSize);
