@@ -25,7 +25,12 @@
 #include "ns3/log.h"
 #include "ns3/ipv6-address-generator.h"
 #include <algorithm>
+#include <fstream>
+#include <time.h>
+#include <sys/time.h>
 
+
+static double GetWallTime();
 namespace ns3 {
 
 NS_LOG_COMPONENT_DEFINE ("BitcoinTopologyHelper");
@@ -37,7 +42,9 @@ BitcoinTopologyHelper::BitcoinTopologyHelper (uint32_t noCpus, uint32_t totalNoN
     m_minConnectionsPerNode (minConnectionsPerNode), m_maxConnectionsPerNode (maxConnectionsPerNode), m_totalNoLinks (0), m_systemId (systemId)
 {
   
-  std::vector<uint32_t>                           nodes;    //nodes contain the ids of the nodes
+  std::vector<uint32_t>     nodes;    //nodes contain the ids of the nodes
+  double                    tStart = GetWallTime();
+  double                    tFinish;
   
   // Bounds check
   if (m_noMiners > m_totalNoNodes)
@@ -191,9 +198,10 @@ BitcoinTopologyHelper::BitcoinTopologyHelper (uint32_t noCpus, uint32_t totalNoN
     std::cout << "\n" << std::endl;
   } */
 
+  tFinish = GetWallTime();
   if (m_systemId == 0)
   {
-    std::cout << "The nodes connections were created.\n";
+    std::cout << "The nodes connections were created in " << tFinish - tStart << "s.\n";
     std::cout << "The minimum number of connections for each node are " << m_minConnectionsPerNode 
               << " and whereas the maximum are " << m_maxConnectionsPerNode << "\n";
   }
@@ -204,6 +212,8 @@ BitcoinTopologyHelper::BitcoinTopologyHelper (uint32_t noCpus, uint32_t totalNoN
   pointToPoint.SetDeviceAttribute ("DataRate", StringValue ("8Mbps"));
   pointToPoint.SetChannelAttribute ("Delay", StringValue ("40ms"));
   
+  tStart = GetWallTime();
+  
   for (uint32_t i = 0; i < m_totalNoNodes; i++)
   {
     NodeContainer currentNode;
@@ -212,9 +222,12 @@ BitcoinTopologyHelper::BitcoinTopologyHelper (uint32_t noCpus, uint32_t totalNoN
       std::cout << "Creating a node with Id = " << i << " and systemId = " << i % m_noCpus << "\n"; */
     m_nodes.push_back (currentNode);
   }
+  
+  tFinish = GetWallTime();
   if (m_systemId == 0)
-    std::cout << "The nodes were created\n";
+    std::cout << "The nodes were created in " << tFinish - tStart << "s.\n";
 
+  tStart = GetWallTime();
   for(auto &node : m_nodesConnections)  
   {
 
@@ -235,8 +248,10 @@ BitcoinTopologyHelper::BitcoinTopologyHelper (uint32_t noCpus, uint32_t totalNoN
     }
   }
   
+  tFinish = GetWallTime();
+
   if (m_systemId == 0)
-    std::cout << "The total number of links is " << m_totalNoLinks << "\n";
+    std::cout << "The total number of links is " << m_totalNoLinks << " (" << tFinish - tStart << "s).\n";
 }
 
 BitcoinTopologyHelper::~BitcoinTopologyHelper ()
@@ -246,6 +261,9 @@ BitcoinTopologyHelper::~BitcoinTopologyHelper ()
 void
 BitcoinTopologyHelper::InstallStack (InternetStackHelper stack)
 {
+  double tStart = GetWallTime();
+  double tFinish;
+  
   for (uint32_t i = 0; i < m_nodes.size (); ++i)
     {
       NodeContainer currentNode = m_nodes[i];
@@ -254,13 +272,18 @@ BitcoinTopologyHelper::InstallStack (InternetStackHelper stack)
           stack.Install (currentNode.Get (j));
         }
     }
+	
+  tFinish = GetWallTime();
   if (m_systemId == 0)
-    std::cout << "Internet stack installed\n";
+    std::cout << "Internet stack installed in " << tFinish - tStart << "s.\n";
 }
 
 void
 BitcoinTopologyHelper::AssignIpv4Addresses (Ipv4AddressHelper ip)
 {
+  double tStart = GetWallTime();
+  double tFinish;
+  
   // Assign addresses to all devices in the network.
   // These devices are stored in a vector. 
   for (uint32_t i = 0; i < m_devices.size (); ++i)
@@ -305,8 +328,10 @@ BitcoinTopologyHelper::AssignIpv4Addresses (Ipv4AddressHelper ip)
     }
     std::cout << "\n" << std::endl;
   } */
+  
+  tFinish = GetWallTime();
   if (m_systemId == 0)
-    std::cout << "The Ip addresses have been assigned\n";
+    std::cout << "The Ip addresses have been assigned in " << tFinish - tStart << "s.\n";
 }
 
 
@@ -349,3 +374,13 @@ BitcoinTopologyHelper::GetMiners (void) const
 }
 
 } // namespace ns3
+
+static double GetWallTime()
+{
+    struct timeval time;
+    if (gettimeofday(&time,NULL)){
+        //  Handle error
+        return 0;
+    }
+    return (double)time.tv_sec + (double)time.tv_usec * .000001;
+}

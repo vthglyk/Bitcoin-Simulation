@@ -23,7 +23,7 @@
 #include <sys/time.h>
 
 
-double GetWallTime();
+static double GetWallTime();
 
 namespace ns3 {
 
@@ -451,7 +451,7 @@ BitcoinMiner::ReceivedHigherBlock(const Block &newBlock)
 } // Namespace ns3
 
 
-double GetWallTime()
+static double GetWallTime()
 {
     struct timeval time;
     if (gettimeofday(&time,NULL)){
