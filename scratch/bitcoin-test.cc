@@ -36,7 +36,7 @@ using namespace ns3;
 double get_wall_time();
 int GetNodeIdByIpv4 (Ipv4InterfaceContainer container, Ipv4Address addr);
 void PrintStatsForEachNode (nodeStatistics *stats, int totalNodes);
-void PrintTotalStats (nodeStatistics *stats, int totalNodes);
+void PrintTotalStats (nodeStatistics *stats, int totalNodes, double start, double finish);
 
 NS_LOG_COMPONENT_DEFINE ("MyMpiTest");
 
@@ -45,7 +45,7 @@ main (int argc, char *argv[])
 {
 #ifdef NS3_MPI
   bool nullmsg = false;
-  double tStart = get_wall_time(), tFinish;
+  double tStart = get_wall_time(), tStartSimulation, tFinish;
   const int secsPerMin = 60;
   const uint16_t bitcoinPort = 8333;
   const double realAverageBlockGenIntervalMinutes = 10; //minutes
@@ -62,12 +62,12 @@ main (int argc, char *argv[])
 
   int minConnectionsPerNode = 2;
   int maxConnectionsPerNode = 3;
-/*   int noMiners = 16;
+  int noMiners = 16;
   double minersHash[] = {0.289, 0.196, 0.159, 0.133, 0.066, 0.054,
                          0.029, 0.016, 0.012, 0.012, 0.012, 0.009,
-                         0.005, 0.005, 0.002, 0.002}; */
-  int noMiners = 3;
-  double minersHash[] = {0.4, 0.3, 0.3};
+                         0.005, 0.005, 0.002, 0.002};
+/*   int noMiners = 3;
+  double minersHash[] = {0.4, 0.3, 0.3}; */
 
   
   double averageBlockGenIntervalMinutes = averageBlockGenIntervalSeconds/secsPerMin;
@@ -118,8 +118,8 @@ main (int argc, char *argv[])
   uint32_t systemCount = MpiInterface::GetSize ();
 
 
-/*   LogComponentEnable("BitcoinNode", LOG_LEVEL_DEBUG);
-  LogComponentEnable("BitcoinMiner", LOG_LEVEL_DEBUG); */
+  //LogComponentEnable("BitcoinNode", LOG_LEVEL_DEBUG);
+  //LogComponentEnable("BitcoinMiner", LOG_LEVEL_DEBUG);
   //LogComponentEnable("Ipv4AddressGenerator", LOG_LEVEL_FUNCTION);
   //LogComponentEnable("OnOffApplication", LOG_LEVEL_DEBUG);
   //LogComponentEnable("OnOffApplication", LOG_LEVEL_WARN);
@@ -208,11 +208,12 @@ main (int argc, char *argv[])
   bitcoinNodes.Stop (Minutes (stop));
   
   if (systemId == 0)
-    std::cout << "Nodes have been setup\n";
+    std::cout << "The applications have been setup\n";
   
   // Set up the actual simulation
   //Ipv4GlobalRoutingHelper::PopulateRoutingTables ();
-
+  tStartSimulation = get_wall_time();
+  
   Simulator::Stop (Minutes (stop + 0.1));
   Simulator::Run ();
   Simulator::Destroy ();
@@ -289,7 +290,7 @@ main (int argc, char *argv[])
     tFinish=get_wall_time();
 	
     PrintStatsForEachNode(stats, totalNoNodes);
-    PrintTotalStats(stats, totalNoNodes);
+    PrintTotalStats(stats, totalNoNodes, tStartSimulation, tFinish);
     std::cout << "\nThe simulation ran for " << tFinish - tStart << "s simulating "
               << stop << "mins. Performed " << stop * secsPerMin / (tFinish - tStart)
               << " faster than realtime.\n" << "It consisted of " << totalNoNodes
@@ -362,7 +363,7 @@ void PrintStatsForEachNode (nodeStatistics *stats, int totalNodes)
 }
 
 
-void PrintTotalStats (nodeStatistics *stats, int totalNodes)
+void PrintTotalStats (nodeStatistics *stats, int totalNodes, double start, double finish)
 {
   const int  secPerMin = 60;
   double     meanBlockReceiveTime = 0;
@@ -395,4 +396,5 @@ void PrintTotalStats (nodeStatistics *stats, int totalNodes)
   std::cout << "Total Blocks = " << totalBlocks << "\n";
   std::cout << "Stale Blocks = " << staleBlocks << " (" 
             << 100. * staleBlocks / totalBlocks << "%)\n";
+  std::cout << (finish - start)/ totalBlocks << "s per generated block\n";
 }
