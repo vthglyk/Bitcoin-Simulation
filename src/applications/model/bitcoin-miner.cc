@@ -23,7 +23,7 @@
 #include <sys/time.h>
 
 
-double get_wall_time();
+double GetWallTime();
 
 namespace ns3 {
 
@@ -211,7 +211,7 @@ BitcoinMiner::StopApplication ()
   
   if (m_fistToMine)
   {
-    m_timeFinish = get_wall_time();
+    m_timeFinish = GetWallTime();
 	std::cout << "Time/Block = " << (m_timeFinish - m_timeStart) / (m_blockchain.GetTotalBlocks() - 1);
   }
 }
@@ -339,7 +339,7 @@ BitcoinMiner::MineBlock (void)
   if (height == 1)
   {
     m_fistToMine = true;
-	m_timeStart = get_wall_time();
+	m_timeStart = GetWallTime();
   }
 /*   //For attacks
    if (GetNode ()->GetId () == 0)
@@ -451,7 +451,7 @@ BitcoinMiner::ReceivedHigherBlock(const Block &newBlock)
 } // Namespace ns3
 
 
-double get_wall_time()
+double GetWallTime()
 {
     struct timeval time;
     if (gettimeofday(&time,NULL)){
