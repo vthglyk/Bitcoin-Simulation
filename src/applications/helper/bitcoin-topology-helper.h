@@ -52,9 +52,9 @@ public:
    *                     to connect all of the nodes together 
    *                     in the grid
    */
-  BitcoinTopologyHelper (int noCpus, uint32_t totalNoNodes, uint32_t noMiners,
-                         double bandwidth, double latency, 
-						 int minConnectionsPerNode, int maxConnectionsPerNode);
+  BitcoinTopologyHelper (uint32_t noCpus, uint32_t totalNoNodes, uint32_t noMiners,
+                         double bandwidth, double latency, int minConnectionsPerNode,
+						 int maxConnectionsPerNode, uint32_t systemId = 0);
 
   ~BitcoinTopologyHelper ();
 
@@ -129,12 +129,13 @@ private:
 
   uint32_t     m_totalNoNodes;                  //!< The total number of nodes
   uint32_t     m_noMiners;                      //!< The total number of miners
-  int          m_noCpus;                        //!< The number of the available cpus in the simulation
+  uint32_t     m_noCpus;                        //!< The number of the available cpus in the simulation
   double       m_bandwidth;                     //!<  The bandwidth of the point-to-point links
   double       m_latency;                       //!<  The delay of the point-to-point links
   int          m_minConnectionsPerNode;         //!<  The minimum connections per node
   int          m_maxConnectionsPerNode;         //!<  The maximum connections per node
   uint32_t     m_totalNoLinks;                  //!<  Total number of links
+  uint32_t     m_systemId;
   
   std::vector<uint32_t>                           m_miners;               //!< The ids of the miners
   std::map<uint32_t, std::vector<uint32_t>>       m_nodesConnections;     //!< key = nodeId

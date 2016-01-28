@@ -116,8 +116,8 @@ main (int argc, char *argv[])
   uint32_t systemId = MpiInterface::GetSystemId ();
   uint32_t systemCount = MpiInterface::GetSize ();
   
-/*   LogComponentEnable("BitcoinNode", LOG_LEVEL_DEBUG);
-  LogComponentEnable("BitcoinMiner", LOG_LEVEL_WARN); */
+  LogComponentEnable("BitcoinNode", LOG_LEVEL_DEBUG);
+  LogComponentEnable("BitcoinMiner", LOG_LEVEL_DEBUG);
   //LogComponentEnable("Ipv4AddressGenerator", LOG_LEVEL_FUNCTION);
   //LogComponentEnable("OnOffApplication", LOG_LEVEL_DEBUG);
   //LogComponentEnable("OnOffApplication", LOG_LEVEL_WARN);

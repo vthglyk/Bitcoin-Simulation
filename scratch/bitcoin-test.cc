@@ -24,6 +24,7 @@
 #include "ns3/applications-module.h"
 #include "ns3/point-to-point-layout-module.h"
 #include "ns3/mpi-interface.h"
+#define MPI_TEST
 
 #ifdef NS3_MPI
 #include <mpi.h>
@@ -99,7 +100,6 @@ main (int argc, char *argv[])
   nodeStatistics *stats = new nodeStatistics[totalNoNodes];
   averageBlockGenIntervalMinutes = averageBlockGenIntervalSeconds/secsPerMin;
   
-
   // Distributed simulation setup; by default use granted time window algorithm.
   if(nullmsg) 
     {
@@ -116,9 +116,10 @@ main (int argc, char *argv[])
   MpiInterface::Enable (&argc, &argv);
   uint32_t systemId = MpiInterface::GetSystemId ();
   uint32_t systemCount = MpiInterface::GetSize ();
-  
+
+
 /*   LogComponentEnable("BitcoinNode", LOG_LEVEL_DEBUG);
-  LogComponentEnable("BitcoinMiner", LOG_LEVEL_WARN); */
+  LogComponentEnable("BitcoinMiner", LOG_LEVEL_DEBUG); */
   //LogComponentEnable("Ipv4AddressGenerator", LOG_LEVEL_FUNCTION);
   //LogComponentEnable("OnOffApplication", LOG_LEVEL_DEBUG);
   //LogComponentEnable("OnOffApplication", LOG_LEVEL_WARN);
@@ -132,7 +133,7 @@ main (int argc, char *argv[])
  
   BitcoinTopologyHelper bitcoinTopologyHelper (systemCount, totalNoNodes, noMiners,
                                                8, 40, 
-						                       minConnectionsPerNode, maxConnectionsPerNode);
+						                       minConnectionsPerNode, maxConnectionsPerNode, systemId);
 
   // Install stack on Grid
   InternetStackHelper stack;
@@ -206,10 +207,12 @@ main (int argc, char *argv[])
   bitcoinNodes.Start (Seconds (start));
   bitcoinNodes.Stop (Minutes (stop));
   
+  if (systemId == 0)
+    std::cout << "Nodes have been setup\n";
   
   // Set up the actual simulation
-  Ipv4GlobalRoutingHelper::PopulateRoutingTables ();
-  
+  //Ipv4GlobalRoutingHelper::PopulateRoutingTables ();
+
   Simulator::Stop (Minutes (stop + 0.1));
   Simulator::Run ();
   Simulator::Destroy ();
@@ -297,9 +300,10 @@ main (int argc, char *argv[])
 			  << ".\nThe latency of the nodes was " << latency << "\n";
 
   }  
-  
+
   // Exit the MPI execution environment
   MpiInterface::Disable ();
+
   delete[] stats;
   return 0;
   

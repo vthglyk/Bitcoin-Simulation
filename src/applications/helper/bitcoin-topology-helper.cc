@@ -30,11 +30,11 @@ namespace ns3 {
 
 NS_LOG_COMPONENT_DEFINE ("BitcoinTopologyHelper");
 
-BitcoinTopologyHelper::BitcoinTopologyHelper (int noCpus, uint32_t totalNoNodes, uint32_t noMiners,
-                                              double bandwidth, double latency, 
-						                      int minConnectionsPerNode, int maxConnectionsPerNode)
+BitcoinTopologyHelper::BitcoinTopologyHelper (uint32_t noCpus, uint32_t totalNoNodes, uint32_t noMiners,
+                                              double bandwidth, double latency, int minConnectionsPerNode, 
+						                      int maxConnectionsPerNode, uint32_t systemId)
   : m_noCpus(noCpus), m_totalNoNodes (totalNoNodes), m_noMiners (noMiners), m_bandwidth (bandwidth), m_latency (latency),
-    m_minConnectionsPerNode (minConnectionsPerNode), m_maxConnectionsPerNode (maxConnectionsPerNode), m_totalNoLinks (0)
+    m_minConnectionsPerNode (minConnectionsPerNode), m_maxConnectionsPerNode (maxConnectionsPerNode), m_totalNoLinks (0), m_systemId (systemId)
 {
   
   std::vector<uint32_t>                           nodes;    //nodes contain the ids of the nodes
@@ -56,10 +56,13 @@ BitcoinTopologyHelper::BitcoinTopologyHelper (int noCpus, uint32_t totalNoNodes,
     nodes.push_back(i);
   }
 
-/*   //print the initialized nodes
-  for (std::vector<uint32_t>::iterator j = nodes.begin(); j != nodes.end(); j++)
+/*   //Print the initialized nodes
+  if (m_systemId == 0)
   {
-	std::cout << *j << " " ;
+    for (std::vector<uint32_t>::iterator j = nodes.begin(); j != nodes.end(); j++)
+    {
+	  std::cout << *j << " " ;
+    }
   } */
 
   //Choose the miners randomly. They should be unique (no miner should be chosen twice).
@@ -68,25 +71,33 @@ BitcoinTopologyHelper::BitcoinTopologyHelper (int noCpus, uint32_t totalNoNodes,
   {
     uint32_t index = rand() % nodes.size();
     m_miners.push_back(nodes[index]);
-    //std::cout << "\n" << "Chose " << nodes[index] << "     ";
+	
+/*     if (m_systemId == 0)
+      std::cout << "\n" << "Chose " << nodes[index] << "     "; */
+
     nodes.erase(nodes.begin() + index);
 	  
-	  
-/*     for (std::vector<uint32_t>::iterator it = nodes.begin(); it != nodes.end(); it++)
-    {
-	  std::cout << *it << " " ;
-    } */
+/* 	if (m_systemId == 0) 
+	{		
+      for (std::vector<uint32_t>::iterator it = nodes.begin(); it != nodes.end(); it++)
+      {
+	    std::cout << *it << " " ;
+      }
+	} */
   }
   
   
 /*   //Print the miners
-  std::cout << "\n\nThe miners are:\n";
-  for (std::vector<uint32_t>::iterator j = m_miners.begin(); j != m_miners.end(); j++)
+  if (m_systemId == 0)
   {
-	std::cout << *j << " " ;
-  }
-  std::cout << "\n\n"; */
-
+    std::cout << "\n\nThe miners are:\n";
+    for (std::vector<uint32_t>::iterator j = m_miners.begin(); j != m_miners.end(); j++)
+    {
+	  std::cout << *j << " " ;
+    }
+    std::cout << "\n\n";
+  } */
+  
   //Interconnect the miners
   for(auto &miner : m_miners)
   {
@@ -97,18 +108,21 @@ BitcoinTopologyHelper::BitcoinTopologyHelper (int noCpus, uint32_t totalNoNodes,
 	}
   }
   
-/*   //Print the miners' connections
-  std::cout << "The miners are interconnected:";
-  for(auto &miner : m_nodesConnections)
-  {
-	std::cout << "\nMiner " << miner.first << ":\t" ;
-	for(std::vector<uint32_t>::const_iterator it = miner.second.begin(); it != miner.second.end(); it++)
-	{
-      std::cout << *it << "\t" ;
-	}
-  }
-  std::cout << "\n" << std::endl; */
   
+/*   //Print the miners' connections
+  if (m_systemId == 0)
+  {
+    std::cout << "The miners are interconnected:";
+    for(auto &miner : m_nodesConnections)
+    {
+	  std::cout << "\nMiner " << miner.first << ":\t" ;
+	  for(std::vector<uint32_t>::const_iterator it = miner.second.begin(); it != miner.second.end(); it++)
+	  {
+        std::cout << *it << "\t" ;
+	  }
+    }
+    std::cout << "\n" << std::endl;
+  } */
   
   //Interconnect the nodes
  
@@ -130,15 +144,18 @@ BitcoinTopologyHelper::BitcoinTopologyHelper (int noCpus, uint32_t totalNoNodes,
 		
       if (candidatePeer == i)
       {
-        //std::cout << "Node " << i << " does not need a connection with itself" << "\n";
+/* 		if (m_systemId == 0)
+          std::cout << "Node " << i << " does not need a connection with itself" << "\n"; */
       }
       else if (std::find(m_nodesConnections[i].begin(), m_nodesConnections[i].end(), candidatePeer) != m_nodesConnections[i].end())
       {
-        //std::cout << "Node " << i << " has already a connection to Node " << nodes[index] << "\n";
+/* 		if (m_systemId == 0)
+          std::cout << "Node " << i << " has already a connection to Node " << nodes[index] << "\n"; */
       }
       else if (m_nodesConnections[candidatePeer].size() >= m_maxConnectionsPerNode)
       {
-        //std::cout << "Node " << nodes[index] << " has already " << m_maxConnectionsPerNode << " connections" << "\n";
+/* 		if (m_systemId == 0)
+          std::cout << "Node " << nodes[index] << " has already " << m_maxConnectionsPerNode << " connections" << "\n"; */
       }
       else
       {
@@ -146,34 +163,40 @@ BitcoinTopologyHelper::BitcoinTopologyHelper (int noCpus, uint32_t totalNoNodes,
         m_nodesConnections[candidatePeer].push_back(i);
         if (m_nodesConnections[candidatePeer].size() == m_maxConnectionsPerNode)
         {
-          //std::cout << "Node " << nodes[index] << " is removed from index\n";
+/* 		  if (m_systemId == 0)
+            std::cout << "Node " << nodes[index] << " is removed from index\n"; */
           nodes.erase(nodes.begin() + index);
         }
       }
       count++;
 	}
 	  
-	if (m_nodesConnections[i].size() < m_minConnectionsPerNode)
+	if (m_nodesConnections[i].size() < m_minConnectionsPerNode && m_systemId == 0)
 	  std::cout << "Node " << i << " has only " << m_nodesConnections[i].size() << " connections\n";
 
   }
 	
 /*   //Print the nodes' connections
-  std::cout << "The nodes connections are:" << std::endl;
-  for(auto &node : m_nodesConnections)
+  if (m_systemId == 0)
   {
-  	std::cout << "\nNode " << node.first << ":    " ;
-	for(std::vector<uint32_t>::const_iterator it = node.second.begin(); it != node.second.end(); it++)
-	{
-      std::cout  << "\t" << *it;
-	}
+    std::cout << "The nodes connections are:" << std::endl;
+    for(auto &node : m_nodesConnections)
+    {
+  	  std::cout << "\nNode " << node.first << ":    " ;
+	  for(std::vector<uint32_t>::const_iterator it = node.second.begin(); it != node.second.end(); it++)
+	  {
+        std::cout  << "\t" << *it;
+	  }
+    }
+    std::cout << "\n" << std::endl;
+  } */
+
+  if (m_systemId == 0)
+  {
+    std::cout << "The nodes connections were created.\n";
+    std::cout << "The minimum number of connections for each node are " << m_minConnectionsPerNode 
+              << " and whereas the maximum are " << m_maxConnectionsPerNode << "\n";
   }
-  std::cout << "\n" << std::endl; */
-
-
-  std::cout << "The nodes connections were created.\n";
-  std::cout << "m_minConnectionsPerNode = " << m_minConnectionsPerNode 
-            << " and m_maxConnectionsPerNode = " << m_maxConnectionsPerNode << "\n\n";
   
   
   InternetStackHelper stack;
@@ -185,7 +208,8 @@ BitcoinTopologyHelper::BitcoinTopologyHelper (int noCpus, uint32_t totalNoNodes,
   {
     NodeContainer currentNode;
     currentNode.Create (1, i % m_noCpus);
-    //std::cout << "Creating a node with Id = " << i << " and systemId = " << (i % m_noCpus << "\n";
+/* 	if (m_systemId == 0)
+      std::cout << "Creating a node with Id = " << i << " and systemId = " << i % m_noCpus << "\n"; */
     m_nodes.push_back (currentNode);
   }
 	
@@ -201,14 +225,16 @@ BitcoinTopologyHelper::BitcoinTopologyHelper (int noCpus, uint32_t totalNoNodes,
         m_totalNoLinks++;
         newDevices.Add (pointToPoint.Install (m_nodes.at (node.first).Get (0), m_nodes.at (*it).Get (0)));
 		m_devices.push_back (newDevices);
-/*         std::cout << "Creating link " << m_totalNoLinks << " between nodes " 
-                  << (m_nodes.at (node.first).Get (0))->GetId() 
-                  << " and " << (m_nodes.at (*it).Get (0))->GetId() << "\n"; */
+/* 		if (m_systemId == 0)
+          std::cout << "Creating link " << m_totalNoLinks << " between nodes " 
+                    << (m_nodes.at (node.first).Get (0))->GetId() 
+                    << " and " << (m_nodes.at (*it).Get (0))->GetId() << "\n"; */
       }
     }
   }
   
-  std::cout << "\nThe total number of links is " << m_totalNoLinks << "\n\n";
+  if (m_systemId == 0)
+    std::cout << "The total number of links is " << m_totalNoLinks << "\n";
 }
 
 BitcoinTopologyHelper::~BitcoinTopologyHelper ()
@@ -246,8 +272,9 @@ BitcoinTopologyHelper::AssignIpv4Addresses (Ipv4AddressHelper ip)
     uint32_t node1 = (currentContainer.Get (0))->GetNode()->GetId();
     uint32_t node2 = (currentContainer.Get (1))->GetNode()->GetId();
 
-/* 	std::cout << "Node " << node1 << "(" << interfaceAddress1 << ") is connected with node  " 
-              << node2 << "(" << interfaceAddress2 << ")\n"; */
+/* 	if (m_systemId == 0)
+	  std::cout << "Node " << node1 << "(" << interfaceAddress1 << ") is connected with node  " 
+                << node2 << "(" << interfaceAddress2 << ")\n"; */
 				
 	m_nodesConnectionsIps[node1].push_back(interfaceAddress2);
 	m_nodesConnectionsIps[node2].push_back(interfaceAddress1);
@@ -259,65 +286,23 @@ BitcoinTopologyHelper::AssignIpv4Addresses (Ipv4AddressHelper ip)
 
   
 /*   //Print the nodes' connections
-  std::cout << "The nodes connections are:" << std::endl;
-  for(auto &node : m_nodesConnectionsIps)
+  if (m_systemId == 0)
   {
-  	std::cout << "\nNode " << node.first << ":    " ;
-	for(std::vector<Ipv4Address>::const_iterator it = node.second.begin(); it != node.second.end(); it++)
-	{
-      std::cout  << "\t" << *it ;
-	}
-  }
-  std::cout << "\n" << std::endl; */
-  
+    std::cout << "The nodes connections are:" << std::endl;
+    for(auto &node : m_nodesConnectionsIps)
+    {
+  	  std::cout << "\nNode " << node.first << ":    " ;
+	  for(std::vector<Ipv4Address>::const_iterator it = node.second.begin(); it != node.second.end(); it++)
+	  {
+        std::cout  << "\t" << *it ;
+	  }
+    }
+    std::cout << "\n" << std::endl;
+  } */
+  if (m_systemId == 0)
+    std::cout << "The Ip addresses have been assigned\n";
 }
 
-
-void
-BitcoinTopologyHelper::BoundingBox (double ulx, double uly,
-                                     double lrx, double lry)
-{
-/*   double xDist; 
-  double yDist; 
-  if (lrx > ulx)
-    {
-      xDist = lrx - ulx;
-    }
-  else
-    {
-      xDist = ulx - lrx;
-    }
-  if (lry > uly)
-    {
-      yDist = lry - uly;
-    }
-  else
-    {
-      yDist = uly - lry;
-    }
-  double xAdder = xDist / m_xSize;
-  double yAdder = yDist / m_ySize;
-  double yLoc = yDist / 2;
-  for (uint32_t i = 0; i < m_ySize; ++i)
-    {
-      double xLoc = xDist / 2;
-      for (uint32_t j = 0; j < m_xSize; ++j)
-        {
-          Ptr<Node> node = GetNode (i, j);
-          Ptr<ConstantPositionMobilityModel> loc = node->GetObject<ConstantPositionMobilityModel> ();
-          if (loc ==0)
-            {
-              loc = CreateObject<ConstantPositionMobilityModel> ();
-              node->AggregateObject (loc);
-            }
-          Vector locVec (xLoc, yLoc, 0);
-          loc->SetPosition (locVec);
-
-          xLoc += xAdder;
-        }
-      yLoc += yAdder;
-    } */
-}
 
 Ptr<Node> 
 BitcoinTopologyHelper::GetNode (uint32_t id)
@@ -330,31 +315,6 @@ BitcoinTopologyHelper::GetNode (uint32_t id)
   return (m_nodes.at (id)).Get (0);
 }
 
-Ipv4Address
-BitcoinTopologyHelper::GetIpv4Address (uint32_t row, uint32_t col)
-{
- /*  if (row > m_nodes.size () - 1 || 
-      col > m_nodes.at (row).GetN () - 1) 
-    {
-      NS_FATAL_ERROR ("Index out of bounds in BitcoinTopologyHelper::GetIpv4Address.");
-    }
-
-  // Right now this just gets one of the addresses of the
-  // specified node.  The exact device can't be specified.
-  // If you picture the grid, the address returned is the 
-  // address of the left (row) device of all nodes, with 
-  // the exception of the left-most nodes in the grid; 
-  // in which case the right (row) device address is 
-  // returned
-  if (col == 0)
-    {
-      return (m_rowInterfaces.at (row)).GetAddress (0);
-    }
-  else
-    {
-      return (m_rowInterfaces.at (row)).GetAddress ((2*col)-1);
-    } */
-}
 
 
 Ipv4InterfaceContainer

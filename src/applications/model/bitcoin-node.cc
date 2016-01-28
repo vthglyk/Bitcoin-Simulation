@@ -164,11 +164,13 @@ BitcoinNode::StartApplication ()    // Called at time specified by Start
     MakeCallback (&BitcoinNode::HandlePeerClose, this),
     MakeCallback (&BitcoinNode::HandlePeerError, this));
 	
-    for (std::vector<Ipv4Address>::const_iterator i = m_peersAddresses.begin(); i != m_peersAddresses.end(); ++i)
-    {
-      m_peersSockets[*i] = Socket::CreateSocket (GetNode (), TcpSocketFactory::GetTypeId ());
-	  m_peersSockets[*i]->Connect (InetSocketAddress (*i, m_bitcoinPort));
-	}
+  NS_LOG_DEBUG ("Node " << GetNode()->GetId() << ": Before creating sockets");
+  for (std::vector<Ipv4Address>::const_iterator i = m_peersAddresses.begin(); i != m_peersAddresses.end(); ++i)
+  {
+    m_peersSockets[*i] = Socket::CreateSocket (GetNode (), TcpSocketFactory::GetTypeId ());
+	m_peersSockets[*i]->Connect (InetSocketAddress (*i, m_bitcoinPort));
+  }
+  NS_LOG_DEBUG ("Node " << GetNode()->GetId() << ": After creating sockets");
 
   m_nodeStats->nodeId = GetNode ()->GetId ();
   m_nodeStats->meanBlockReceiveTime = 0;
