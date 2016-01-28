@@ -213,7 +213,8 @@ main (int argc, char *argv[])
   // Set up the actual simulation
   //Ipv4GlobalRoutingHelper::PopulateRoutingTables ();
   tStartSimulation = get_wall_time();
-  
+  if (systemId == 0)
+    std::cout << "Setup time = " << tStartSimulation - tStart << "s\n";
   Simulator::Stop (Minutes (stop + 0.1));
   Simulator::Run ();
   Simulator::Destroy ();
@@ -289,12 +290,12 @@ main (int argc, char *argv[])
   {
     tFinish=get_wall_time();
 	
-    PrintStatsForEachNode(stats, totalNoNodes);
+    //PrintStatsForEachNode(stats, totalNoNodes);
     PrintTotalStats(stats, totalNoNodes, tStartSimulation, tFinish);
     std::cout << "\nThe simulation ran for " << tFinish - tStart << "s simulating "
               << stop << "mins. Performed " << stop * secsPerMin / (tFinish - tStart)
-              << " faster than realtime.\n" << "It consisted of " << totalNoNodes
-              << " nodes (" << noMiners << " miners) with minConnectionsPerNode = "
+              << " faster than realtime.\n" << "Setup time = " << tStartSimulation - tStart << "s\n"
+              <<"It consisted of " << totalNoNodes << " nodes (" << noMiners << " miners) with minConnectionsPerNode = "
               << minConnectionsPerNode << " and maxConnectionsPerNode = " << maxConnectionsPerNode 
               << ".\nThe averageBlockGenIntervalMinutes was " << averageBlockGenIntervalMinutes << "min."
 			  << "\nThe bandwidth of the nodes was " << bandwidth
@@ -396,5 +397,5 @@ void PrintTotalStats (nodeStatistics *stats, int totalNodes, double start, doubl
   std::cout << "Total Blocks = " << totalBlocks << "\n";
   std::cout << "Stale Blocks = " << staleBlocks << " (" 
             << 100. * staleBlocks / totalBlocks << "%)\n";
-  std::cout << (finish - start)/ totalBlocks << "s per generated block\n";
+  std::cout << (finish - start)/ (totalBlocks - 1)<< "s per generated block\n";
 }

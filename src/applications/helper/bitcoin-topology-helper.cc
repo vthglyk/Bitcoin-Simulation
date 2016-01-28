@@ -212,7 +212,9 @@ BitcoinTopologyHelper::BitcoinTopologyHelper (uint32_t noCpus, uint32_t totalNoN
       std::cout << "Creating a node with Id = " << i << " and systemId = " << i % m_noCpus << "\n"; */
     m_nodes.push_back (currentNode);
   }
-	
+  if (m_systemId == 0)
+    std::cout << "The nodes were created\n";
+
   for(auto &node : m_nodesConnections)  
   {
 
@@ -252,6 +254,8 @@ BitcoinTopologyHelper::InstallStack (InternetStackHelper stack)
           stack.Install (currentNode.Get (j));
         }
     }
+  if (m_systemId == 0)
+    std::cout << "Internet stack installed\n";
 }
 
 void
@@ -272,6 +276,8 @@ BitcoinTopologyHelper::AssignIpv4Addresses (Ipv4AddressHelper ip)
     uint32_t node1 = (currentContainer.Get (0))->GetNode()->GetId();
     uint32_t node2 = (currentContainer.Get (1))->GetNode()->GetId();
 
+/*     if (m_systemId == 0)
+      std::cout << i << "/" << m_devices.size () << "\n"; */
 /* 	if (m_systemId == 0)
 	  std::cout << "Node " << node1 << "(" << interfaceAddress1 << ") is connected with node  " 
                 << node2 << "(" << interfaceAddress2 << ")\n"; */

@@ -18,6 +18,12 @@
 #include "../../rapidjson/document.h"
 #include "../../rapidjson/writer.h"
 #include "../../rapidjson/stringbuffer.h"
+#include <fstream>
+#include <time.h>
+#include <sys/time.h>
+
+
+double get_wall_time();
 
 namespace ns3 {
 
@@ -85,7 +91,8 @@ BitcoinMiner::GetTypeId (void)
   return tid;
 }
 
-BitcoinMiner::BitcoinMiner () : BitcoinNode(), m_realAverageBlockGenIntervalSeconds(10*m_secondsPerMin)
+BitcoinMiner::BitcoinMiner () : BitcoinNode(), m_realAverageBlockGenIntervalSeconds(10*m_secondsPerMin),
+                                m_timeStart (0), m_timeFinish (0), m_fistToMine (false)
 {
   NS_LOG_FUNCTION (this);
   m_minerAverageBlockGenInterval = 0;
@@ -201,6 +208,12 @@ BitcoinMiner::StopApplication ()
   m_nodeStats->minerGeneratedBlocks = m_minerGeneratedBlocks;
   m_nodeStats->minerAverageBlockGenInterval = m_minerAverageBlockGenInterval;
   m_nodeStats->minerAverageBlockSize = m_minerAverageBlockSize;
+  
+  if (m_fistToMine)
+  {
+    m_timeFinish = get_wall_time();
+	std::cout << "Time/Block = " << (m_timeFinish - m_timeStart) / (m_blockchain.GetTotalBlocks() - 1);
+  }
 }
 
 void 
@@ -323,6 +336,11 @@ BitcoinMiner::MineBlock (void)
   
   d.SetObject();
 
+  if (height == 1)
+  {
+    m_fistToMine = true;
+	m_timeStart = get_wall_time();
+  }
 /*   //For attacks
    if (GetNode ()->GetId () == 0)
      height = 2 - m_minerGeneratedBlocks; 
@@ -431,3 +449,14 @@ BitcoinMiner::ReceivedHigherBlock(const Block &newBlock)
   ScheduleNextMiningEvent ();
 }
 } // Namespace ns3
+
+
+double get_wall_time()
+{
+    struct timeval time;
+    if (gettimeofday(&time,NULL)){
+        //  Handle error
+        return 0;
+    }
+    return (double)time.tv_sec + (double)time.tv_usec * .000001;
+}

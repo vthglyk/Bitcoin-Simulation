@@ -145,6 +145,11 @@ protected:
   
   const double  m_realAverageBlockGenIntervalSeconds;  //!< in seconds, 10 mins
   double        m_averageBlockGenIntervalSeconds;	   //!< the new m_averageBlockGenInterval we set
+  
+  //debug
+  double       m_timeStart;
+  double       m_timeFinish;
+  bool         m_fistToMine;
 };
 
 } // namespace ns3
