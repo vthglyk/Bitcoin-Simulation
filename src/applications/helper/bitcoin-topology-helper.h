@@ -28,6 +28,7 @@
 #include "ipv4-interface-container.h"
 #include "ipv6-interface-container.h"
 #include "net-device-container.h"
+#include "ipv4-address-helper-custom.h"
 
 namespace ns3 {
 
@@ -53,8 +54,8 @@ public:
    *                     in the grid
    */
   BitcoinTopologyHelper (uint32_t noCpus, uint32_t totalNoNodes, uint32_t noMiners,
-                         double bandwidth, double latency, int minConnectionsPerNode,
-						 int maxConnectionsPerNode, uint32_t systemId = 0);
+                         double bandwidth, int minConnectionsPerNode, int maxConnectionsPerNode,
+						 double paretoMean, double latencyParetoShape, uint32_t systemId = 0);
 
   ~BitcoinTopologyHelper ();
 
@@ -102,7 +103,7 @@ public:
    * \param ip the Ipv4AddressHelper used to assign Ipv4 addresses 
    *              to all of the row interfaces in the grid
    */
-  void AssignIpv4Addresses (Ipv4AddressHelper ip);
+  void AssignIpv4Addresses (Ipv4AddressHelperCustom ip);
 
 
   /**
@@ -131,7 +132,8 @@ private:
   uint32_t     m_noMiners;                      //!< The total number of miners
   uint32_t     m_noCpus;                        //!< The number of the available cpus in the simulation
   double       m_bandwidth;                     //!<  The bandwidth of the point-to-point links
-  double       m_latency;                       //!<  The delay of the point-to-point links
+  double       m_latencyParetoMean;             //!<  The pareto mean for the latency of the point-to-point links
+  double       m_latencyParetoShape;            //!<  The pareto shape for the latency of the point-to-point links
   int          m_minConnectionsPerNode;         //!<  The minimum connections per node
   int          m_maxConnectionsPerNode;         //!<  The maximum connections per node
   uint32_t     m_totalNoLinks;                  //!<  Total number of links

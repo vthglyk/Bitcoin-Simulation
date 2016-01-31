@@ -14,7 +14,7 @@
 #include "ns3/tcp-socket-factory.h"
 #include "ns3/uinteger.h"
 #include "ns3/double.h"
-#include "bitcoin-miner.h"
+#include "ns3/bitcoin-miner.h"
 #include "../../rapidjson/document.h"
 #include "../../rapidjson/writer.h"
 #include "../../rapidjson/stringbuffer.h"
@@ -212,7 +212,7 @@ BitcoinMiner::StopApplication ()
   if (m_fistToMine)
   {
     m_timeFinish = GetWallTime();
-	std::cout << "Time/Block = " << (m_timeFinish - m_timeStart) / (m_blockchain.GetTotalBlocks() - 1);
+	std::cout << "Time/Block = " << (m_timeFinish - m_timeStart) / (m_blockchain.GetTotalBlocks() - 1) << "s\n";
   }
 }
 
@@ -413,7 +413,11 @@ BitcoinMiner::MineBlock (void)
 
     m_peersSockets[*i]->Send (reinterpret_cast<const uint8_t*>(packetInfo.GetString()), packetInfo.GetSize(), 0);
 	m_peersSockets[*i]->Send (delimiter, 1, 0);
-	
+
+    NS_LOG_INFO ("At time " << Simulator::Now ().GetSeconds ()
+                 << "s bitcoin miner " << GetNode ()->GetId () 
+                 << " sent a packet " << packetInfo.GetString() 
+			     << " to " << *i);
 /* 	//Send large packet
 	int k;
 	for (k = 0; k < 4; k++)
@@ -431,11 +435,6 @@ BitcoinMiner::MineBlock (void)
                             + static_cast<double>(m_nextBlockSize)/(m_minerGeneratedBlocks+1);
   m_previousBlockGenerationTime = Simulator::Now ().GetSeconds ();
   m_minerGeneratedBlocks++;
-
-  NS_LOG_INFO ("At time " << Simulator::Now ().GetSeconds ()
-               << "s bitcoin miner " << GetNode ()->GetId () 
-               << " sent a packet " << packetInfo.GetString() 
-			   << " " << m_minerAverageBlockSize);
 			   
   ScheduleNextMiningEvent ();
 }

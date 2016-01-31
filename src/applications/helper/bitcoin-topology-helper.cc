@@ -24,6 +24,8 @@
 #include "ns3/vector.h"
 #include "ns3/log.h"
 #include "ns3/ipv6-address-generator.h"
+#include "ns3/random-variable-stream.h"
+#include "ns3/double.h"
 #include <algorithm>
 #include <fstream>
 #include <time.h>
@@ -36,10 +38,12 @@ namespace ns3 {
 NS_LOG_COMPONENT_DEFINE ("BitcoinTopologyHelper");
 
 BitcoinTopologyHelper::BitcoinTopologyHelper (uint32_t noCpus, uint32_t totalNoNodes, uint32_t noMiners,
-                                              double bandwidth, double latency, int minConnectionsPerNode, 
-						                      int maxConnectionsPerNode, uint32_t systemId)
-  : m_noCpus(noCpus), m_totalNoNodes (totalNoNodes), m_noMiners (noMiners), m_bandwidth (bandwidth), m_latency (latency),
-    m_minConnectionsPerNode (minConnectionsPerNode), m_maxConnectionsPerNode (maxConnectionsPerNode), m_totalNoLinks (0), m_systemId (systemId)
+                                              double bandwidth, int minConnectionsPerNode, int maxConnectionsPerNode,
+						                      double latencyParetoMean, double latencyParetoShape, uint32_t systemId)
+  : m_noCpus(noCpus), m_totalNoNodes (totalNoNodes), m_noMiners (noMiners), m_bandwidth (bandwidth), 
+    m_minConnectionsPerNode (minConnectionsPerNode), m_maxConnectionsPerNode (maxConnectionsPerNode), 
+	m_totalNoLinks (0), m_latencyParetoMean (latencyParetoMean), m_latencyParetoShape (latencyParetoShape), 
+	m_systemId (systemId)
 {
   
   std::vector<uint32_t>     nodes;    //nodes contain the ids of the nodes
@@ -208,9 +212,18 @@ BitcoinTopologyHelper::BitcoinTopologyHelper (uint32_t noCpus, uint32_t totalNoN
   
   
   InternetStackHelper stack;
+  
+  Ptr<ParetoRandomVariable> paretoDistribution = CreateObject<ParetoRandomVariable> ();
+  paretoDistribution->SetAttribute ("Mean", DoubleValue (m_latencyParetoMean));
+  paretoDistribution->SetAttribute ("Shape", DoubleValue (m_latencyParetoShape));
+  
+  std::ostringstream latencyStringStream; 
+  std::ostringstream bandwidthStream;
+  
+  bandwidthStream << m_bandwidth << "Mbps";
   PointToPointHelper pointToPoint;
-  pointToPoint.SetDeviceAttribute ("DataRate", StringValue ("8Mbps"));
-  pointToPoint.SetChannelAttribute ("Delay", StringValue ("40ms"));
+  pointToPoint.SetDeviceAttribute ("DataRate", StringValue (bandwidthStream.str()));
+
   
   tStart = GetWallTime();
   
@@ -238,6 +251,10 @@ BitcoinTopologyHelper::BitcoinTopologyHelper (uint32_t noCpus, uint32_t totalNoN
         NetDeviceContainer newDevices;
 		
         m_totalNoLinks++;
+        latencyStringStream.str("");
+        latencyStringStream.clear();
+        latencyStringStream << paretoDistribution->GetValue() << "ms";
+        pointToPoint.SetChannelAttribute ("Delay", StringValue (latencyStringStream.str()));
         newDevices.Add (pointToPoint.Install (m_nodes.at (node.first).Get (0), m_nodes.at (*it).Get (0)));
 		m_devices.push_back (newDevices);
 /* 		if (m_systemId == 0)
@@ -279,7 +296,7 @@ BitcoinTopologyHelper::InstallStack (InternetStackHelper stack)
 }
 
 void
-BitcoinTopologyHelper::AssignIpv4Addresses (Ipv4AddressHelper ip)
+BitcoinTopologyHelper::AssignIpv4Addresses (Ipv4AddressHelperCustom ip)
 {
   double tStart = GetWallTime();
   double tFinish;

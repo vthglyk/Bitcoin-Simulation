@@ -29,7 +29,6 @@
 #ifdef NS3_MPI
 #include <mpi.h>
 #endif
-//#define MPI_TEST
 
 using namespace ns3;
 
@@ -53,8 +52,8 @@ main (int argc, char *argv[])
   double averageBlockGenIntervalSeconds = 10 * secsPerMin; //seconds
   double fixedHashRate = 0.5;
   int start = 0;
-  std::string bandwidth = "8Mbps";
-  std::string latency = "40ms";
+  double bandwidth = 8;
+  double latency = 40;
   bool testScalability = false;
 
   
@@ -62,14 +61,16 @@ main (int argc, char *argv[])
 
   int minConnectionsPerNode = 2;
   int maxConnectionsPerNode = 3;
+#ifdef MPI_TEST
   int noMiners = 16;
   double minersHash[] = {0.289, 0.196, 0.159, 0.133, 0.066, 0.054,
                          0.029, 0.016, 0.012, 0.012, 0.012, 0.009,
                          0.005, 0.005, 0.002, 0.002};
-/*   int noMiners = 3;
-  double minersHash[] = {0.4, 0.3, 0.3}; */
+#else
+  int noMiners = 3;
+  double minersHash[] = {0.4, 0.3, 0.3};
+#endif
 
-  
   double averageBlockGenIntervalMinutes = averageBlockGenIntervalSeconds/secsPerMin;
   double stop;
 
@@ -84,8 +85,8 @@ main (int argc, char *argv[])
   
   CommandLine cmd;
   cmd.AddValue ("nullmsg", "Enable the use of null-message synchronization", nullmsg);
-  cmd.AddValue ("bandwidth", "The bandwidth of the nodes", bandwidth);
-  cmd.AddValue ("latency", "The latency of the nodes", latency);
+  cmd.AddValue ("bandwidth", "The bandwidth of the nodes (Mbps)", bandwidth);
+  cmd.AddValue ("latency", "The latency of the nodes (ms)", latency);
   cmd.AddValue ("noBlocks", "The number of generated blocks", targetNumberOfBlocks);
   cmd.AddValue ("nodes", "The total number of nodes in the network", totalNoNodes);
   cmd.AddValue ("minConnections", "The minConnectionsPerNode of the grid", minConnectionsPerNode);
@@ -99,7 +100,8 @@ main (int argc, char *argv[])
   stop = targetNumberOfBlocks * averageBlockGenIntervalMinutes; //seconds
   nodeStatistics *stats = new nodeStatistics[totalNoNodes];
   averageBlockGenIntervalMinutes = averageBlockGenIntervalSeconds/secsPerMin;
-  
+
+#ifdef MPI_TEST
   // Distributed simulation setup; by default use granted time window algorithm.
   if(nullmsg) 
     {
@@ -116,10 +118,13 @@ main (int argc, char *argv[])
   MpiInterface::Enable (&argc, &argv);
   uint32_t systemId = MpiInterface::GetSystemId ();
   uint32_t systemCount = MpiInterface::GetSize ();
+#else
+  uint32_t systemId = 0;
+  uint32_t systemCount = 1;
+#endif
 
-
-  //LogComponentEnable("BitcoinNode", LOG_LEVEL_DEBUG);
-  //LogComponentEnable("BitcoinMiner", LOG_LEVEL_DEBUG);
+/*   LogComponentEnable("BitcoinNode", LOG_LEVEL_INFO);
+  LogComponentEnable("BitcoinMiner", LOG_LEVEL_DEBUG); */
   //LogComponentEnable("Ipv4AddressGenerator", LOG_LEVEL_FUNCTION);
   //LogComponentEnable("OnOffApplication", LOG_LEVEL_DEBUG);
   //LogComponentEnable("OnOffApplication", LOG_LEVEL_WARN);
@@ -132,15 +137,15 @@ main (int argc, char *argv[])
   }
  
   BitcoinTopologyHelper bitcoinTopologyHelper (systemCount, totalNoNodes, noMiners,
-                                               8, 40, 
-						                       minConnectionsPerNode, maxConnectionsPerNode, systemId);
+                                               bandwidth, minConnectionsPerNode, 
+                                               maxConnectionsPerNode, latency, 2, systemId);
 
   // Install stack on Grid
   InternetStackHelper stack;
   bitcoinTopologyHelper.InstallStack (stack);
 
   // Assign Addresses to Grid
-  bitcoinTopologyHelper.AssignIpv4Addresses (Ipv4AddressHelper ("1.0.0.0", "255.255.255.0"));
+  bitcoinTopologyHelper.AssignIpv4Addresses (Ipv4AddressHelperCustom ("1.0.0.0", "255.255.255.0", false));
   ipv4InterfaceContainer = bitcoinTopologyHelper.GetIpv4InterfaceContainer();
   nodesConnections = bitcoinTopologyHelper.GetNodesConnectionsIps();
   miners = bitcoinTopologyHelper.GetMiners();
@@ -208,7 +213,7 @@ main (int argc, char *argv[])
   bitcoinNodes.Stop (Minutes (stop));
   
   if (systemId == 0)
-    std::cout << "The applications have been setup\n";
+    std::cout << "The applications have been setup.\n";
   
   // Set up the actual simulation
   //Ipv4GlobalRoutingHelper::PopulateRoutingTables ();
@@ -218,6 +223,8 @@ main (int argc, char *argv[])
   Simulator::Stop (Minutes (stop + 0.1));
   Simulator::Run ();
   Simulator::Destroy ();
+
+#ifdef MPI_TEST
 
   int            blocklen[12] = {1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1}; 
   MPI_Aint       disp[12]; 
@@ -285,6 +292,7 @@ main (int argc, char *argv[])
 	  count++;
     }
   }	  
+#endif
 
   if (systemId == 0)
   {
@@ -299,12 +307,15 @@ main (int argc, char *argv[])
               << minConnectionsPerNode << " and maxConnectionsPerNode = " << maxConnectionsPerNode 
               << ".\nThe averageBlockGenIntervalMinutes was " << averageBlockGenIntervalMinutes << "min."
 			  << "\nThe bandwidth of the nodes was " << bandwidth
-			  << ".\nThe latency of the nodes was " << latency << "\n";
+			  << "Mbps.\nThe latency of the nodes was " << latency << "s.\n";
 
   }  
+  
+#ifdef MPI_TEST
 
   // Exit the MPI execution environment
   MpiInterface::Disable ();
+#endif
 
   delete[] stats;
   return 0;
