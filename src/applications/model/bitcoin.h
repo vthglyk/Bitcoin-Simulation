@@ -24,6 +24,16 @@ enum MinerType
   SELFISH_MINER
 };
 
+enum BitcoinRegion
+{
+  NORTH_AMERICA,    //0
+  EUROPE,           //1
+  SOUTH_AMERICA,    //2
+  ASIA_PACIFIC,     //3
+  JAPAN,            //4
+  AUSTRALIA,        //5
+  OTHER             //6
+};
 
 typedef struct {
   int      nodeId;
@@ -42,6 +52,8 @@ typedef struct {
 
 const char* getMessageName(enum Messages m);
 const char* getMinerType(enum MinerType m);
+const char* getBitcoinRegion(enum BitcoinRegion m);
+enum BitcoinRegion getBitcoinEnum(uint32_t n);
 
 class Block
 {

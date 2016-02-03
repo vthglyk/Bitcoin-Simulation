@@ -29,6 +29,8 @@
 #include "ipv6-interface-container.h"
 #include "net-device-container.h"
 #include "ipv4-address-helper-custom.h"
+#include "ns3/bitcoin.h"
+#include <random>
 
 namespace ns3 {
 
@@ -126,8 +128,15 @@ public:
    
    std::vector<uint32_t> GetMiners (void) const;
    
+   uint32_t* GetBitcoinNodesRegions (void);
+   
+   std::map<uint32_t, std::map<Ipv4Address, double>> GetNodesBandwidths (void) const;
+
 private:
 
+  void AssignRegion (uint32_t id);
+  
+  
   uint32_t     m_totalNoNodes;                  //!< The total number of nodes
   uint32_t     m_noMiners;                      //!< The total number of miners
   uint32_t     m_noCpus;                        //!< The number of the available cpus in the simulation
@@ -139,17 +148,25 @@ private:
   uint32_t     m_totalNoLinks;                  //!<  Total number of links
   uint32_t     m_systemId;
   
-  std::vector<uint32_t>                           m_miners;               //!< The ids of the miners
-  std::map<uint32_t, std::vector<uint32_t>>       m_nodesConnections;     //!< key = nodeId
-  std::map<uint32_t, std::vector<Ipv4Address>>    m_nodesConnectionsIps;  //!< key = nodeId
-  std::vector<NodeContainer>                      m_nodes;                //!< all the nodes in the network
-  std::vector<NetDeviceContainer>                 m_devices;              //!< NetDevices in the network
-  std::vector<Ipv4InterfaceContainer>             m_interfaces;           //!< IPv4 interfaces in the network
-
+  std::vector<uint32_t>                           m_miners;                  //!< The ids of the miners
+  std::map<uint32_t, std::vector<uint32_t>>       m_nodesConnections;        //!< key = nodeId
+  std::map<uint32_t, std::vector<Ipv4Address>>    m_nodesConnectionsIps;     //!< key = nodeId
+  std::vector<NodeContainer>                      m_nodes;                   //!< all the nodes in the network
+  std::vector<NetDeviceContainer>                 m_devices;                 //!< NetDevices in the network
+  std::vector<Ipv4InterfaceContainer>             m_interfaces;              //!< IPv4 interfaces in the network
+  uint32_t                                       *m_bitcoinNodesRegion;      //!< The region in which the bitcoin nodes are located
+  double                                          m_regionLatencies[6][6];   //!< The inter- and intra-region latencies
+  double                                          m_regionBandwidths[6];     
+  
   std::vector<NetDeviceContainer> m_colDevices;         //!< NetDevices in a column
   std::vector<Ipv4InterfaceContainer> m_colInterfaces;  //!< IPv4 interfaces in a column
   std::vector<Ipv6InterfaceContainer> m_rowInterfaces6; //!< IPv6 interfaces in a row
   std::vector<Ipv6InterfaceContainer> m_colInterfaces6; //!< IPv6 interfaces in a column
+
+  std::map<uint32_t, std::map<Ipv4Address, double>>    m_nodesBandwidths;     //!< key1 = nodeId, key2 = Ipv4Address
+
+  std::default_random_engine                     m_generator;
+  std::piecewise_constant_distribution<double>   m_nodesDistribution;
 };
 
 } // namespace ns3

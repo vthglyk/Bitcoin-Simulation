@@ -49,7 +49,25 @@ BitcoinTopologyHelper::BitcoinTopologyHelper (uint32_t noCpus, uint32_t totalNoN
   std::vector<uint32_t>     nodes;    //nodes contain the ids of the nodes
   double                    tStart = GetWallTime();
   double                    tFinish;
+  double regionLatencies[6][6] = { {35.5, 119.49, 254.79, 310.11, 154.36, 207.91},
+	                               {119.49, 11.61, 221.08, 241.9, 266.45, 350.07},
+	                               {254.79, 221.08, 137.09, 346.65, 255.95, 268.91},
+	                               {310.11, 241.9, 346.65, 99.46, 172.24, 277.8},
+	                               {154.36, 266.45, 255.95, 172.24, 8.76, 162.59},
+	                               {207.91, 350.07, 268.91, 277.8, 162.59, 21.72}};
+  for (int k = 0; k < 6; k++)
+    for (int j = 0; j < 6; j++)
+	  m_regionLatencies[k][j] = regionLatencies[k][j];
   
+  m_regionBandwidths[NORTH_AMERICA] = 3.58;
+  m_regionBandwidths[EUROPE] = 5.93;
+  m_regionBandwidths[SOUTH_AMERICA] = 2.55;
+  m_regionBandwidths[ASIA_PACIFIC] = 4.61;
+  m_regionBandwidths[JAPAN] = 1.5;
+  m_regionBandwidths[AUSTRALIA] = 5.2;
+  
+  srand (1000);
+
   // Bounds check
   if (m_noMiners > m_totalNoNodes)
   {
@@ -61,7 +79,16 @@ BitcoinTopologyHelper::BitcoinTopologyHelper (uint32_t noCpus, uint32_t totalNoN
     NS_FATAL_ERROR ("You need at least one miner\n");
   }
 
-
+  m_bitcoinNodesRegion = new uint32_t[m_totalNoNodes];
+  std::array<double,7> intervals {NORTH_AMERICA, EUROPE, SOUTH_AMERICA, ASIA_PACIFIC, JAPAN, AUSTRALIA, OTHER};
+  std::array<double,6> weights {38.69, 51.59, 1.13, 5.74, 1.19, 1.66 };
+                                
+  m_nodesDistribution = std::piecewise_constant_distribution<double> (intervals.begin(), intervals.end(), weights.begin());
+  
+  
+  /**
+   * Create a vector containing all the nodes ids
+   */
   for (int i = 0; i < m_totalNoNodes; i++)
   {
     nodes.push_back(i);
@@ -207,7 +234,7 @@ BitcoinTopologyHelper::BitcoinTopologyHelper (uint32_t noCpus, uint32_t totalNoN
   {
     std::cout << "The nodes connections were created in " << tFinish - tStart << "s.\n";
     std::cout << "The minimum number of connections for each node are " << m_minConnectionsPerNode 
-              << " and whereas the maximum are " << m_maxConnectionsPerNode << "\n";
+              << " and whereas the maximum are " << m_maxConnectionsPerNode << ".\n";
   }
   
   
@@ -220,13 +247,10 @@ BitcoinTopologyHelper::BitcoinTopologyHelper (uint32_t noCpus, uint32_t totalNoN
   std::ostringstream latencyStringStream; 
   std::ostringstream bandwidthStream;
   
-  bandwidthStream << m_bandwidth << "Mbps";
   PointToPointHelper pointToPoint;
-  pointToPoint.SetDeviceAttribute ("DataRate", StringValue (bandwidthStream.str()));
-
   
   tStart = GetWallTime();
-  
+  //Create the bitcoin nodes
   for (uint32_t i = 0; i < m_totalNoNodes; i++)
   {
     NodeContainer currentNode;
@@ -234,6 +258,7 @@ BitcoinTopologyHelper::BitcoinTopologyHelper (uint32_t noCpus, uint32_t totalNoN
 /* 	if (m_systemId == 0)
       std::cout << "Creating a node with Id = " << i << " and systemId = " << i % m_noCpus << "\n"; */
     m_nodes.push_back (currentNode);
+	AssignRegion(i);
   }
   
   tFinish = GetWallTime();
@@ -251,16 +276,31 @@ BitcoinTopologyHelper::BitcoinTopologyHelper (uint32_t noCpus, uint32_t totalNoN
         NetDeviceContainer newDevices;
 		
         m_totalNoLinks++;
+		
+		bandwidthStream.str("");
+        bandwidthStream.clear();
+		bandwidthStream << std::min(m_regionBandwidths[m_bitcoinNodesRegion[(m_nodes.at (node.first).Get (0))->GetId()]], 
+		                       m_regionBandwidths[m_bitcoinNodesRegion[(m_nodes.at (*it).Get (0))->GetId()]]) << "Mbps";
+		
         latencyStringStream.str("");
         latencyStringStream.clear();
-        latencyStringStream << paretoDistribution->GetValue() << "ms";
-        pointToPoint.SetChannelAttribute ("Delay", StringValue (latencyStringStream.str()));
+        //latencyStringStream << paretoDistribution->GetValue() << "ms";
+        latencyStringStream << m_regionLatencies[m_bitcoinNodesRegion[(m_nodes.at (node.first).Get (0))->GetId()]]
+                                                [m_bitcoinNodesRegion[(m_nodes.at (*it).Get (0))->GetId()]] << "ms";
+        
+		pointToPoint.SetDeviceAttribute ("DataRate", StringValue (bandwidthStream.str()));
+		pointToPoint.SetChannelAttribute ("Delay", StringValue (latencyStringStream.str()));
+		
         newDevices.Add (pointToPoint.Install (m_nodes.at (node.first).Get (0), m_nodes.at (*it).Get (0)));
 		m_devices.push_back (newDevices);
 /* 		if (m_systemId == 0)
           std::cout << "Creating link " << m_totalNoLinks << " between nodes " 
-                    << (m_nodes.at (node.first).Get (0))->GetId() 
-                    << " and " << (m_nodes.at (*it).Get (0))->GetId() << "\n"; */
+                    << (m_nodes.at (node.first).Get (0))->GetId() << " (" 
+                    <<  getBitcoinRegion(getBitcoinEnum(m_bitcoinNodesRegion[(m_nodes.at (node.first).Get (0))->GetId()]))
+                    << ") and node " << (m_nodes.at (*it).Get (0))->GetId() << " (" 
+                    <<  getBitcoinRegion(getBitcoinEnum(m_bitcoinNodesRegion[(m_nodes.at (*it).Get (0))->GetId()]))
+                    << ") with latency = " << latencyStringStream.str() 
+                    << " and bandwidth = " << bandwidthStream.str() << ".\n"; */
       }
     }
   }
@@ -273,6 +313,7 @@ BitcoinTopologyHelper::BitcoinTopologyHelper (uint32_t noCpus, uint32_t totalNoN
 
 BitcoinTopologyHelper::~BitcoinTopologyHelper ()
 {
+  delete[] m_bitcoinNodesRegion;
 }
 
 void
@@ -328,6 +369,11 @@ BitcoinTopologyHelper::AssignIpv4Addresses (Ipv4AddressHelperCustom ip)
     ip.NewNetwork ();
         
     m_interfaces.push_back (newInterfaces);
+	
+	double bandwidth = std::min(m_regionBandwidths[m_bitcoinNodesRegion[node1]], m_regionBandwidths[m_bitcoinNodesRegion[node2]]);
+	m_nodesBandwidths[node1][interfaceAddress2] = bandwidth;
+	m_nodesBandwidths[node2][interfaceAddress1] = bandwidth;
+
   }
 
   
@@ -389,6 +435,28 @@ BitcoinTopologyHelper::GetMiners (void) const
 {
   return m_miners;
 }
+
+void
+BitcoinTopologyHelper::AssignRegion (uint32_t id)
+{
+  int number = m_nodesDistribution(m_generator); 
+  m_bitcoinNodesRegion[id] = number;
+  //std::cout << "SystemId = " << m_systemId << " assigned node " << id << " in " << getBitcoinRegion(getBitcoinEnum(m_bitcoinNodesRegion[id])) << "\n";
+}
+
+
+uint32_t* 
+BitcoinTopologyHelper::GetBitcoinNodesRegions (void)
+{
+  return m_bitcoinNodesRegion;
+}
+
+std::map<uint32_t, std::map<Ipv4Address, double>> 
+BitcoinTopologyHelper::GetNodesBandwidths (void) const
+{
+  return m_nodesBandwidths;
+}
+
 
 } // namespace ns3
 

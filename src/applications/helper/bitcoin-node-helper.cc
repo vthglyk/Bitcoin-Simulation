@@ -26,10 +26,11 @@
 
 namespace ns3 {
 
-BitcoinNodeHelper::BitcoinNodeHelper (std::string protocol, Address address, std::vector<Ipv4Address> &peers, nodeStatistics *stats)
+BitcoinNodeHelper::BitcoinNodeHelper (std::string protocol, Address address, std::vector<Ipv4Address> &peers, 
+                                      std::map<Ipv4Address, double> &bandwidths, nodeStatistics *stats)
 {
   m_factory.SetTypeId ("ns3::BitcoinNode");
-  commonConstructor (protocol, address, peers, stats);
+  commonConstructor (protocol, address, peers, bandwidths, stats);
 }
 
 BitcoinNodeHelper::BitcoinNodeHelper (void)
@@ -37,11 +38,13 @@ BitcoinNodeHelper::BitcoinNodeHelper (void)
 }
 
 void 
-BitcoinNodeHelper::commonConstructor(std::string protocol, Address address, std::vector<Ipv4Address> &peers, nodeStatistics *stats) 
+BitcoinNodeHelper::commonConstructor(std::string protocol, Address address, std::vector<Ipv4Address> &peers, 
+                                     std::map<Ipv4Address, double> &bandwidths, nodeStatistics *stats) 
 {
   m_protocol = protocol;
   m_address = address;
   m_peersAddresses = peers;
+  m_bandwidths = bandwidths;
   m_nodeStats = stats;
 
   m_factory.Set ("Protocol", StringValue (m_protocol));
@@ -86,6 +89,7 @@ BitcoinNodeHelper::InstallPriv (Ptr<Node> node)
 {
   Ptr<BitcoinNode> app = m_factory.Create<BitcoinNode> ();
   app->SetPeersAddresses(m_peersAddresses);
+  app->SetNodeBandwidths(m_bandwidths);
   app->SetNodeStats(m_nodeStats);
   
   node->AddApplication (app);
@@ -104,5 +108,12 @@ BitcoinNodeHelper::SetNodeStats (nodeStatistics *nodeStats)
 {
   m_nodeStats = nodeStats;
 }
+
+void 
+BitcoinNodeHelper::SetNodeBandwidths (std::map<Ipv4Address, double> &bandwidths)
+{
+  m_bandwidths = bandwidths;
+}
+
 
 } // namespace ns3

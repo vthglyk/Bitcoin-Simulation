@@ -500,4 +500,33 @@ const char* getMinerType(enum MinerType m)
       case SELFISH_MINER: return "SELFISH_MINER";
    }
 }
+
+const char* getBitcoinRegion(enum BitcoinRegion m)
+{
+   switch (m) 
+   {
+      case ASIA_PACIFIC: return "ASIA_PACIFIC";
+      case AUSTRALIA: return "AUSTRALIA";
+      case EUROPE: return "EUROPE";
+      case JAPAN: return "JAPAN";
+      case NORTH_AMERICA: return "NORTH_AMERICA";
+      case SOUTH_AMERICA: return "SOUTH_AMERICA";
+	  case OTHER: return "OTHER";
+   }
+}
+
+
+enum BitcoinRegion getBitcoinEnum(uint32_t n)
+{
+   switch (n) 
+   {
+      case 0: return NORTH_AMERICA;
+      case 1: return EUROPE;
+      case 2: return SOUTH_AMERICA;
+      case 3: return ASIA_PACIFIC;
+      case 4: return JAPAN;
+      case 5: return AUSTRALIA;
+	  case 6: return OTHER;
+   }
+}
 }// Namespace ns3

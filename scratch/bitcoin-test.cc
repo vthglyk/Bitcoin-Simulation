@@ -36,6 +36,7 @@ double get_wall_time();
 int GetNodeIdByIpv4 (Ipv4InterfaceContainer container, Ipv4Address addr);
 void PrintStatsForEachNode (nodeStatistics *stats, int totalNodes);
 void PrintTotalStats (nodeStatistics *stats, int totalNodes, double start, double finish);
+void PrintBitcoinRegionStats (uint32_t *bitcoinNodesRegions, uint32_t totalNodes);
 
 NS_LOG_COMPONENT_DEFINE ("MyMpiTest");
 
@@ -75,12 +76,12 @@ main (int argc, char *argv[])
   double stop;
 
 
-  Ipv4InterfaceContainer                         ipv4InterfaceContainer;
-  std::map<uint32_t, std::vector<Ipv4Address>>   nodesConnections;
-  std::vector<uint32_t>                          miners;
-  int                                            nodesInSystemId0 = 0;
+  Ipv4InterfaceContainer                               ipv4InterfaceContainer;
+  std::map<uint32_t, std::vector<Ipv4Address>>         nodesConnections;
+  std::map<uint32_t, std::map<Ipv4Address, double>>    nodesBandwidths;
+  std::vector<uint32_t>                                miners;
+  int                                                  nodesInSystemId0 = 0;
   
-  srand (1000);
   Time::SetResolution (Time::NS);
   
   CommandLine cmd;
@@ -149,10 +150,13 @@ main (int argc, char *argv[])
   ipv4InterfaceContainer = bitcoinTopologyHelper.GetIpv4InterfaceContainer();
   nodesConnections = bitcoinTopologyHelper.GetNodesConnectionsIps();
   miners = bitcoinTopologyHelper.GetMiners();
+  nodesBandwidths = bitcoinTopologyHelper.GetNodesBandwidths();
+  if (systemId == 0)
+    PrintBitcoinRegionStats(bitcoinTopologyHelper.GetBitcoinNodesRegions(), totalNoNodes);
 											   
   //Install miners
   BitcoinMinerHelper bitcoinMinerHelper ("ns3::TcpSocketFactory", InetSocketAddress (Ipv4Address::GetAny (), bitcoinPort),
-                                          nodesConnections[miners[0]], stats, minersHash[0], 
+                                          nodesConnections[miners[0]], nodesBandwidths[0], stats, minersHash[0], 
                                           averageBlockGenIntervalSeconds);
   ApplicationContainer bitcoinMiners;
   int count = 0;
@@ -167,6 +171,7 @@ main (int argc, char *argv[])
 	{
       bitcoinMinerHelper.SetAttribute("HashRate", DoubleValue(minersHash[count]));
 	  bitcoinMinerHelper.SetPeersAddresses (nodesConnections[miner]);
+	  bitcoinMinerHelper.SetNodeBandwidths (nodesBandwidths[miner]);
 	  bitcoinMinerHelper.SetNodeStats (&stats[miner]);
 	  bitcoinMiners.Add(bitcoinMinerHelper.Install (targetNode));
 /*       std::cout << "SystemId " << systemId << ": Miner " << miner << " with hash power = " << minersHash[count] 
@@ -186,7 +191,7 @@ main (int argc, char *argv[])
 
   
   //Install simple nodes
-  BitcoinNodeHelper bitcoinNodeHelper ("ns3::TcpSocketFactory", InetSocketAddress (Ipv4Address::GetAny (), bitcoinPort), nodesConnections[0], stats);
+  BitcoinNodeHelper bitcoinNodeHelper ("ns3::TcpSocketFactory", InetSocketAddress (Ipv4Address::GetAny (), bitcoinPort), nodesConnections[0], nodesBandwidths[0], stats);
   ApplicationContainer bitcoinNodes;
   
   for(auto &node : nodesConnections)
@@ -199,6 +204,7 @@ main (int argc, char *argv[])
       if ( std::find(miners.begin(), miners.end(), node.first) == miners.end() )
 	  {
 	    bitcoinNodeHelper.SetPeersAddresses (node.second);
+	    bitcoinNodeHelper.SetNodeBandwidths (nodesBandwidths[node.first]);
 		bitcoinNodeHelper.SetNodeStats (&stats[node.first]);
 	    bitcoinNodes.Add(bitcoinNodeHelper.Install (targetNode));
 /*         std::cout << "SystemId " << systemId << ": Node " << node.first << " with systemId = " << targetNode->GetSystemId() 
@@ -384,6 +390,8 @@ void PrintTotalStats (nodeStatistics *stats, int totalNodes, double start, doubl
   int        totalBlocks = 0;
   int        staleBlocks = 0;
   
+  std::vector<double>    propagationTimes;
+  
   for (int it = 0; it < totalNodes; it++ )
   {
     meanBlockReceiveTime = meanBlockReceiveTime*totalBlocks/(totalBlocks + stats[it].totalBlocks)
@@ -394,19 +402,43 @@ void PrintTotalStats (nodeStatistics *stats, int totalNodes, double start, doubl
                          + stats[it].meanBlockSize*stats[it].totalBlocks/(totalBlocks + stats[it].totalBlocks);
     totalBlocks += stats[it].totalBlocks;
     staleBlocks += stats[it].staleBlocks;
+	
+	propagationTimes.push_back(stats[it].meanBlockPropagationTime);
   }
+  
   
   totalBlocks /= static_cast<double>(totalNodes);
   staleBlocks /= static_cast<double>(totalNodes);
-
+  sort(propagationTimes.begin(), propagationTimes.end());
+  double median = *(propagationTimes.begin()+propagationTimes.size()/2);
+  double p_90 = *(propagationTimes.begin()+int(propagationTimes.size()*.9));
+  
   std::cout << "\nTotal Stats:\n";
   std::cout << "Mean Block Receive Time = " << meanBlockReceiveTime << " or " 
             << static_cast<int>(meanBlockReceiveTime) / secPerMin << "min and " 
 	        << meanBlockReceiveTime - static_cast<int>(meanBlockReceiveTime) / secPerMin * secPerMin << "s\n";
   std::cout << "Mean Block Propagation Time = " << meanBlockPropagationTime << "s\n";
+  std::cout << "Median Block Propagation Time = " << median << "s\n";
+  std::cout << "90% percentile of Block Propagation Time = " << p_90 << "s\n";
   std::cout << "Mean Block Size = " << meanBlockSize << " Bytes\n";
   std::cout << "Total Blocks = " << totalBlocks << "\n";
   std::cout << "Stale Blocks = " << staleBlocks << " (" 
             << 100. * staleBlocks / totalBlocks << "%)\n";
   std::cout << (finish - start)/ (totalBlocks - 1)<< "s per generated block\n";
 }
+
+void PrintBitcoinRegionStats (uint32_t *bitcoinNodesRegions, uint32_t totalNodes)
+{
+  uint32_t regions[7] = {0, 0, 0, 0, 0, 0, 0};
+  
+  for (uint32_t i = 0; i < totalNodes; i++)
+    regions[bitcoinNodesRegions[i]]++;
+  
+  std::cout << "Nodes distribution: \n";
+  for (uint32_t i = 0; i < 7; i++)
+  {
+    std::cout << getBitcoinRegion(getBitcoinEnum(i)) << ": " << regions[i] * 100.0 / totalNodes << "%\n";
+  }
+}
+	
+	
