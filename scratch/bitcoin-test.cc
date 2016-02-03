@@ -67,9 +67,14 @@ main (int argc, char *argv[])
   double minersHash[] = {0.289, 0.196, 0.159, 0.133, 0.066, 0.054,
                          0.029, 0.016, 0.012, 0.012, 0.012, 0.009,
                          0.005, 0.005, 0.002, 0.002};
+  enum BitcoinRegion minersRegions[] = {ASIA_PACIFIC, ASIA_PACIFIC, ASIA_PACIFIC, NORTH_AMERICA, ASIA_PACIFIC, NORTH_AMERICA,
+                                        EUROPE, EUROPE, NORTH_AMERICA, NORTH_AMERICA, NORTH_AMERICA, EUROPE,
+                                        NORTH_AMERICA, NORTH_AMERICA, NORTH_AMERICA, NORTH_AMERICA};
+                          
 #else
   int noMiners = 3;
   double minersHash[] = {0.4, 0.3, 0.3};
+  enum BitcoinRegion minersRegions[] = {ASIA_PACIFIC, ASIA_PACIFIC, ASIA_PACIFIC};
 #endif
 
   double averageBlockGenIntervalMinutes = averageBlockGenIntervalSeconds/secsPerMin;
@@ -137,7 +142,7 @@ main (int argc, char *argv[])
     return 0;
   }
  
-  BitcoinTopologyHelper bitcoinTopologyHelper (systemCount, totalNoNodes, noMiners,
+  BitcoinTopologyHelper bitcoinTopologyHelper (systemCount, totalNoNodes, noMiners, minersRegions,
                                                bandwidth, minConnectionsPerNode, 
                                                maxConnectionsPerNode, latency, 2, systemId);
 

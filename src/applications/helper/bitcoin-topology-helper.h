@@ -55,7 +55,7 @@ public:
    *                     to connect all of the nodes together 
    *                     in the grid
    */
-  BitcoinTopologyHelper (uint32_t noCpus, uint32_t totalNoNodes, uint32_t noMiners,
+  BitcoinTopologyHelper (uint32_t noCpus, uint32_t totalNoNodes, uint32_t noMiners, enum BitcoinRegion *minersRegions,
                          double bandwidth, int minConnectionsPerNode, int maxConnectionsPerNode,
 						 double paretoMean, double latencyParetoShape, uint32_t systemId = 0);
 
@@ -145,9 +145,12 @@ private:
   double       m_latencyParetoShape;            //!<  The pareto shape for the latency of the point-to-point links
   int          m_minConnectionsPerNode;         //!<  The minimum connections per node
   int          m_maxConnectionsPerNode;         //!<  The maximum connections per node
+  int          m_minConnectionsPerMiner;        //!<  The minimum connections per node
+  int          m_maxConnectionsPerMiner;        //!<  The maximum connections per node
   uint32_t     m_totalNoLinks;                  //!<  Total number of links
   uint32_t     m_systemId;
   
+  enum BitcoinRegion                             *m_minersRegions;
   std::vector<uint32_t>                           m_miners;                  //!< The ids of the miners
   std::map<uint32_t, std::vector<uint32_t>>       m_nodesConnections;        //!< key = nodeId
   std::map<uint32_t, std::vector<Ipv4Address>>    m_nodesConnectionsIps;     //!< key = nodeId

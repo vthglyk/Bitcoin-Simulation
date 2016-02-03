@@ -37,13 +37,13 @@ namespace ns3 {
 
 NS_LOG_COMPONENT_DEFINE ("BitcoinTopologyHelper");
 
-BitcoinTopologyHelper::BitcoinTopologyHelper (uint32_t noCpus, uint32_t totalNoNodes, uint32_t noMiners,
+BitcoinTopologyHelper::BitcoinTopologyHelper (uint32_t noCpus, uint32_t totalNoNodes, uint32_t noMiners, enum BitcoinRegion *minersRegions,
                                               double bandwidth, int minConnectionsPerNode, int maxConnectionsPerNode,
 						                      double latencyParetoMean, double latencyParetoShape, uint32_t systemId)
   : m_noCpus(noCpus), m_totalNoNodes (totalNoNodes), m_noMiners (noMiners), m_bandwidth (bandwidth), 
     m_minConnectionsPerNode (minConnectionsPerNode), m_maxConnectionsPerNode (maxConnectionsPerNode), 
 	m_totalNoLinks (0), m_latencyParetoMean (latencyParetoMean), m_latencyParetoShape (latencyParetoShape), 
-	m_systemId (systemId)
+	m_systemId (systemId), m_minConnectionsPerMiner (125), m_maxConnectionsPerMiner (800)
 {
   
   std::vector<uint32_t>     nodes;    //nodes contain the ids of the nodes
@@ -85,6 +85,11 @@ BitcoinTopologyHelper::BitcoinTopologyHelper (uint32_t noCpus, uint32_t totalNoN
                                 
   m_nodesDistribution = std::piecewise_constant_distribution<double> (intervals.begin(), intervals.end(), weights.begin());
   
+  m_minersRegions = new enum BitcoinRegion[m_noMiners];
+  for (int i = 0; i < m_noMiners; i++)
+  {
+    m_minersRegions[i] = minersRegions[i];
+  }
   
   /**
    * Create a vector containing all the nodes ids
@@ -123,7 +128,8 @@ BitcoinTopologyHelper::BitcoinTopologyHelper (uint32_t noCpus, uint32_t totalNoN
       }
 	} */
   }
-  
+
+  sort(m_miners.begin(), m_miners.end());
   
 /*   //Print the miners
   if (m_systemId == 0)
@@ -175,11 +181,31 @@ BitcoinTopologyHelper::BitcoinTopologyHelper (uint32_t noCpus, uint32_t totalNoN
   for(int i = 0; i < m_totalNoNodes; i++)
   {
 	int count = 0;
-    while (m_nodesConnections[i].size() < m_minConnectionsPerNode && count < 2*m_minConnectionsPerNode)
+	int minConnections;
+	int maxConnections;
+	
+	if ( std::find(m_miners.begin(), m_miners.end(), i) != m_miners.end() )
+	{
+	  minConnections = m_minConnectionsPerMiner;
+	  maxConnections = m_maxConnectionsPerMiner;
+	}
+	else
+	{
+	  minConnections = m_minConnectionsPerNode;
+	  maxConnections = m_maxConnectionsPerNode;
+	}
+	
+    while (m_nodesConnections[i].size() < minConnections && count < 2*minConnections)
     {
       uint32_t index = rand() % nodes.size();
 	  uint32_t candidatePeer = nodes[index];
+      int candidatesMaxConnections; 
 		
+	  if ( std::find(m_miners.begin(), m_miners.end(), candidatePeer) != m_miners.end() )
+        maxConnections = m_maxConnectionsPerMiner;
+	  else
+        maxConnections = m_maxConnectionsPerNode;
+   
       if (candidatePeer == i)
       {
 /* 		if (m_systemId == 0)
@@ -190,16 +216,17 @@ BitcoinTopologyHelper::BitcoinTopologyHelper (uint32_t noCpus, uint32_t totalNoN
 /* 		if (m_systemId == 0)
           std::cout << "Node " << i << " has already a connection to Node " << nodes[index] << "\n"; */
       }
-      else if (m_nodesConnections[candidatePeer].size() >= m_maxConnectionsPerNode)
+      else if (m_nodesConnections[candidatePeer].size() >= maxConnections)
       {
 /* 		if (m_systemId == 0)
-          std::cout << "Node " << nodes[index] << " has already " << m_maxConnectionsPerNode << " connections" << "\n"; */
+          std::cout << "Node " << nodes[index] << " has already " << maxConnections << " connections" << "\n"; */
       }
       else
       {
         m_nodesConnections[i].push_back(candidatePeer);
         m_nodesConnections[candidatePeer].push_back(i);
-        if (m_nodesConnections[candidatePeer].size() == m_maxConnectionsPerNode)
+		
+        if (m_nodesConnections[candidatePeer].size() == maxConnections)
         {
 /* 		  if (m_systemId == 0)
             std::cout << "Node " << nodes[index] << " is removed from index\n"; */
@@ -209,7 +236,7 @@ BitcoinTopologyHelper::BitcoinTopologyHelper (uint32_t noCpus, uint32_t totalNoN
       count++;
 	}
 	  
-	if (m_nodesConnections[i].size() < m_minConnectionsPerNode && m_systemId == 0)
+	if (m_nodesConnections[i].size() < minConnections && m_systemId == 0)
 	  std::cout << "Node " << i << " has only " << m_nodesConnections[i].size() << " connections\n";
 
   }
@@ -314,6 +341,7 @@ BitcoinTopologyHelper::BitcoinTopologyHelper (uint32_t noCpus, uint32_t totalNoN
 BitcoinTopologyHelper::~BitcoinTopologyHelper ()
 {
   delete[] m_bitcoinNodesRegion;
+  delete[] m_minersRegions;
 }
 
 void
@@ -439,9 +467,18 @@ BitcoinTopologyHelper::GetMiners (void) const
 void
 BitcoinTopologyHelper::AssignRegion (uint32_t id)
 {
-  int number = m_nodesDistribution(m_generator); 
-  m_bitcoinNodesRegion[id] = number;
-  //std::cout << "SystemId = " << m_systemId << " assigned node " << id << " in " << getBitcoinRegion(getBitcoinEnum(m_bitcoinNodesRegion[id])) << "\n";
+  auto index = std::find(m_miners.begin(), m_miners.end(), id);
+  if ( index != m_miners.end() )
+  {
+    m_bitcoinNodesRegion[id] = m_minersRegions[index - m_miners.begin()];
+  }
+  else{
+    int number = m_nodesDistribution(m_generator); 
+    m_bitcoinNodesRegion[id] = number;
+  }
+  
+/*   if (m_systemId == 0)
+    std::cout << "SystemId = " << m_systemId << " assigned node " << id << " in " << getBitcoinRegion(getBitcoinEnum(m_bitcoinNodesRegion[id])) << "\n"; */
 }
 
 

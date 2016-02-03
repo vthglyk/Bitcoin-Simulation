@@ -52,7 +52,7 @@ BitcoinNode::GetTypeId (void)
   return tid;
 }
 
-BitcoinNode::BitcoinNode (void) : m_bitcoinPort (8333), m_secondsPerMin(60)
+BitcoinNode::BitcoinNode (void) : m_bitcoinPort (8333), m_secondsPerMin(60), m_isMiner (false), m_minerBandwidth (100)
 {
   NS_LOG_FUNCTION (this);
   m_socket = 0;
@@ -142,6 +142,14 @@ BitcoinNode::StartApplication ()    // Called at time specified by Start
   for (auto it = m_peersAddresses.begin(); it != m_peersAddresses.end(); it++)
     NS_LOG_DEBUG("\t" << *it);
 
+  double currentMax = 0;
+  for(auto it = m_bandwidths.begin(); it != m_bandwidths.end(); ++it ) 
+  {
+    if (it ->second > currentMax) {
+        currentMax = it->second;
+    }
+  }
+  m_nodeMaxBandwidth = currentMax;
   
   if (!m_socket)
     {
@@ -226,6 +234,7 @@ BitcoinNode::StopApplication ()     // Called at time specified by Stop
   //m_blockchain.PrintOrphans();
   //PrintQueueInv();
   //PrintInvTimeouts();
+  
   NS_LOG_WARN("Mean Block Receive Time = " << m_meanBlockReceiveTime << " or " 
                << static_cast<int>(m_meanBlockReceiveTime) / m_secondsPerMin << "min and " 
 			   << m_meanBlockReceiveTime - static_cast<int>(m_meanBlockReceiveTime) / m_secondsPerMin * m_secondsPerMin << "s");
@@ -235,7 +244,8 @@ BitcoinNode::StopApplication ()     // Called at time specified by Stop
   NS_LOG_WARN("Stale Blocks = " << m_blockchain.GetNoStaleBlocks() << " (" 
               << 100. * m_blockchain.GetNoStaleBlocks() / m_blockchain.GetTotalBlocks() << "%)");
   NS_LOG_WARN("receivedButNotValidated size = " << m_receivedNotValidated.size());
-
+  NS_LOG_WARN("m_sendBlockTimes size = " << m_sendBlockTimes.size());
+  
   m_nodeStats->meanBlockReceiveTime = m_meanBlockReceiveTime;
   m_nodeStats->meanBlockPropagationTime = m_meanBlockPropagationTime;
   m_nodeStats->meanBlockSize = m_meanBlockSize;
@@ -465,7 +475,10 @@ BitcoinNode::HandleRead (Ptr<Socket> socket)
             }
             case GET_DATA:
             {
+              NS_LOG_INFO ("GET_DATA");
+			  
               int j;
+              int totalBlockMessageSize = 0;
               std::vector<Block>              requestBlocks;
               std::vector<Block>::iterator    block_it;
 			  
@@ -516,7 +529,9 @@ BitcoinNode::HandleRead (Ptr<Socket> socket)
                   blockInfo.AddMember("parentBlockMinerId", value, d.GetAllocator ());
   
                   value = block_it->GetBlockSizeBytes ();
+				  totalBlockMessageSize += value.GetInt();
                   blockInfo.AddMember("size", value, d.GetAllocator ());
+                  
   
                   value = block_it->GetTimeCreated ();
                   blockInfo.AddMember("timeCreated", value, d.GetAllocator ());
@@ -528,8 +543,36 @@ BitcoinNode::HandleRead (Ptr<Socket> socket)
                 }	
 				
                 d.AddMember("blocks", array, d.GetAllocator());
+				
+		        double bandwidth;
+		        double sendTime;
+				
+		        if (m_isMiner)
+		          bandwidth = m_minerBandwidth * 1000000 / 8; //m_bandwidth in Mbps, bandwidth in B/s
+		        else
+		          bandwidth = m_nodeMaxBandwidth * 1000000 / 8; //m_bandwidth in Mbps, bandwidth in B/s, FIX ME
+		          //bandwidth = m_bandwidths[InetSocketAddress::ConvertFrom(from).GetIpv4 ()] * 1000000 / 8; //m_bandwidth in Mbps, bandwidth in B/s
+			  
+				NS_LOG_INFO("Node " << GetNode()->GetId() << "-" << InetSocketAddress::ConvertFrom(from).GetIpv4 () 
+				            << " " << m_bandwidths[InetSocketAddress::ConvertFrom(from).GetIpv4 ()] << " Mbps\n");
+				
+                if (m_sendBlockTimes.size() == 0)
+                  sendTime = totalBlockMessageSize / bandwidth; //FIX ME: constant MB/s
+                else
+                  sendTime = totalBlockMessageSize / bandwidth + m_sendBlockTimes.back() - Simulator::Now ().GetSeconds(); //FIX ME: constant MB/s
 
-                SendMessage(GET_DATA, BLOCK, d, from);	
+                m_sendBlockTimes.push_back(Simulator::Now ().GetSeconds() + sendTime);
+				NS_LOG_WARN("Node " << GetNode()->GetId() << " will send the block to " << InetSocketAddress::ConvertFrom(from).GetIpv4 () 
+				            << " at " << Simulator::Now ().GetSeconds() + sendTime << "\n");
+                // Stringify the DOM
+                rapidjson::StringBuffer packetInfo;
+                rapidjson::Writer<rapidjson::StringBuffer> writer(packetInfo);
+                d.Accept(writer);
+				std::string packet = packetInfo.GetString();
+				NS_LOG_INFO ("DEBUG: " << packetInfo.GetString());
+				
+                Simulator::Schedule (Seconds(sendTime), &BitcoinNode::SendBlock, this, packet, from);
+                
               }
               break;
             }
@@ -623,7 +666,7 @@ BitcoinNode::HandleRead (Ptr<Socket> socket)
 			  
               for (j=0; j<d["blocks"].Size(); j++)
               {  
-		        double bandwidth = m_bandwidths[InetSocketAddress::ConvertFrom(from).GetIpv4 ()] * 1000000 / 8; //m_bandwidth in Mbps, bandwidth in B/s
+/* 		        double bandwidth = m_bandwidths[InetSocketAddress::ConvertFrom(from).GetIpv4 ()] * 1000000 / 8; //m_bandwidth in Mbps, bandwidth in B/s
 				
 				NS_LOG_INFO("Node " << GetNode()->GetId() << "-" << InetSocketAddress::ConvertFrom(from).GetIpv4 () 
 				            << " " << m_bandwidths[InetSocketAddress::ConvertFrom(from).GetIpv4 ()] << " Mbps\n");
@@ -634,7 +677,15 @@ BitcoinNode::HandleRead (Ptr<Socket> socket)
                                 Simulator::Now ().GetSeconds () + fullBlockReceiveTime, InetSocketAddress::ConvertFrom(from).GetIpv4 ());
 
                 Simulator::Schedule (Seconds(fullBlockReceiveTime), &BitcoinNode::ReceiveBlock, this, newBlock);
-                NS_LOG_INFO("The full block " << newBlock << " will be received in " << fullBlockReceiveTime << "s");
+                NS_LOG_INFO("The full block " << newBlock << " will be received in " << fullBlockReceiveTime << "s"); */
+				
+							
+                Block newBlock (d["blocks"][j]["height"].GetInt(), d["blocks"][j]["minerId"].GetInt(), d["blocks"][j]["parentBlockMinerId"].GetInt(), 
+                                d["blocks"][j]["size"].GetInt(), d["blocks"][j]["timeCreated"].GetDouble(), 
+                                Simulator::Now ().GetSeconds (), InetSocketAddress::ConvertFrom(from).GetIpv4 ());
+
+                ReceiveBlock (newBlock);
+				
               }
               break;
             }
@@ -696,6 +747,22 @@ BitcoinNode::ReceiveBlock(const Block &newBlock)
   }
 
 }
+
+
+void 
+BitcoinNode::SendBlock(std::string packetInfo, Address& from) 
+{
+  NS_LOG_FUNCTION (this);
+  
+  
+  NS_LOG_INFO ("SendBlock: At time " << Simulator::Now ().GetSeconds ()
+                << "s bitcoin node " << GetNode ()->GetId () << " send " 
+                << packetInfo << " to " << InetSocketAddress::ConvertFrom(from).GetIpv4 ());
+				
+  m_sendBlockTimes.erase(m_sendBlockTimes.begin());				
+  SendMessage(GET_DATA, BLOCK, packetInfo, from);
+}
+
 
 void 
 BitcoinNode::ReceivedHigherBlock(const Block &newBlock) 
@@ -892,6 +959,39 @@ BitcoinNode::SendMessage(enum Messages receivedMessage,  enum Messages responseM
   rapidjson::StringBuffer buffer;
   rapidjson::Writer<rapidjson::StringBuffer> writer(buffer);
 				
+  d["message"].SetInt(responseMessage);
+  d.Accept(writer);
+  NS_LOG_INFO ("Node " << GetNode ()->GetId () << " got a " 
+               << getMessageName(receivedMessage) << " message" 
+               << " and sent a " << getMessageName(responseMessage) 
+			   << " message: " << buffer.GetString());
+			
+  Ipv4Address outgoingIpv4Address = InetSocketAddress::ConvertFrom(outgoingAddress).GetIpv4 ();
+  std::map<Ipv4Address, Ptr<Socket>>::iterator it = m_peersSockets.find(outgoingIpv4Address);
+  
+  if (it == m_peersSockets.end()) //Create the socket if it doesn't exist
+  {
+    m_peersSockets[outgoingIpv4Address] = Socket::CreateSocket (GetNode (), TcpSocketFactory::GetTypeId ());  
+    m_peersSockets[outgoingIpv4Address]->Connect (InetSocketAddress (outgoingIpv4Address, m_bitcoinPort));
+  }
+  
+  m_peersSockets[outgoingIpv4Address]->Send (reinterpret_cast<const uint8_t*>(buffer.GetString()), buffer.GetSize(), 0);
+  m_peersSockets[outgoingIpv4Address]->Send (delimiter, 1, 0);		
+}
+
+
+void
+BitcoinNode::SendMessage(enum Messages receivedMessage,  enum Messages responseMessage, std::string packet, Address &outgoingAddress)
+{
+  NS_LOG_FUNCTION (this);
+  
+  const uint8_t delimiter[] = "#";
+  rapidjson::Document d;
+  
+  rapidjson::StringBuffer buffer;
+  rapidjson::Writer<rapidjson::StringBuffer> writer(buffer);
+
+  d.Parse(packet.c_str());  
   d["message"].SetInt(responseMessage);
   d.Accept(writer);
   NS_LOG_INFO ("Node " << GetNode ()->GetId () << " got a " 

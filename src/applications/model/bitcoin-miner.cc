@@ -92,7 +92,7 @@ BitcoinMiner::GetTypeId (void)
 }
 
 BitcoinMiner::BitcoinMiner () : BitcoinNode(), m_realAverageBlockGenIntervalSeconds(10*m_secondsPerMin),
-                                m_timeStart (0), m_timeFinish (0), m_fistToMine (false)
+                                m_timeStart (0), m_timeFinish (0), m_fistToMine (false) 
 {
   NS_LOG_FUNCTION (this);
   m_minerAverageBlockGenInterval = 0;
@@ -111,7 +111,8 @@ BitcoinMiner::BitcoinMiner () : BitcoinNode(), m_realAverageBlockGenIntervalSeco
     m_nextBlockSize = m_fixedBlockSize;
   else
     m_nextBlockSize = 0;
-
+  
+  m_isMiner = true;
 }
 
 
