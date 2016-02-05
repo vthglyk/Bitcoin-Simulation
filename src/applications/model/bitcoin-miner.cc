@@ -415,6 +415,8 @@ BitcoinMiner::MineBlock (void)
     m_peersSockets[*i]->Send (reinterpret_cast<const uint8_t*>(packetInfo.GetString()), packetInfo.GetSize(), 0);
 	m_peersSockets[*i]->Send (delimiter, 1, 0);
 
+    m_nodeStats->invSentBytes += m_countBytes + d["inv"].Size()*m_inventorySizeBytes;
+
     NS_LOG_INFO ("At time " << Simulator::Now ().GetSeconds ()
                  << "s bitcoin miner " << GetNode ()->GetId () 
                  << " sent a packet " << packetInfo.GetString() 

@@ -148,6 +148,12 @@ protected:
   
   const int		  m_bitcoinPort;   //!< 8333
   const int       m_secondsPerMin; //!< 8333
+  const int       m_countBytes;    //!< The size of count variable in messages, 4 Bytes
+  const int       m_inventorySizeBytes; //!< The size of inventories in INV messages, 36 Bytes
+  const int       m_getHeadersSizeBytes; //!< The size of the GET_HEADERS message, 72 Bytes
+  const int       m_headersSizeBytes; //!< 81 Bytes
+  const int       m_blockHeadersSizeBytes; //!< 80 Bytes
+  
   /// Traced Callback: received packets, source address.
   TracedCallback<Ptr<const Packet>, const Address &> m_rxTrace;
 

@@ -52,7 +52,8 @@ BitcoinNode::GetTypeId (void)
   return tid;
 }
 
-BitcoinNode::BitcoinNode (void) : m_bitcoinPort (8333), m_secondsPerMin(60), m_isMiner (false), m_minerBandwidth (100)
+BitcoinNode::BitcoinNode (void) : m_bitcoinPort (8333), m_secondsPerMin(60), m_isMiner (false), m_minerBandwidth (100),
+                                  m_countBytes (4), m_inventorySizeBytes (36), m_getHeadersSizeBytes (72), m_headersSizeBytes (81), m_blockHeadersSizeBytes (80)
 {
   NS_LOG_FUNCTION (this);
   m_socket = 0;
@@ -198,9 +199,20 @@ BitcoinNode::StartApplication ()    // Called at time specified by Start
   m_nodeStats->minerGeneratedBlocks = 0;
   m_nodeStats->minerAverageBlockGenInterval = 0;
   m_nodeStats->minerAverageBlockSize = 0;
-  m_nodeStats->minerAverageBlockSize = 0;
   m_nodeStats->hashRate = 0;
   m_nodeStats->attackSuccess = 0;
+  m_nodeStats->invReceivedBytes = 0;
+  m_nodeStats->invSentBytes = 0;
+  m_nodeStats->getHeadersReceivedBytes = 0;
+  m_nodeStats->getHeadersSentBytes = 0;
+  m_nodeStats->headersReceivedBytes = 0;
+  m_nodeStats->headersSentBytes = 0;
+  m_nodeStats->getDataReceivedBytes = 0;
+  m_nodeStats->getDataSentBytes = 0;
+  m_nodeStats->blockReceivedBytes = 0;
+  m_nodeStats->blockSentBytes = 0;
+  m_nodeStats->longestFork = 0;
+  m_nodeStats->blocksInForks = 0;
 }
 
 void 
@@ -230,7 +242,7 @@ BitcoinNode::StopApplication ()     // Called at time specified by Stop
 
   NS_LOG_WARN("\n\nBITCOIN NODE " << GetNode ()->GetId () << ":");
   NS_LOG_WARN ("Current Top Block is:\n" << *(m_blockchain.GetCurrentTopBlock()));
-  NS_LOG_INFO ("Current Blockchain is:\n" << m_blockchain);
+  NS_LOG_INFO("Current Blockchain is:\n" << m_blockchain);
   //m_blockchain.PrintOrphans();
   //PrintQueueInv();
   //PrintInvTimeouts();
@@ -245,13 +257,16 @@ BitcoinNode::StopApplication ()     // Called at time specified by Stop
               << 100. * m_blockchain.GetNoStaleBlocks() / m_blockchain.GetTotalBlocks() << "%)");
   NS_LOG_WARN("receivedButNotValidated size = " << m_receivedNotValidated.size());
   NS_LOG_WARN("m_sendBlockTimes size = " << m_sendBlockTimes.size());
+  NS_LOG_WARN("longest fork = " << m_blockchain.GetLongestForkSize());
+  NS_LOG_WARN("blocks in forks = " << m_blockchain.GetBlocksInForks());
   
   m_nodeStats->meanBlockReceiveTime = m_meanBlockReceiveTime;
   m_nodeStats->meanBlockPropagationTime = m_meanBlockPropagationTime;
   m_nodeStats->meanBlockSize = m_meanBlockSize;
   m_nodeStats->totalBlocks = m_blockchain.GetTotalBlocks();
   m_nodeStats->staleBlocks = m_blockchain.GetNoStaleBlocks();
-
+  m_nodeStats->longestFork = m_blockchain.GetLongestForkSize();
+  m_nodeStats->blocksInForks = m_blockchain.GetBlocksInForks();
   
 /*     std::cout << "\nNode " << m_nodeStats->nodeId << " statistics:\n";
     std::cout << "Mean Block Receive Time = " << m_nodeStats->meanBlockReceiveTime << " or " 
@@ -336,6 +351,8 @@ BitcoinNode::HandleRead (Ptr<Socket> socket)
 			  std::vector<std::string>            requestBlocks;
 			  std::vector<std::string>::iterator  block_it;
 			  
+              m_nodeStats->invReceivedBytes += m_countBytes + d["inv"].Size()*m_inventorySizeBytes;
+			  
 			  for (j=0; j<d["inv"].Size(); j++)
 			  {  
 			    std::string   invDelimiter = "/";
@@ -409,6 +426,8 @@ BitcoinNode::HandleRead (Ptr<Socket> socket)
               std::vector<Block>              requestBlocks;
               std::vector<Block>::iterator    block_it;
 			  
+			  m_nodeStats->getHeadersReceivedBytes += m_getHeadersSizeBytes;
+			  
               for (j=0; j<d["blocks"].Size(); j++)
               {  
                 std::string   invDelimiter = "/";
@@ -481,7 +500,9 @@ BitcoinNode::HandleRead (Ptr<Socket> socket)
               int totalBlockMessageSize = 0;
               std::vector<Block>              requestBlocks;
               std::vector<Block>::iterator    block_it;
-			  
+
+              m_nodeStats->getDataReceivedBytes += m_countBytes + d["blocks"].Size()*m_inventorySizeBytes;
+
               for (j=0; j<d["blocks"].Size(); j++)
               {  
                 std::string    invDelimiter = "/";
@@ -562,7 +583,7 @@ BitcoinNode::HandleRead (Ptr<Socket> socket)
                   sendTime = totalBlockMessageSize / bandwidth + m_sendBlockTimes.back() - Simulator::Now ().GetSeconds(); //FIX ME: constant MB/s
 
                 m_sendBlockTimes.push_back(Simulator::Now ().GetSeconds() + sendTime);
-				NS_LOG_WARN("Node " << GetNode()->GetId() << " will send the block to " << InetSocketAddress::ConvertFrom(from).GetIpv4 () 
+				NS_LOG_INFO("Node " << GetNode()->GetId() << " will send the block to " << InetSocketAddress::ConvertFrom(from).GetIpv4 () 
 				            << " at " << Simulator::Now ().GetSeconds() + sendTime << "\n");
                 // Stringify the DOM
                 rapidjson::StringBuffer packetInfo;
@@ -583,7 +604,9 @@ BitcoinNode::HandleRead (Ptr<Socket> socket)
               std::vector<std::string>              requestBlocks;
               std::vector<std::string>::iterator    block_it;
               int j;
-			  
+
+              m_nodeStats->headersReceivedBytes += m_countBytes + d["blocks"].Size()*m_headersSizeBytes;
+
               for (j=0; j<d["blocks"].Size(); j++)
               {  
                 int parentHeight = d["blocks"][j]["height"].GetInt() - 1;
@@ -662,8 +685,8 @@ BitcoinNode::HandleRead (Ptr<Socket> socket)
             {
               NS_LOG_INFO ("BLOCK");
               int j;
-              double fullBlockReceiveTime = 0;
-			  
+              double fullBlockReceiveTime = 0;      
+
               for (j=0; j<d["blocks"].Size(); j++)
               {  
 /* 		        double bandwidth = m_bandwidths[InetSocketAddress::ConvertFrom(from).GetIpv4 ()] * 1000000 / 8; //m_bandwidth in Mbps, bandwidth in B/s
@@ -679,7 +702,7 @@ BitcoinNode::HandleRead (Ptr<Socket> socket)
                 Simulator::Schedule (Seconds(fullBlockReceiveTime), &BitcoinNode::ReceiveBlock, this, newBlock);
                 NS_LOG_INFO("The full block " << newBlock << " will be received in " << fullBlockReceiveTime << "s"); */
 				
-							
+                m_nodeStats->blockReceivedBytes += m_blockHeadersSizeBytes + m_countBytes + d["blocks"][j]["size"].GetInt();
                 Block newBlock (d["blocks"][j]["height"].GetInt(), d["blocks"][j]["minerId"].GetInt(), d["blocks"][j]["parentBlockMinerId"].GetInt(), 
                                 d["blocks"][j]["size"].GetInt(), d["blocks"][j]["timeCreated"].GetDouble(), 
                                 Simulator::Now ().GetSeconds (), InetSocketAddress::ConvertFrom(from).GetIpv4 ());
@@ -918,7 +941,7 @@ BitcoinNode::AdvertiseNewBlock (const Block &newBlock)
       m_peersSockets[*i]->Send (reinterpret_cast<const uint8_t*>(packetInfo.GetString()), packetInfo.GetSize(), 0);
 	  m_peersSockets[*i]->Send (delimiter, 1, 0);
 	  
-
+      m_nodeStats->invSentBytes += m_countBytes + d["inv"].Size()*m_inventorySizeBytes;
       NS_LOG_INFO ("AdvertiseNewBlock: At time " << Simulator::Now ().GetSeconds ()
                    << "s bitcoin node " << GetNode ()->GetId () << " advertised a new Block: " 
                    << newBlock << " to " << *i);
@@ -946,7 +969,37 @@ BitcoinNode::SendMessage(enum Messages receivedMessage,  enum Messages responseM
 			   << " message: " << buffer.GetString());
 
   outgoingSocket->Send (reinterpret_cast<const uint8_t*>(buffer.GetString()), buffer.GetSize(), 0);
-  outgoingSocket->Send (delimiter, 1, 0);		
+  outgoingSocket->Send (delimiter, 1, 0);	
+
+  switch (d["message"].GetInt()) 
+  {
+    case INV:
+    {
+      m_nodeStats->invSentBytes += m_countBytes + d["inv"].Size()*m_inventorySizeBytes;;
+      break;
+    }	  
+    case GET_HEADERS:
+    {
+      m_nodeStats->getHeadersSentBytes += m_getHeadersSizeBytes;
+      break;
+    }
+    case HEADERS:
+    {
+      m_nodeStats->headersSentBytes += m_countBytes + d["blocks"].Size()*m_headersSizeBytes;
+      break;
+    }
+    case BLOCK:
+    {
+	  for(int k = 0; k < d["blocks"].Size(); k++)
+        m_nodeStats->blockSentBytes += m_blockHeadersSizeBytes + m_countBytes + d["blocks"][k]["size"].GetInt();
+      break;
+    }
+    case GET_DATA:
+    {
+      m_nodeStats->getDataSentBytes += m_countBytes + d["blocks"].Size()*m_inventorySizeBytes;
+      break;
+    }
+  }  
 }
 
 void
@@ -976,7 +1029,37 @@ BitcoinNode::SendMessage(enum Messages receivedMessage,  enum Messages responseM
   }
   
   m_peersSockets[outgoingIpv4Address]->Send (reinterpret_cast<const uint8_t*>(buffer.GetString()), buffer.GetSize(), 0);
-  m_peersSockets[outgoingIpv4Address]->Send (delimiter, 1, 0);		
+  m_peersSockets[outgoingIpv4Address]->Send (delimiter, 1, 0);	
+
+  switch (d["message"].GetInt()) 
+  {
+    case INV:
+    {
+      m_nodeStats->invSentBytes += m_countBytes + d["inv"].Size()*m_inventorySizeBytes;;
+      break;
+    }	  
+    case GET_HEADERS:
+    {
+      m_nodeStats->getHeadersSentBytes += m_getHeadersSizeBytes;
+      break;
+    }
+    case HEADERS:
+    {
+      m_nodeStats->headersSentBytes += m_countBytes + d["blocks"].Size()*m_headersSizeBytes;
+      break;
+    }
+    case BLOCK:
+    {
+	  for(int k = 0; k < d["blocks"].Size(); k++)
+        m_nodeStats->blockSentBytes += m_blockHeadersSizeBytes + m_countBytes + d["blocks"][k]["size"].GetInt();
+      break;
+    }
+    case GET_DATA:
+    {
+      m_nodeStats->getDataSentBytes += m_countBytes + d["blocks"].Size()*m_inventorySizeBytes;
+      break;
+    }
+  } 
 }
 
 
@@ -1009,7 +1092,37 @@ BitcoinNode::SendMessage(enum Messages receivedMessage,  enum Messages responseM
   }
   
   m_peersSockets[outgoingIpv4Address]->Send (reinterpret_cast<const uint8_t*>(buffer.GetString()), buffer.GetSize(), 0);
-  m_peersSockets[outgoingIpv4Address]->Send (delimiter, 1, 0);		
+  m_peersSockets[outgoingIpv4Address]->Send (delimiter, 1, 0);	
+
+  switch (d["message"].GetInt()) 
+  {
+    case INV:
+    {
+      m_nodeStats->invSentBytes += m_countBytes + d["inv"].Size()*m_inventorySizeBytes;;
+      break;
+    }	  
+    case GET_HEADERS:
+    {
+      m_nodeStats->getHeadersSentBytes += m_getHeadersSizeBytes;
+      break;
+    }
+    case HEADERS:
+    {
+      m_nodeStats->headersSentBytes += m_countBytes + d["blocks"].Size()*m_headersSizeBytes;
+      break;
+    }
+    case BLOCK:
+    {
+	  for(int k = 0; k < d["blocks"].Size(); k++)
+        m_nodeStats->blockSentBytes += m_blockHeadersSizeBytes + m_countBytes + d["blocks"][k]["size"].GetInt();
+      break;
+    }
+    case GET_DATA:
+    {
+      m_nodeStats->getDataSentBytes += m_countBytes + d["blocks"].Size()*m_inventorySizeBytes;
+      break;
+    }
+  } 
 }
 
 

@@ -4,6 +4,7 @@
 #include <vector>
 #include <map>
 #include "ns3/address.h"
+#include <algorithm>
 
 namespace ns3 {
 	
@@ -48,6 +49,18 @@ typedef struct {
   double   minerAverageBlockSize;
   double   hashRate;
   int      attackSuccess; //0->fail, 1->success
+  long     invReceivedBytes;
+  long     invSentBytes;
+  long     getHeadersReceivedBytes;
+  long     getHeadersSentBytes;
+  long     headersReceivedBytes;
+  long     headersSentBytes;
+  long     getDataReceivedBytes;
+  long     getDataSentBytes;
+  long     blockReceivedBytes;
+  long     blockSentBytes;
+  int      longestFork;
+  int      blocksInForks;
 } nodeStatistics;
 
 const char* getMessageName(enum Messages m);
@@ -142,6 +155,10 @@ public:
   void RemoveOrphan (const Block& newBlock);
   void PrintOrphans (void);
   
+  int GetBlocksInForks (void);
+  
+  int GetLongestForkSize (void);
+
   friend std::ostream& operator<< (std::ostream &out, Blockchain &blockchain);
 
 private:

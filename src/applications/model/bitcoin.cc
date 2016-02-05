@@ -437,6 +437,94 @@ Blockchain::PrintOrphans (void)
 }
 
 
+int 
+Blockchain::GetBlocksInForks (void)
+{
+  std::vector< std::vector<Block>>::iterator blockHeight_it;
+  int count = 0;
+  
+  for (blockHeight_it = m_blocks.begin(); blockHeight_it < m_blocks.end(); blockHeight_it++) 
+  {
+    if (blockHeight_it->size() > 1)
+      count += blockHeight_it->size();
+  }
+  
+  return count;
+}
+
+
+int 
+Blockchain::GetLongestForkSize (void)
+{
+  std::vector< std::vector<Block>>::iterator   blockHeight_it;
+  std::vector<Block>::iterator                 block_it;
+  std::map<int, int>                           forkedBlocksParentId;
+  std::vector<int>                             newForks; 
+  int maxSize = 0;
+  
+  for (blockHeight_it = m_blocks.begin(); blockHeight_it < m_blocks.end(); blockHeight_it++) 
+  {
+	
+    if (blockHeight_it->size() > 1 && forkedBlocksParentId.size() == 0)
+    {
+      for (block_it = blockHeight_it->begin();  block_it < blockHeight_it->end(); block_it++)
+	  {
+	    forkedBlocksParentId[block_it->GetMinerId()] = 1;
+      }
+	}
+	else if (blockHeight_it->size() > 1)
+    {
+      for (block_it = blockHeight_it->begin();  block_it < blockHeight_it->end(); block_it++)
+	  {
+        std::map<int, int>::iterator mapIndex = forkedBlocksParentId.find(block_it->GetParentBlockMinerId());
+        
+        if(mapIndex != forkedBlocksParentId.end())
+        {
+          forkedBlocksParentId[block_it->GetMinerId()] = mapIndex->second + 1;
+		  if(block_it->GetMinerId() != mapIndex->first)
+            forkedBlocksParentId.erase(mapIndex);	
+          newForks.push_back(block_it->GetMinerId());		  
+        }
+        else
+        {
+          forkedBlocksParentId[block_it->GetMinerId()] = 1;
+        }		  
+      }
+	  
+      for (auto &block : forkedBlocksParentId)
+	  {
+       if (std::find(newForks.begin(), newForks.end(), block.first) == newForks.end() )
+       {
+		 if(block.second > maxSize)
+           maxSize = block.second;
+         forkedBlocksParentId.erase(block.first);
+	   }
+	  }
+	}
+	else if (blockHeight_it->size() == 1 && forkedBlocksParentId.size() > 0)
+    {
+
+      for (auto &block : forkedBlocksParentId)
+	  {
+
+		 if(block.second > maxSize)
+           maxSize = block.second;
+	   }
+	
+	  forkedBlocksParentId.clear();
+    }
+  }
+  
+  for (auto &block : forkedBlocksParentId)
+  {
+    if(block.second > maxSize)
+      maxSize = block.second;
+  }
+   
+  return maxSize;
+}
+
+
 bool operator== (const Block &block1, const Block &block2)
 {
   if (block1.GetBlockHeight() == block2.GetBlockHeight() && block1.GetMinerId() == block2.GetMinerId())
