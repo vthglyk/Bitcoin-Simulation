@@ -232,12 +232,6 @@ main (int argc, char *argv[])
   if (systemId == 0)
     std::cout << "Setup time = " << tStartSimulation - tStart << "s\n";
   Simulator::Stop (Minutes (stop + 0.1));
-  
-    // Trace routing tables 
-  Ipv4GlobalRoutingHelper g;
-  Ptr<OutputStreamWrapper> routingStream = Create<OutputStreamWrapper> ("dynamic-global-routing.routes", std::ios::out);
-  g.PrintRoutingTableAllAt (Seconds (0), routingStream);
-  
   Simulator::Run ();
   Simulator::Destroy ();
 

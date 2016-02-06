@@ -39,10 +39,6 @@ public:
    */
   Ptr<Socket> GetListeningSocket (void) const;
 
-  /**
-   * \return list of pointers to accepted sockets
-   */
-  std::list<Ptr<Socket> > GetAcceptedSockets (void) const;
 
   /**
    * \return a vector containing the addresses of peers
@@ -135,7 +131,6 @@ protected:
   double          m_minerBandwidth;
   double          m_nodeMaxBandwidth;
   
-  std::list<Ptr<Socket> >                             m_socketList;            //!< the accepted sockets
   std::vector<Ipv4Address>		                      m_peersAddresses;        //!< The addresses of peers
   std::map<Ipv4Address, double>                       m_bandwidths;            //!< The bandwidths of channels
   std::map<Ipv4Address, Ptr<Socket>>                  m_peersSockets;          //!< The sockets of peers

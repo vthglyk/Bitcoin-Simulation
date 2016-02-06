@@ -77,13 +77,6 @@ BitcoinNode::GetListeningSocket (void) const
   return m_socket;
 }
 
-std::list<Ptr<Socket> >
-BitcoinNode::GetAcceptedSockets (void) const
-{
-  NS_LOG_FUNCTION (this);
-  return m_socketList;
-}
-
   
 std::vector<Ipv4Address> 
 BitcoinNode::GetPeersAddresses (void) const
@@ -123,7 +116,6 @@ BitcoinNode::DoDispose (void)
 {
   NS_LOG_FUNCTION (this);
   m_socket = 0;
-  m_socketList.clear ();
 
   // chain up
   Application::DoDispose ();
@@ -228,12 +220,7 @@ BitcoinNode::StopApplication ()     // Called at time specified by Stop
 	m_peersSockets[*i]->Close ();
   }
   
-  while(!m_socketList.empty ()) //these are accepted sockets, close them
-    {
-      Ptr<Socket> acceptedSocket = m_socketList.front ();
-      m_socketList.pop_front ();
-      acceptedSocket->Close ();
-    }
+
   if (m_socket) 
     {
       m_socket->Close ();
@@ -1260,7 +1247,6 @@ BitcoinNode::HandleAccept (Ptr<Socket> s, const Address& from)
 {
   NS_LOG_FUNCTION (this << s << from);
   s->SetRecvCallback (MakeCallback (&BitcoinNode::HandleRead, this));
-  m_socketList.push_back (s);
 }
 
 } // Namespace ns3
