@@ -35,7 +35,7 @@ using namespace ns3;
 double get_wall_time();
 int GetNodeIdByIpv4 (Ipv4InterfaceContainer container, Ipv4Address addr);
 void PrintStatsForEachNode (nodeStatistics *stats, int totalNodes);
-void PrintTotalStats (nodeStatistics *stats, int totalNodes, double start, double finish);
+void PrintTotalStats (nodeStatistics *stats, int totalNodes, double start, double finish, double averageBlockGenIntervalMinutes);
 void PrintBitcoinRegionStats (uint32_t *bitcoinNodesRegions, uint32_t totalNodes);
 
 NS_LOG_COMPONENT_DEFINE ("MyMpiTest");
@@ -232,6 +232,12 @@ main (int argc, char *argv[])
   if (systemId == 0)
     std::cout << "Setup time = " << tStartSimulation - tStart << "s\n";
   Simulator::Stop (Minutes (stop + 0.1));
+  
+    // Trace routing tables 
+  Ipv4GlobalRoutingHelper g;
+  Ptr<OutputStreamWrapper> routingStream = Create<OutputStreamWrapper> ("dynamic-global-routing.routes", std::ios::out);
+  g.PrintRoutingTableAllAt (Seconds (0), routingStream);
+  
   Simulator::Run ();
   Simulator::Destroy ();
 
@@ -337,7 +343,7 @@ main (int argc, char *argv[])
     tFinish=get_wall_time();
 	
     PrintStatsForEachNode(stats, totalNoNodes);
-    PrintTotalStats(stats, totalNoNodes, tStartSimulation, tFinish);
+    PrintTotalStats(stats, totalNoNodes, tStartSimulation, tFinish, averageBlockGenIntervalMinutes);
     std::cout << "\nThe simulation ran for " << tFinish - tStart << "s simulating "
               << stop << "mins. Performed " << stop * secsPerMin / (tFinish - tStart)
               << " faster than realtime.\n" << "Setup time = " << tStartSimulation - tStart << "s\n"
@@ -426,7 +432,7 @@ void PrintStatsForEachNode (nodeStatistics *stats, int totalNodes)
 }
 
 
-void PrintTotalStats (nodeStatistics *stats, int totalNodes, double start, double finish)
+void PrintTotalStats (nodeStatistics *stats, int totalNodes, double start, double finish, double averageBlockGenIntervalMinutes)
 {
   const int  secPerMin = 60;
   double     meanBlockReceiveTime = 0;
@@ -446,7 +452,7 @@ void PrintTotalStats (nodeStatistics *stats, int totalNodes, double start, doubl
   double     blockSentBytes = 0;
   double     longestFork = 0;
   double     blocksInForks = 0;
-  double     averageBandwidth = 0;
+  double     averageBandwidthPerNode = 0;
   
   std::vector<double>    propagationTimes;
   
@@ -457,7 +463,7 @@ void PrintTotalStats (nodeStatistics *stats, int totalNodes, double start, doubl
     meanBlockPropagationTime = meanBlockPropagationTime*totalBlocks/(totalBlocks + stats[it].totalBlocks)
                          + stats[it].meanBlockPropagationTime*stats[it].totalBlocks/(totalBlocks + stats[it].totalBlocks);
     meanBlockSize = meanBlockSize*totalBlocks/(totalBlocks + stats[it].totalBlocks)
-                         + stats[it].meanBlockSize*stats[it].totalBlocks/(totalBlocks + stats[it].totalBlocks);
+                  + stats[it].meanBlockSize*stats[it].totalBlocks/(totalBlocks + stats[it].totalBlocks);
     totalBlocks += stats[it].totalBlocks;
     staleBlocks += stats[it].staleBlocks;
     invReceivedBytes = invReceivedBytes*it/static_cast<double>(it + 1) + stats[it].invReceivedBytes/static_cast<double>(it + 1);
@@ -476,8 +482,8 @@ void PrintTotalStats (nodeStatistics *stats, int totalNodes, double start, doubl
 	propagationTimes.push_back(stats[it].meanBlockPropagationTime);
   }
   
-  averageBandwidth = invReceivedBytes + invSentBytes + getHeadersReceivedBytes + getHeadersSentBytes + headersReceivedBytes
-                   + headersSentBytes + getDataReceivedBytes + getDataSentBytes + blockReceivedBytes + blockSentBytes;
+  averageBandwidthPerNode = invReceivedBytes + invSentBytes + getHeadersReceivedBytes + getHeadersSentBytes + headersReceivedBytes
+                          + headersSentBytes + getDataReceivedBytes + getDataSentBytes + blockReceivedBytes + blockSentBytes;
 				   
   totalBlocks /= static_cast<double>(totalNodes);
   staleBlocks /= static_cast<double>(totalNodes);
@@ -499,36 +505,37 @@ void PrintTotalStats (nodeStatistics *stats, int totalNodes, double start, doubl
   std::cout << "The size of the longest fork was " << longestFork << " blocks\n";
   std::cout << "There were in total " << blocksInForks << " blocks in forks\n";
   std::cout << "The average received INV messages were " << invReceivedBytes << " Bytes (" 
-            << 100. * invReceivedBytes / averageBandwidth << "%)\n";
+            << 100. * invReceivedBytes / averageBandwidthPerNode << "%)\n";
   std::cout << "The average received GET_HEADERS messages were " << getHeadersReceivedBytes << " Bytes (" 
-            << 100. * getHeadersReceivedBytes / averageBandwidth << "%)\n";
+            << 100. * getHeadersReceivedBytes / averageBandwidthPerNode << "%)\n";
   std::cout << "The average received HEADERS messages were " << headersReceivedBytes << " Bytes (" 
-            << 100. * headersReceivedBytes / averageBandwidth << "%)\n";
+            << 100. * headersReceivedBytes / averageBandwidthPerNode << "%)\n";
   std::cout << "The average received GET_DATA messages were " << getDataReceivedBytes << " Bytes (" 
-            << 100. * getDataReceivedBytes / averageBandwidth << "%)\n";
+            << 100. * getDataReceivedBytes / averageBandwidthPerNode << "%)\n";
   std::cout << "The average received BLOCK messages were " << blockReceivedBytes << " Bytes (" 
-            << 100. * blockReceivedBytes / averageBandwidth << "%)\n";
+            << 100. * blockReceivedBytes / averageBandwidthPerNode << "%)\n";
   std::cout << "The average sent INV messages were " << invSentBytes << " Bytes (" 
-            << 100. * invSentBytes / averageBandwidth << "%)\n";
+            << 100. * invSentBytes / averageBandwidthPerNode << "%)\n";
   std::cout << "The average sent GET_HEADERS messages were " << getHeadersSentBytes << " Bytes (" 
-            << 100. * getHeadersSentBytes / averageBandwidth << "%)\n";
+            << 100. * getHeadersSentBytes / averageBandwidthPerNode << "%)\n";
   std::cout << "The average sent HEADERS messages were " << headersSentBytes << " Bytes (" 
-            << 100. * headersSentBytes / averageBandwidth << "%)\n";
+            << 100. * headersSentBytes / averageBandwidthPerNode << "%)\n";
   std::cout << "The average sent GET_DATA messages were " << getDataSentBytes << " Bytes (" 
-            << 100. * getDataSentBytes / averageBandwidth << "%)\n";
+            << 100. * getDataSentBytes / averageBandwidthPerNode << "%)\n";
   std::cout << "The average sent BLOCK messages were " << blockSentBytes << " Bytes (" 
-            << 100. * blockSentBytes / averageBandwidth << "%)\n";
+            << 100. * blockSentBytes / averageBandwidthPerNode << "%)\n";
   std::cout << "Total average traffic due to INV messages = " << invReceivedBytes +  invSentBytes << " Bytes(" 
-            << 100. * (invReceivedBytes +  invSentBytes) / averageBandwidth << "%)\n";	
+            << 100. * (invReceivedBytes +  invSentBytes) / averageBandwidthPerNode << "%)\n";	
   std::cout << "Total average traffic due to GET_HEADERS messages = " << getHeadersReceivedBytes +  getHeadersSentBytes << " Bytes(" 
-            << 100. * (getHeadersReceivedBytes +  getHeadersSentBytes) / averageBandwidth << "%)\n";
+            << 100. * (getHeadersReceivedBytes +  getHeadersSentBytes) / averageBandwidthPerNode << "%)\n";
   std::cout << "Total average traffic due to HEADERS messages = " << headersReceivedBytes +  headersSentBytes << " Bytes(" 
-            << 100. * (headersReceivedBytes +  headersSentBytes) / averageBandwidth << "%)\n";
+            << 100. * (headersReceivedBytes +  headersSentBytes) / averageBandwidthPerNode << "%)\n";
   std::cout << "Total average traffic due to GET_DATA messages = " << getDataReceivedBytes +  getDataSentBytes << " Bytes(" 
-            << 100. * (getDataReceivedBytes +  getDataSentBytes) / averageBandwidth << "%)\n";
+            << 100. * (getDataReceivedBytes +  getDataSentBytes) / averageBandwidthPerNode << "%)\n";
   std::cout << "Total average traffic due to BLOCK messages = " << blockReceivedBytes +  blockSentBytes << " Bytes(" 
-            << 100. * (blockReceivedBytes +  blockSentBytes) / averageBandwidth << "%)\n";
-  std::cout << "Total average traffic = " << averageBandwidth << " Bytes\n";
+            << 100. * (blockReceivedBytes +  blockSentBytes) / averageBandwidthPerNode << "%)\n";
+  std::cout << "Total average traffic/node = " << averageBandwidthPerNode << " Bytes (" 
+            << averageBandwidthPerNode / (1000 * totalBlocks * averageBlockGenIntervalMinutes * secPerMin) << "Kbps)\n";
   std::cout << (finish - start)/ (totalBlocks - 1)<< "s per generated block\n";
 }
 

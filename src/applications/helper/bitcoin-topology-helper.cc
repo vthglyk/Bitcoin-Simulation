@@ -260,8 +260,8 @@ BitcoinTopologyHelper::BitcoinTopologyHelper (uint32_t noCpus, uint32_t totalNoN
   if (m_systemId == 0)
   {
     std::cout << "The nodes connections were created in " << tFinish - tStart << "s.\n";
-    std::cout << "The minimum number of connections for each node are " << m_minConnectionsPerNode 
-              << " and whereas the maximum are " << m_maxConnectionsPerNode << ".\n";
+    std::cout << "The minimum number of connections for each node is " << m_minConnectionsPerNode 
+              << " and whereas the maximum is " << m_maxConnectionsPerNode << ".\n";
   }
   
   
