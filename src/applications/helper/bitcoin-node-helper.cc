@@ -27,10 +27,10 @@
 namespace ns3 {
 
 BitcoinNodeHelper::BitcoinNodeHelper (std::string protocol, Address address, std::vector<Ipv4Address> &peers, 
-                                      std::map<Ipv4Address, double> &bandwidths, nodeStatistics *stats)
+                                      std::map<Ipv4Address, double> &peersDownloadSpeeds, nodeInternetSpeeds &internetSpeeds, nodeStatistics *stats)
 {
   m_factory.SetTypeId ("ns3::BitcoinNode");
-  commonConstructor (protocol, address, peers, bandwidths, stats);
+  commonConstructor (protocol, address, peers, peersDownloadSpeeds, internetSpeeds, stats);
 }
 
 BitcoinNodeHelper::BitcoinNodeHelper (void)
@@ -39,12 +39,13 @@ BitcoinNodeHelper::BitcoinNodeHelper (void)
 
 void 
 BitcoinNodeHelper::commonConstructor(std::string protocol, Address address, std::vector<Ipv4Address> &peers, 
-                                     std::map<Ipv4Address, double> &bandwidths, nodeStatistics *stats) 
+                                     std::map<Ipv4Address, double> &peersDownloadSpeeds, nodeInternetSpeeds &internetSpeeds, nodeStatistics *stats) 
 {
   m_protocol = protocol;
   m_address = address;
   m_peersAddresses = peers;
-  m_bandwidths = bandwidths;
+  m_peersDownloadSpeeds = peersDownloadSpeeds;
+  m_internetSpeeds = internetSpeeds;
   m_nodeStats = stats;
 
   m_factory.Set ("Protocol", StringValue (m_protocol));
@@ -89,7 +90,8 @@ BitcoinNodeHelper::InstallPriv (Ptr<Node> node)
 {
   Ptr<BitcoinNode> app = m_factory.Create<BitcoinNode> ();
   app->SetPeersAddresses(m_peersAddresses);
-  app->SetNodeBandwidths(m_bandwidths);
+  app->SetPeersDownloadSpeeds(m_peersDownloadSpeeds);
+  app->SetNodeInternetSpeeds(m_internetSpeeds);
   app->SetNodeStats(m_nodeStats);
   
   node->AddApplication (app);
@@ -104,16 +106,20 @@ BitcoinNodeHelper::SetPeersAddresses (std::vector<Ipv4Address> &peersAddresses)
 }
 
 void 
+BitcoinNodeHelper::SetPeersDownloadSpeeds (std::map<Ipv4Address, double> &peersDownloadSpeeds)
+{
+  m_peersDownloadSpeeds = peersDownloadSpeeds;
+}
+
+void 
+BitcoinNodeHelper::SetNodeInternetSpeeds (nodeInternetSpeeds &internetSpeeds)
+{
+  m_internetSpeeds = internetSpeeds;	
+}
+
+void 
 BitcoinNodeHelper::SetNodeStats (nodeStatistics *nodeStats)
 {
   m_nodeStats = nodeStats;
 }
-
-void 
-BitcoinNodeHelper::SetNodeBandwidths (std::map<Ipv4Address, double> &bandwidths)
-{
-  m_bandwidths = bandwidths;
-}
-
-
 } // namespace ns3

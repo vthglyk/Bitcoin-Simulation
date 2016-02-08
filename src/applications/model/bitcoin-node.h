@@ -52,9 +52,14 @@ public:
   void SetPeersAddresses (const std::vector<Ipv4Address> &peers);
   
   /**
-   * set the bandwidths of peers
+   * set the peersDownloadSpeeds of peers
    */
-  void SetNodeBandwidths (const std::map<Ipv4Address, double> &bandwidths);
+  void SetPeersDownloadSpeeds (const std::map<Ipv4Address, double> &peersDownloadSpeeds);
+  
+  /**
+   * set the internet speeds of the node
+   */
+  void SetNodeInternetSpeeds (const nodeInternetSpeeds &internetSpeeds);
   
   /**
    * set the node statistics
@@ -128,11 +133,11 @@ protected:
   Blockchain 	  m_blockchain;
   Time            m_invTimeoutMinutes;
   bool            m_isMiner;
-  double          m_minerBandwidth;
-  double          m_nodeMaxBandwidth;
+  double          m_downloadSpeed;
+  double          m_uploadSpeed;
   
   std::vector<Ipv4Address>		                      m_peersAddresses;        //!< The addresses of peers
-  std::map<Ipv4Address, double>                       m_bandwidths;            //!< The bandwidths of channels
+  std::map<Ipv4Address, double>                       m_peersDownloadSpeeds;            //!< The peersDownloadSpeeds of channels
   std::map<Ipv4Address, Ptr<Socket>>                  m_peersSockets;          //!< The sockets of peers
   std::map<std::string, std::vector<Address>>         m_queueInv;              //!< map holding the addresses of nodes which sent an INV for a particular block
   std::map<std::string, EventId>                      m_invTimeouts;           //!< map holding the event timeouts of inv messages

@@ -30,14 +30,14 @@
 namespace ns3 {
 
 BitcoinMinerHelper::BitcoinMinerHelper (std::string protocol, Address address, std::vector<Ipv4Address> peers, 
-                                        std::map<Ipv4Address, double> &bandwidths, nodeStatistics *stats,
-                                        double hashRate, double averageBlockGenIntervalSeconds) : 
+                                        std::map<Ipv4Address, double> &peersDownloadSpeeds, nodeInternetSpeeds &internetSpeeds,
+										nodeStatistics *stats, double hashRate, double averageBlockGenIntervalSeconds) : 
                                         BitcoinNodeHelper (),  m_minerType (NORMAL_MINER), 
                                         m_secureBlocks (6), m_advertiseBlocks (0), 
                                         m_blockGenBinSize (-1), m_blockGenParameter (-1)
 {
   m_factory.SetTypeId ("ns3::BitcoinMiner");
-  commonConstructor(protocol, address, peers, bandwidths, stats);
+  commonConstructor(protocol, address, peers, peersDownloadSpeeds, internetSpeeds, stats);
   
   m_hashRate = hashRate;
   m_averageBlockGenIntervalSeconds = averageBlockGenIntervalSeconds;
@@ -57,7 +57,8 @@ BitcoinMinerHelper::InstallPriv (Ptr<Node> node) //FIX ME
 	  {
         Ptr<BitcoinMiner> app = m_factory.Create<BitcoinMiner> ();
         app->SetPeersAddresses(m_peersAddresses);
-		app->SetNodeBandwidths(m_bandwidths);
+		app->SetPeersDownloadSpeeds(m_peersDownloadSpeeds);
+		app->SetNodeInternetSpeeds(m_internetSpeeds);
         app->SetNodeStats(m_nodeStats);
 
         node->AddApplication (app);
@@ -67,7 +68,8 @@ BitcoinMinerHelper::InstallPriv (Ptr<Node> node) //FIX ME
 	  {
         Ptr<BitcoinSimpleAttacker> app = m_factory.Create<BitcoinSimpleAttacker> ();
         app->SetPeersAddresses(m_peersAddresses);
-		app->SetNodeBandwidths(m_bandwidths);
+		app->SetPeersDownloadSpeeds(m_peersDownloadSpeeds);
+		app->SetNodeInternetSpeeds(m_internetSpeeds);
         app->SetNodeStats(m_nodeStats);
 
         node->AddApplication (app);
@@ -77,7 +79,8 @@ BitcoinMinerHelper::InstallPriv (Ptr<Node> node) //FIX ME
 	  {
         Ptr<BitcoinSelfishMiner> app = m_factory.Create<BitcoinSelfishMiner> ();
         app->SetPeersAddresses(m_peersAddresses);
-		app->SetNodeBandwidths(m_bandwidths);
+		app->SetPeersDownloadSpeeds(m_peersDownloadSpeeds);
+		app->SetNodeInternetSpeeds(m_internetSpeeds);
         app->SetNodeStats(m_nodeStats);
 
         node->AddApplication (app);

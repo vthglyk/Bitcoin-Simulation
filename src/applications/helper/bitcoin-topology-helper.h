@@ -130,12 +130,14 @@ public:
    
    uint32_t* GetBitcoinNodesRegions (void);
    
-   std::map<uint32_t, std::map<Ipv4Address, double>> GetNodesBandwidths (void) const;
+   std::map<uint32_t, std::map<Ipv4Address, double>> GetPeersDownloadSpeeds(void) const;
+
+   std::map<uint32_t, nodeInternetSpeeds> GetNodesInternetSpeeds (void) const;
 
 private:
 
   void AssignRegion (uint32_t id);
-  
+  void AssignInternetSpeeds(uint32_t id);
   
   uint32_t     m_totalNoNodes;                  //!< The total number of nodes
   uint32_t     m_noMiners;                      //!< The total number of miners
@@ -147,6 +149,8 @@ private:
   int          m_maxConnectionsPerNode;         //!<  The maximum connections per node
   int          m_minConnectionsPerMiner;        //!<  The minimum connections per node
   int          m_maxConnectionsPerMiner;        //!<  The maximum connections per node
+  double       m_minerDownloadSpeed;            //!<  The download speed of miners
+  double       m_minerUploadSpeed;              //!<  The upload speed of miners
   uint32_t     m_totalNoLinks;                  //!<  Total number of links
   uint32_t     m_systemId;
   
@@ -166,7 +170,8 @@ private:
   std::vector<Ipv6InterfaceContainer> m_rowInterfaces6; //!< IPv6 interfaces in a row
   std::vector<Ipv6InterfaceContainer> m_colInterfaces6; //!< IPv6 interfaces in a column
 
-  std::map<uint32_t, std::map<Ipv4Address, double>>    m_nodesBandwidths;     //!< key1 = nodeId, key2 = Ipv4Address
+  std::map<uint32_t, std::map<Ipv4Address, double>>    m_peersDownloadSpeeds;     //!< key1 = nodeId, key2 = Ipv4Address of peer
+  std::map<uint32_t, nodeInternetSpeeds>               m_nodesInternetSpeeds;     //!< key = nodeId
 
   std::default_random_engine                     m_generator;
   std::piecewise_constant_distribution<double>   m_nodesDistribution;

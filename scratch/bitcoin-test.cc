@@ -83,7 +83,8 @@ main (int argc, char *argv[])
 
   Ipv4InterfaceContainer                               ipv4InterfaceContainer;
   std::map<uint32_t, std::vector<Ipv4Address>>         nodesConnections;
-  std::map<uint32_t, std::map<Ipv4Address, double>>    nodesBandwidths;
+  std::map<uint32_t, std::map<Ipv4Address, double>>    peersDownloadSpeeds;
+  std::map<uint32_t, nodeInternetSpeeds>               nodesInternetSpeeds;
   std::vector<uint32_t>                                miners;
   int                                                  nodesInSystemId0 = 0;
   
@@ -132,7 +133,7 @@ main (int argc, char *argv[])
 #endif
 
   //LogComponentEnable("BitcoinNode", LOG_LEVEL_WARN);
-  //LogComponentEnable("BitcoinMiner", LOG_LEVEL_DEBUG);
+  //LogComponentEnable("BitcoinMiner", LOG_LEVEL_WARN);
   //LogComponentEnable("Ipv4AddressGenerator", LOG_LEVEL_FUNCTION);
   //LogComponentEnable("OnOffApplication", LOG_LEVEL_DEBUG);
   //LogComponentEnable("OnOffApplication", LOG_LEVEL_WARN);
@@ -157,14 +158,15 @@ main (int argc, char *argv[])
   ipv4InterfaceContainer = bitcoinTopologyHelper.GetIpv4InterfaceContainer();
   nodesConnections = bitcoinTopologyHelper.GetNodesConnectionsIps();
   miners = bitcoinTopologyHelper.GetMiners();
-  nodesBandwidths = bitcoinTopologyHelper.GetNodesBandwidths();
+  peersDownloadSpeeds = bitcoinTopologyHelper.GetPeersDownloadSpeeds();
+  nodesInternetSpeeds = bitcoinTopologyHelper.GetNodesInternetSpeeds();
   if (systemId == 0)
     PrintBitcoinRegionStats(bitcoinTopologyHelper.GetBitcoinNodesRegions(), totalNoNodes);
 											   
   //Install miners
   BitcoinMinerHelper bitcoinMinerHelper ("ns3::TcpSocketFactory", InetSocketAddress (Ipv4Address::GetAny (), bitcoinPort),
-                                          nodesConnections[miners[0]], nodesBandwidths[0], stats, minersHash[0], 
-                                          averageBlockGenIntervalSeconds);
+                                          nodesConnections[miners[0]], peersDownloadSpeeds[0], nodesInternetSpeeds[0], 
+										  stats, minersHash[0], averageBlockGenIntervalSeconds);
   ApplicationContainer bitcoinMiners;
   int count = 0;
   if (testScalability == true)
@@ -178,7 +180,8 @@ main (int argc, char *argv[])
 	{
       bitcoinMinerHelper.SetAttribute("HashRate", DoubleValue(minersHash[count]));
 	  bitcoinMinerHelper.SetPeersAddresses (nodesConnections[miner]);
-	  bitcoinMinerHelper.SetNodeBandwidths (nodesBandwidths[miner]);
+	  bitcoinMinerHelper.SetPeersDownloadSpeeds (peersDownloadSpeeds[miner]);
+	  bitcoinMinerHelper.SetNodeInternetSpeeds (nodesInternetSpeeds[miner]);
 	  bitcoinMinerHelper.SetNodeStats (&stats[miner]);
 	  //bitcoinMinerHelper.SetAttribute("FixedBlockSize", UintegerValue(blockSize));
 
@@ -192,7 +195,7 @@ main (int argc, char *argv[])
 	}				
 	count++;
 	if (testScalability == true)
-	  bitcoinMinerHelper.SetAttribute("FixedBlockIntervalGeneration", DoubleValue(600));
+	  bitcoinMinerHelper.SetAttribute("FixedBlockIntervalGeneration", DoubleValue(1000));
 
   }
   bitcoinMiners.Start (Seconds (start));
@@ -200,7 +203,8 @@ main (int argc, char *argv[])
 
   
   //Install simple nodes
-  BitcoinNodeHelper bitcoinNodeHelper ("ns3::TcpSocketFactory", InetSocketAddress (Ipv4Address::GetAny (), bitcoinPort), nodesConnections[0], nodesBandwidths[0], stats);
+  BitcoinNodeHelper bitcoinNodeHelper ("ns3::TcpSocketFactory", InetSocketAddress (Ipv4Address::GetAny (), bitcoinPort), 
+                                        nodesConnections[0], peersDownloadSpeeds[0], nodesInternetSpeeds[0], stats);
   ApplicationContainer bitcoinNodes;
   
   for(auto &node : nodesConnections)
@@ -213,7 +217,8 @@ main (int argc, char *argv[])
       if ( std::find(miners.begin(), miners.end(), node.first) == miners.end() )
 	  {
 	    bitcoinNodeHelper.SetPeersAddresses (node.second);
-	    bitcoinNodeHelper.SetNodeBandwidths (nodesBandwidths[node.first]);
+	    bitcoinNodeHelper.SetPeersDownloadSpeeds (peersDownloadSpeeds[node.first]);
+	    bitcoinNodeHelper.SetNodeInternetSpeeds (nodesInternetSpeeds[node.first]);
 		bitcoinNodeHelper.SetNodeStats (&stats[node.first]);
 		
 	    bitcoinNodes.Add(bitcoinNodeHelper.Install (targetNode));

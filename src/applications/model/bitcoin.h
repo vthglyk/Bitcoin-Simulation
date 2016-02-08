@@ -65,6 +65,13 @@ typedef struct {
   int      connections;
 } nodeStatistics;
 
+
+typedef struct {
+  double downloadSpeed;
+  double uploadSpeed;
+} nodeInternetSpeeds;
+
+
 const char* getMessageName(enum Messages m);
 const char* getMinerType(enum MinerType m);
 const char* getBitcoinRegion(enum BitcoinRegion m);

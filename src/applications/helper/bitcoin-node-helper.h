@@ -47,7 +47,7 @@ public:
    *
    */
   BitcoinNodeHelper (std::string protocol, Address address, std::vector<Ipv4Address> &peers, 
-                     std::map<Ipv4Address, double> &bandwidths, nodeStatistics *stats);
+                     std::map<Ipv4Address, double> &peersDownloadSpeeds, nodeInternetSpeeds &internetSpeeds, nodeStatistics *stats);
   
   /**
    * Called by subclasses to set a different factory TypeId
@@ -58,7 +58,7 @@ public:
    * Common Constructor called both from the base class and the subclasses
    */
    void commonConstructor(std::string protocol, Address address, std::vector<Ipv4Address> &peers, 
-                          std::map<Ipv4Address, double> &bandwidths, nodeStatistics *stats);
+                          std::map<Ipv4Address, double> &peersDownloadSpeeds, nodeInternetSpeeds &internetSpeeds, nodeStatistics *stats);
   
   /**
    * Helper function used to set the underlying application attributes.
@@ -98,7 +98,9 @@ public:
 
   void SetPeersAddresses (std::vector<Ipv4Address> &peersAddresses);
   
-  void SetNodeBandwidths (std::map<Ipv4Address, double> &bandwidths);
+  void SetPeersDownloadSpeeds (std::map<Ipv4Address, double> &peersDownloadSpeeds);
+
+  void SetNodeInternetSpeeds (nodeInternetSpeeds &internetSpeeds);
 
   void SetNodeStats (nodeStatistics *nodeStats);
   
@@ -116,7 +118,8 @@ protected:
   std::string                                         m_protocol;
   Address                                             m_address;
   std::vector<Ipv4Address>		                      m_peersAddresses; //!< The addresses of peers
-  std::map<Ipv4Address, double>   m_bandwidths;
+  std::map<Ipv4Address, double>                       m_peersDownloadSpeeds;
+  nodeInternetSpeeds                                  m_internetSpeeds;
   nodeStatistics                                      *m_nodeStats;
 };
 

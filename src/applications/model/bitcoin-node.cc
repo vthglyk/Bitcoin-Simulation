@@ -52,8 +52,8 @@ BitcoinNode::GetTypeId (void)
   return tid;
 }
 
-BitcoinNode::BitcoinNode (void) : m_bitcoinPort (8333), m_secondsPerMin(60), m_isMiner (false), m_minerBandwidth (100),
-                                  m_countBytes (4), m_inventorySizeBytes (36), m_getHeadersSizeBytes (72), m_headersSizeBytes (81), m_blockHeadersSizeBytes (80)
+BitcoinNode::BitcoinNode (void) : m_bitcoinPort (8333), m_secondsPerMin(60), m_isMiner (false), m_countBytes (4),
+                                  m_inventorySizeBytes (36), m_getHeadersSizeBytes (72), m_headersSizeBytes (81), m_blockHeadersSizeBytes (80)
 {
   NS_LOG_FUNCTION (this);
   m_socket = 0;
@@ -96,13 +96,23 @@ BitcoinNode::SetPeersAddresses (const std::vector<Ipv4Address> &peers)
 
 
 void 
-BitcoinNode::SetNodeBandwidths (const std::map<Ipv4Address, double> &bandwidths)
+BitcoinNode::SetPeersDownloadSpeeds (const std::map<Ipv4Address, double> &peersDownloadSpeeds)
 {
   NS_LOG_FUNCTION (this);
-  m_bandwidths = bandwidths;
+  m_peersDownloadSpeeds = peersDownloadSpeeds;
 }
 
 
+void 
+BitcoinNode::SetNodeInternetSpeeds (const nodeInternetSpeeds &internetSpeeds)
+{
+  NS_LOG_FUNCTION (this);
+
+  m_downloadSpeed = internetSpeeds.downloadSpeed * 1000000 / 8 ;
+  m_uploadSpeed = internetSpeeds.uploadSpeed * 1000000 / 8 ; 
+}
+  
+  
 void 
 BitcoinNode::SetNodeStats (nodeStatistics *nodeStats)
 {
@@ -128,21 +138,21 @@ BitcoinNode::StartApplication ()    // Called at time specified by Start
 {
   NS_LOG_FUNCTION (this);
   // Create the socket if not already
-  NS_LOG_DEBUG ("Node " << GetNode()->GetId() << ": m_numberOfPeers = " << m_numberOfPeers);
-  NS_LOG_DEBUG ("Node " << GetNode()->GetId() << ": m_invTimeoutMinutes = " << m_invTimeoutMinutes.GetMinutes() << "mins");
-  NS_LOG_DEBUG ("Node " << GetNode()->GetId() << ": My peers are");
+  NS_LOG_WARN ("Node " << GetNode()->GetId() << ": download speed = " << m_downloadSpeed << " Mbps");
+  NS_LOG_WARN ("Node " << GetNode()->GetId() << ": upload speed = " << m_uploadSpeed << " Mbps");
+  NS_LOG_INFO ("Node " << GetNode()->GetId() << ": m_numberOfPeers = " << m_numberOfPeers);
+  NS_LOG_INFO ("Node " << GetNode()->GetId() << ": m_invTimeoutMinutes = " << m_invTimeoutMinutes.GetMinutes() << "mins");
+  NS_LOG_INFO ("Node " << GetNode()->GetId() << ": My peers are");
   
   for (auto it = m_peersAddresses.begin(); it != m_peersAddresses.end(); it++)
-    NS_LOG_DEBUG("\t" << *it);
+    NS_LOG_INFO("\t" << *it);
 
   double currentMax = 0;
-  for(auto it = m_bandwidths.begin(); it != m_bandwidths.end(); ++it ) 
+  
+  for(auto it = m_peersDownloadSpeeds.begin(); it != m_peersDownloadSpeeds.end(); ++it ) 
   {
-    if (it ->second > currentMax) {
-        currentMax = it->second;
-    }
+	//std::cout << "Node " << GetNode()->GetId() << ": peer " << it->first << "download speed = " << it->second << " Mbps" << std::endl;
   }
-  m_nodeMaxBandwidth = currentMax;
   
   if (!m_socket)
     {
@@ -553,26 +563,31 @@ BitcoinNode::HandleRead (Ptr<Socket> socket)
 				
                 d.AddMember("blocks", array, d.GetAllocator());
 				
-		        double bandwidth;
 		        double sendTime;
-				
-		        if (m_isMiner)
-		          bandwidth = m_minerBandwidth * 1000000 / 8; //m_bandwidth in Mbps, bandwidth in B/s
-		        else
-		          bandwidth = m_nodeMaxBandwidth * 1000000 / 8; //m_bandwidth in Mbps, bandwidth in B/s, FIX ME
-		          //bandwidth = m_bandwidths[InetSocketAddress::ConvertFrom(from).GetIpv4 ()] * 1000000 / 8; //m_bandwidth in Mbps, bandwidth in B/s
+		        double eventTime;
 			  
-				NS_LOG_INFO("Node " << GetNode()->GetId() << "-" << InetSocketAddress::ConvertFrom(from).GetIpv4 () 
-				            << " " << m_bandwidths[InetSocketAddress::ConvertFrom(from).GetIpv4 ()] << " Mbps\n");
-				
+/* 				std::cout << "Node " << GetNode()->GetId() << "-" << InetSocketAddress::ConvertFrom(from).GetIpv4 () 
+				            << " " << m_peersDownloadSpeeds[InetSocketAddress::ConvertFrom(from).GetIpv4 ()] << " Mbps\n"; */
+                
                 if (m_sendBlockTimes.size() == 0)
-                  sendTime = totalBlockMessageSize / bandwidth; //FIX ME: constant MB/s
+                {
+                  sendTime = totalBlockMessageSize / m_uploadSpeed; //FIX ME: constant MB/s
+                  eventTime = totalBlockMessageSize / std::min(m_uploadSpeed, m_peersDownloadSpeeds[InetSocketAddress::ConvertFrom(from).GetIpv4 ()]
+                                                                              * 1000000 / 8); //FIX ME: constant MB/s
+                }
                 else
-                  sendTime = totalBlockMessageSize / bandwidth + m_sendBlockTimes.back() - Simulator::Now ().GetSeconds(); //FIX ME: constant MB/s
-
+                {
+                  sendTime = totalBlockMessageSize / m_uploadSpeed + m_sendBlockTimes.back() - Simulator::Now ().GetSeconds(); //FIX ME: constant MB/s
+                  eventTime = totalBlockMessageSize / std::min(m_uploadSpeed, m_peersDownloadSpeeds[InetSocketAddress::ConvertFrom(from).GetIpv4 ()] * 1000000 / 8)
+                           + m_sendBlockTimes.back() - Simulator::Now ().GetSeconds(); //FIX ME: constant MB/s
+                }
                 m_sendBlockTimes.push_back(Simulator::Now ().GetSeconds() + sendTime);
+ 
+               // std::cout << sendTime << " " << eventTime << " " << m_sendBlockTimes.size() << std::endl;
 				NS_LOG_INFO("Node " << GetNode()->GetId() << " will send the block to " << InetSocketAddress::ConvertFrom(from).GetIpv4 () 
 				            << " at " << Simulator::Now ().GetSeconds() + sendTime << "\n");
+							
+               
                 // Stringify the DOM
                 rapidjson::StringBuffer packetInfo;
                 rapidjson::Writer<rapidjson::StringBuffer> writer(packetInfo);
@@ -677,10 +692,10 @@ BitcoinNode::HandleRead (Ptr<Socket> socket)
 
               for (j=0; j<d["blocks"].Size(); j++)
               {  
-/* 		        double bandwidth = m_bandwidths[InetSocketAddress::ConvertFrom(from).GetIpv4 ()] * 1000000 / 8; //m_bandwidth in Mbps, bandwidth in B/s
+/* 		        double bandwidth = m_peersDownloadSpeeds[InetSocketAddress::ConvertFrom(from).GetIpv4 ()] * 1000000 / 8; //m_bandwidth in Mbps, bandwidth in B/s
 				
 				NS_LOG_INFO("Node " << GetNode()->GetId() << "-" << InetSocketAddress::ConvertFrom(from).GetIpv4 () 
-				            << " " << m_bandwidths[InetSocketAddress::ConvertFrom(from).GetIpv4 ()] << " Mbps\n");
+				            << " " << m_peersDownloadSpeeds[InetSocketAddress::ConvertFrom(from).GetIpv4 ()] << " Mbps\n");
 							
                 fullBlockReceiveTime = d["blocks"][j]["size"].GetInt() / bandwidth + fullBlockReceiveTime; //FIX ME: constant MB/s
                 Block newBlock (d["blocks"][j]["height"].GetInt(), d["blocks"][j]["minerId"].GetInt(), d["blocks"][j]["parentBlockMinerId"].GetInt(), 
