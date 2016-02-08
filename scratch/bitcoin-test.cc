@@ -56,7 +56,6 @@ main (int argc, char *argv[])
   double bandwidth = 8;
   double latency = 40;
   bool testScalability = false;
-
   
   int totalNoNodes = 4;
 
@@ -79,6 +78,7 @@ main (int argc, char *argv[])
 
   double averageBlockGenIntervalMinutes = averageBlockGenIntervalSeconds/secsPerMin;
   double stop;
+  long blockSize = 450000*averageBlockGenIntervalMinutes/realAverageBlockGenIntervalMinutes;
 
 
   Ipv4InterfaceContainer                               ipv4InterfaceContainer;
@@ -93,6 +93,7 @@ main (int argc, char *argv[])
   cmd.AddValue ("nullmsg", "Enable the use of null-message synchronization", nullmsg);
   cmd.AddValue ("bandwidth", "The bandwidth of the nodes (Mbps)", bandwidth);
   cmd.AddValue ("latency", "The latency of the nodes (ms)", latency);
+  cmd.AddValue ("blockSize", "The the fixed block size (Bytes)", blockSize);
   cmd.AddValue ("noBlocks", "The number of generated blocks", targetNumberOfBlocks);
   cmd.AddValue ("nodes", "The total number of nodes in the network", totalNoNodes);
   cmd.AddValue ("minConnections", "The minConnectionsPerNode of the grid", minConnectionsPerNode);
@@ -106,7 +107,8 @@ main (int argc, char *argv[])
   stop = targetNumberOfBlocks * averageBlockGenIntervalMinutes; //seconds
   nodeStatistics *stats = new nodeStatistics[totalNoNodes];
   averageBlockGenIntervalMinutes = averageBlockGenIntervalSeconds/secsPerMin;
-
+  blockSize = blockSize*averageBlockGenIntervalMinutes/realAverageBlockGenIntervalMinutes;
+  
 #ifdef MPI_TEST
   // Distributed simulation setup; by default use granted time window algorithm.
   if(nullmsg) 
@@ -178,6 +180,8 @@ main (int argc, char *argv[])
 	  bitcoinMinerHelper.SetPeersAddresses (nodesConnections[miner]);
 	  bitcoinMinerHelper.SetNodeBandwidths (nodesBandwidths[miner]);
 	  bitcoinMinerHelper.SetNodeStats (&stats[miner]);
+	  //bitcoinMinerHelper.SetAttribute("FixedBlockSize", UintegerValue(blockSize));
+
 	  bitcoinMiners.Add(bitcoinMinerHelper.Install (targetNode));
 /*       std::cout << "SystemId " << systemId << ": Miner " << miner << " with hash power = " << minersHash[count] 
 	            << " and systemId = " << targetNode->GetSystemId() << " was installed in node " 
@@ -211,6 +215,7 @@ main (int argc, char *argv[])
 	    bitcoinNodeHelper.SetPeersAddresses (node.second);
 	    bitcoinNodeHelper.SetNodeBandwidths (nodesBandwidths[node.first]);
 		bitcoinNodeHelper.SetNodeStats (&stats[node.first]);
+		
 	    bitcoinNodes.Add(bitcoinNodeHelper.Install (targetNode));
 /*         std::cout << "SystemId " << systemId << ": Node " << node.first << " with systemId = " << targetNode->GetSystemId() 
 		          << " was installed in node " << targetNode->GetId () <<  std::endl; */
@@ -237,11 +242,11 @@ main (int argc, char *argv[])
 
 #ifdef MPI_TEST
 
-  int            blocklen[24] = {1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
-                                 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1}; 
-  MPI_Aint       disp[24]; 
-  MPI_Datatype   dtypes[24] = {MPI_INT, MPI_DOUBLE, MPI_DOUBLE, MPI_DOUBLE, MPI_INT, MPI_INT, MPI_INT, MPI_INT, MPI_DOUBLE, MPI_DOUBLE, MPI_DOUBLE, MPI_INT,
-                               MPI_LONG, MPI_LONG, MPI_LONG, MPI_LONG, MPI_LONG, MPI_LONG, MPI_LONG, MPI_LONG, MPI_LONG, MPI_LONG, MPI_INT, MPI_INT}; 
+  int            blocklen[25] = {1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+                                 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1}; 
+  MPI_Aint       disp[25]; 
+  MPI_Datatype   dtypes[25] = {MPI_INT, MPI_DOUBLE, MPI_DOUBLE, MPI_DOUBLE, MPI_INT, MPI_INT, MPI_INT, MPI_INT, MPI_DOUBLE, MPI_DOUBLE, MPI_DOUBLE, MPI_INT,
+                               MPI_LONG, MPI_LONG, MPI_LONG, MPI_LONG, MPI_LONG, MPI_LONG, MPI_LONG, MPI_LONG, MPI_LONG, MPI_LONG, MPI_INT, MPI_INT, MPI_INT}; 
   MPI_Datatype   mpi_nodeStatisticsType;
 
   disp[0] = offsetof(nodeStatistics, nodeId);
@@ -268,8 +273,9 @@ main (int argc, char *argv[])
   disp[21] = offsetof(nodeStatistics, blockSentBytes);
   disp[22] = offsetof(nodeStatistics, longestFork);
   disp[23] = offsetof(nodeStatistics, blocksInForks);
-  
-  MPI_Type_create_struct (24, blocklen, disp, dtypes, &mpi_nodeStatisticsType);
+  disp[24] = offsetof(nodeStatistics, connections);
+
+  MPI_Type_create_struct (25, blocklen, disp, dtypes, &mpi_nodeStatisticsType);
   MPI_Type_commit (&mpi_nodeStatisticsType);
 
   if (systemId != 0 && systemCount > 1)
@@ -326,6 +332,7 @@ main (int argc, char *argv[])
       stats[recv.nodeId].blockSentBytes = recv.blockSentBytes;
       stats[recv.nodeId].longestFork = recv.longestFork;
       stats[recv.nodeId].blocksInForks = recv.blocksInForks;
+      stats[recv.nodeId].connections = recv.connections;
 
 	  count++;
     }
@@ -336,16 +343,14 @@ main (int argc, char *argv[])
   {
     tFinish=get_wall_time();
 	
-    PrintStatsForEachNode(stats, totalNoNodes);
+    //PrintStatsForEachNode(stats, totalNoNodes);
     PrintTotalStats(stats, totalNoNodes, tStartSimulation, tFinish, averageBlockGenIntervalMinutes);
     std::cout << "\nThe simulation ran for " << tFinish - tStart << "s simulating "
               << stop << "mins. Performed " << stop * secsPerMin / (tFinish - tStart)
               << " faster than realtime.\n" << "Setup time = " << tStartSimulation - tStart << "s\n"
               <<"It consisted of " << totalNoNodes << " nodes (" << noMiners << " miners) with minConnectionsPerNode = "
               << minConnectionsPerNode << " and maxConnectionsPerNode = " << maxConnectionsPerNode 
-              << ".\nThe averageBlockGenIntervalMinutes was " << averageBlockGenIntervalMinutes << "min."
-			  << "\nThe bandwidth of the nodes was " << bandwidth
-			  << "Mbps.\nThe latency of the nodes was " << latency << "s.\n";
+              << ".\nThe averageBlockGenIntervalMinutes was " << averageBlockGenIntervalMinutes << "min.\n";
 
   }  
   
@@ -391,6 +396,7 @@ void PrintStatsForEachNode (nodeStatistics *stats, int totalNodes)
   for (int it = 0; it < totalNodes; it++ )
   {
     std::cout << "\nNode " << stats[it].nodeId << " statistics:\n";
+    std::cout << "Connections = " << stats[it].connections << "\n";
     std::cout << "Mean Block Receive Time = " << stats[it].meanBlockReceiveTime << " or " 
               << static_cast<int>(stats[it].meanBlockReceiveTime) / secPerMin << "min and " 
 			  << stats[it].meanBlockReceiveTime - static_cast<int>(stats[it].meanBlockReceiveTime) / secPerMin * secPerMin << "s\n";
@@ -447,7 +453,10 @@ void PrintTotalStats (nodeStatistics *stats, int totalNodes, double start, doubl
   double     longestFork = 0;
   double     blocksInForks = 0;
   double     averageBandwidthPerNode = 0;
-  
+  double     connectionsPerNode = 0;
+  double     connectionsPerMiner = 0;
+  uint32_t   nodes = 0;
+  uint32_t   miners = 0;
   std::vector<double>    propagationTimes;
   
   for (int it = 0; it < totalNodes; it++ )
@@ -474,6 +483,17 @@ void PrintTotalStats (nodeStatistics *stats, int totalNodes, double start, doubl
     blocksInForks = blocksInForks*it/static_cast<double>(it + 1) + stats[it].blocksInForks/static_cast<double>(it + 1);
 	
 	propagationTimes.push_back(stats[it].meanBlockPropagationTime);
+	
+	if(stats[it].miner == 0)
+    {
+      connectionsPerNode = connectionsPerNode*nodes/static_cast<double>(nodes + 1) + stats[it].connections/static_cast<double>(nodes + 1);
+      nodes++;
+    }
+    else
+    {
+      connectionsPerMiner = connectionsPerMiner*miners/static_cast<double>(miners + 1) + stats[it].connections/static_cast<double>(miners + 1);
+      miners++;
+    }
   }
   
   averageBandwidthPerNode = invReceivedBytes + invSentBytes + getHeadersReceivedBytes + getHeadersSentBytes + headersReceivedBytes
@@ -483,14 +503,20 @@ void PrintTotalStats (nodeStatistics *stats, int totalNodes, double start, doubl
   staleBlocks /= static_cast<double>(totalNodes);
   sort(propagationTimes.begin(), propagationTimes.end());
   double median = *(propagationTimes.begin()+propagationTimes.size()/2);
+  double p_25 = *(propagationTimes.begin()+int(propagationTimes.size()*.25));
+  double p_75 = *(propagationTimes.begin()+int(propagationTimes.size()*.75));
   double p_90 = *(propagationTimes.begin()+int(propagationTimes.size()*.9));
   
   std::cout << "\nTotal Stats:\n";
+  std::cout << "Average Connections/node = " << connectionsPerNode << "\n";
+  std::cout << "Average Connections/miner = " << connectionsPerMiner << "\n";
   std::cout << "Mean Block Receive Time = " << meanBlockReceiveTime << " or " 
             << static_cast<int>(meanBlockReceiveTime) / secPerMin << "min and " 
 	        << meanBlockReceiveTime - static_cast<int>(meanBlockReceiveTime) / secPerMin * secPerMin << "s\n";
   std::cout << "Mean Block Propagation Time = " << meanBlockPropagationTime << "s\n";
   std::cout << "Median Block Propagation Time = " << median << "s\n";
+  std::cout << "25% percentile of Block Propagation Time = " << p_25 << "s\n";
+  std::cout << "75% percentile of Block Propagation Time = " << p_75 << "s\n";
   std::cout << "90% percentile of Block Propagation Time = " << p_90 << "s\n";
   std::cout << "Mean Block Size = " << meanBlockSize << " Bytes\n";
   std::cout << "Total Blocks = " << totalBlocks << "\n";
@@ -529,7 +555,8 @@ void PrintTotalStats (nodeStatistics *stats, int totalNodes, double start, doubl
   std::cout << "Total average traffic due to BLOCK messages = " << blockReceivedBytes +  blockSentBytes << " Bytes(" 
             << 100. * (blockReceivedBytes +  blockSentBytes) / averageBandwidthPerNode << "%)\n";
   std::cout << "Total average traffic/node = " << averageBandwidthPerNode << " Bytes (" 
-            << averageBandwidthPerNode / (1000 * totalBlocks * averageBlockGenIntervalMinutes * secPerMin) << "Kbps)\n";
+            << averageBandwidthPerNode / (1000 *(totalBlocks - 1) * averageBlockGenIntervalMinutes * secPerMin) 
+            << " Kbps and " << averageBandwidthPerNode / (1000 * (totalBlocks - 1)) << " KB/block)\n";
   std::cout << (finish - start)/ (totalBlocks - 1)<< "s per generated block\n";
 }
 

@@ -15,7 +15,8 @@ enum Messages
   HEADERS,			//2
   GET_BLOCKS,		//3
   BLOCK,			//4
-  GET_DATA			//5
+  GET_DATA,			//5
+  NO_MESSAGE        //6
 };
 
 enum MinerType
@@ -61,6 +62,7 @@ typedef struct {
   long     blockSentBytes;
   int      longestFork;
   int      blocksInForks;
+  int      connections;
 } nodeStatistics;
 
 const char* getMessageName(enum Messages m);

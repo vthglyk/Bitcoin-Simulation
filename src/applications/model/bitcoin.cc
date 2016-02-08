@@ -576,6 +576,7 @@ const char* getMessageName(enum Messages m)
       case GET_BLOCKS: return "GET_BLOCKS";
       case BLOCK: return "BLOCK";
       case GET_DATA: return "GET_DATA";
+      case NO_MESSAGE: return "NO_MESSAGE";
    }
 }
 

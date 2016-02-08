@@ -205,6 +205,7 @@ BitcoinNode::StartApplication ()    // Called at time specified by Start
   m_nodeStats->blockSentBytes = 0;
   m_nodeStats->longestFork = 0;
   m_nodeStats->blocksInForks = 0;
+  m_nodeStats->connections = m_peersAddresses.size();
 }
 
 void 
