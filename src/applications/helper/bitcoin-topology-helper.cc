@@ -295,12 +295,58 @@ BitcoinTopologyHelper::BitcoinTopologyHelper (uint32_t noCpus, uint32_t totalNoN
     std::cout << "The nodes were created in " << tFinish - tStart << "s.\n";
 
   tStart = GetWallTime();
+  
+  //Create first the links between miners
+  for(auto miner = m_miners.begin(); miner != m_miners.end(); miner++)  
+  {
+
+    for(std::vector<uint32_t>::const_iterator it = m_nodesConnections[*miner].begin(); it != m_nodesConnections[*miner].begin() + m_miners.size() - 1; it++)
+    {
+      if ( *it > *miner)	//Do not recreate links
+      {
+        NetDeviceContainer newDevices;
+		
+        m_totalNoLinks++;
+		
+		double bandwidth = std::min(std::min(m_nodesInternetSpeeds[m_nodes.at (*miner).Get (0)->GetId()].uploadSpeed, 
+                                    m_nodesInternetSpeeds[m_nodes.at (*miner).Get (0)->GetId()].downloadSpeed),
+                                    std::min(m_nodesInternetSpeeds[m_nodes.at (*it).Get (0)->GetId()].uploadSpeed, 
+                                    m_nodesInternetSpeeds[m_nodes.at (*it).Get (0)->GetId()].downloadSpeed));					
+		bandwidthStream.str("");
+        bandwidthStream.clear();
+		bandwidthStream << bandwidth << "Mbps";
+		
+        latencyStringStream.str("");
+        latencyStringStream.clear();
+        //latencyStringStream << paretoDistribution->GetValue() << "ms";
+        latencyStringStream << m_regionLatencies[m_bitcoinNodesRegion[(m_nodes.at (*miner).Get (0))->GetId()]]
+                                                [m_bitcoinNodesRegion[(m_nodes.at (*it).Get (0))->GetId()]] << "ms";
+        
+		pointToPoint.SetDeviceAttribute ("DataRate", StringValue (bandwidthStream.str()));
+		pointToPoint.SetChannelAttribute ("Delay", StringValue (latencyStringStream.str()));
+		
+        newDevices.Add (pointToPoint.Install (m_nodes.at (*miner).Get (0), m_nodes.at (*it).Get (0)));
+		m_devices.push_back (newDevices);
+/* 		if (m_systemId == 0)
+          std::cout << "Creating link " << m_totalNoLinks << " between nodes " 
+                    << (m_nodes.at (*miner).Get (0))->GetId() << " (" 
+                    <<  getBitcoinRegion(getBitcoinEnum(m_bitcoinNodesRegion[(m_nodes.at (*miner).Get (0))->GetId()]))
+                    << ") and node " << (m_nodes.at (*it).Get (0))->GetId() << " (" 
+                    <<  getBitcoinRegion(getBitcoinEnum(m_bitcoinNodesRegion[(m_nodes.at (*it).Get (0))->GetId()]))
+                    << ") with latency = " << latencyStringStream.str() 
+                    << " and bandwidth = " << bandwidthStream.str() << ".\n"; */
+      }
+    }
+  }
+  
   for(auto &node : m_nodesConnections)  
   {
 
     for(std::vector<uint32_t>::const_iterator it = node.second.begin(); it != node.second.end(); it++)
     {
-      if ( *it > node.first)	//Do not recreate links
+      
+      if ( *it > node.first && (std::find(m_miners.begin(), m_miners.end(), *it) == m_miners.end() || 
+	       std::find(m_miners.begin(), m_miners.end(), node.first) == m_miners.end()))	//Do not recreate links
       {
         NetDeviceContainer newDevices;
 		

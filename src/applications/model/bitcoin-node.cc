@@ -567,9 +567,10 @@ BitcoinNode::HandleRead (Ptr<Socket> socket)
 		        double eventTime;
 			  
 /* 				std::cout << "Node " << GetNode()->GetId() << "-" << InetSocketAddress::ConvertFrom(from).GetIpv4 () 
-				            << " " << m_peersDownloadSpeeds[InetSocketAddress::ConvertFrom(from).GetIpv4 ()] << " Mbps\n"; */
+				            << " " << m_peersDownloadSpeeds[InetSocketAddress::ConvertFrom(from).GetIpv4 ()] << " Mbps , time = "
+							<< Simulator::Now ().GetSeconds() << "s \n"; */
                 
-                if (m_sendBlockTimes.size() == 0)
+                if (m_sendBlockTimes.size() == 0 || Simulator::Now ().GetSeconds() >  m_sendBlockTimes.back())
                 {
                   sendTime = totalBlockMessageSize / m_uploadSpeed; //FIX ME: constant MB/s
                   eventTime = totalBlockMessageSize / std::min(m_uploadSpeed, m_peersDownloadSpeeds[InetSocketAddress::ConvertFrom(from).GetIpv4 ()]
@@ -577,13 +578,14 @@ BitcoinNode::HandleRead (Ptr<Socket> socket)
                 }
                 else
                 {
+				  //std::cout << "m_sendBlockTimes.back() = m_sendBlockTimes.back() = " << m_sendBlockTimes.back() << std::endl;
                   sendTime = totalBlockMessageSize / m_uploadSpeed + m_sendBlockTimes.back() - Simulator::Now ().GetSeconds(); //FIX ME: constant MB/s
                   eventTime = totalBlockMessageSize / std::min(m_uploadSpeed, m_peersDownloadSpeeds[InetSocketAddress::ConvertFrom(from).GetIpv4 ()] * 1000000 / 8)
                            + m_sendBlockTimes.back() - Simulator::Now ().GetSeconds(); //FIX ME: constant MB/s
                 }
                 m_sendBlockTimes.push_back(Simulator::Now ().GetSeconds() + sendTime);
  
-               // std::cout << sendTime << " " << eventTime << " " << m_sendBlockTimes.size() << std::endl;
+                //std::cout << sendTime << " " << eventTime << " " << m_sendBlockTimes.size() << std::endl;
 				NS_LOG_INFO("Node " << GetNode()->GetId() << " will send the block to " << InetSocketAddress::ConvertFrom(from).GetIpv4 () 
 				            << " at " << Simulator::Now ().GetSeconds() + sendTime << "\n");
 							
@@ -595,7 +597,7 @@ BitcoinNode::HandleRead (Ptr<Socket> socket)
 				std::string packet = packetInfo.GetString();
 				NS_LOG_INFO ("DEBUG: " << packetInfo.GetString());
 				
-                Simulator::Schedule (Seconds(sendTime), &BitcoinNode::SendBlock, this, packet, from);
+                Simulator::Schedule (Seconds(eventTime), &BitcoinNode::SendBlock, this, packet, from);
                 
               }
               break;
