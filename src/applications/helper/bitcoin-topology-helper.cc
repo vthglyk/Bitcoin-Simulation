@@ -60,13 +60,19 @@ BitcoinTopologyHelper::BitcoinTopologyHelper (uint32_t noCpus, uint32_t totalNoN
     for (int j = 0; j < 6; j++)
 	  m_regionLatencies[k][j] = regionLatencies[k][j];
   
-  m_regionBandwidths[NORTH_AMERICA] = 3.58;
-  m_regionBandwidths[EUROPE] = 5.93;
-  m_regionBandwidths[SOUTH_AMERICA] = 2.55;
-  m_regionBandwidths[ASIA_PACIFIC] = 4.61;
-  m_regionBandwidths[JAPAN] = 1.5;
-  m_regionBandwidths[AUSTRALIA] = 5.2;
-  
+  m_regionDownloadSpeeds[NORTH_AMERICA] = 20.08;
+  m_regionDownloadSpeeds[EUROPE] = 15.9;
+  m_regionDownloadSpeeds[SOUTH_AMERICA] = 7.9;
+  m_regionDownloadSpeeds[ASIA_PACIFIC] = 9.46;
+  m_regionDownloadSpeeds[JAPAN] = 6.9;
+  m_regionDownloadSpeeds[AUSTRALIA] = 15.7;
+
+  m_regionUploadSpeeds[NORTH_AMERICA] = 3.84;
+  m_regionUploadSpeeds[EUROPE] = 5.95;
+  m_regionUploadSpeeds[SOUTH_AMERICA] = 2.5;
+  m_regionUploadSpeeds[ASIA_PACIFIC] = 4.69;
+  m_regionUploadSpeeds[JAPAN] = 1.7;
+  m_regionUploadSpeeds[AUSTRALIA] = 5.45;
   srand (1000);
 
   // Bounds check
@@ -542,8 +548,8 @@ BitcoinTopologyHelper::AssignInternetSpeeds(uint32_t id)
     m_nodesInternetSpeeds[id].uploadSpeed = m_minerUploadSpeed;
   }
   else{
-    m_nodesInternetSpeeds[id].downloadSpeed = m_regionBandwidths[m_bitcoinNodesRegion[id]];
-    m_nodesInternetSpeeds[id].uploadSpeed = m_regionBandwidths[m_bitcoinNodesRegion[id]];
+    m_nodesInternetSpeeds[id].downloadSpeed = m_regionDownloadSpeeds[m_bitcoinNodesRegion[id]];
+    m_nodesInternetSpeeds[id].uploadSpeed = m_regionUploadSpeeds[m_bitcoinNodesRegion[id]];
   }
 }
 

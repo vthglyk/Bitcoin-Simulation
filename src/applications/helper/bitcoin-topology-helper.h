@@ -163,7 +163,8 @@ private:
   std::vector<Ipv4InterfaceContainer>             m_interfaces;              //!< IPv4 interfaces in the network
   uint32_t                                       *m_bitcoinNodesRegion;      //!< The region in which the bitcoin nodes are located
   double                                          m_regionLatencies[6][6];   //!< The inter- and intra-region latencies
-  double                                          m_regionBandwidths[6];     
+  double                                          m_regionDownloadSpeeds[6];     
+  double                                          m_regionUploadSpeeds[6];     
   
   std::vector<NetDeviceContainer> m_colDevices;         //!< NetDevices in a column
   std::vector<Ipv4InterfaceContainer> m_colInterfaces;  //!< IPv4 interfaces in a column
