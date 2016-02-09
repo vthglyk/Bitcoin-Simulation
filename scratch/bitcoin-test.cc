@@ -442,6 +442,7 @@ void PrintTotalStats (nodeStatistics *stats, int totalNodes, double start, doubl
   const int  secPerMin = 60;
   double     meanBlockReceiveTime = 0;
   double     meanBlockPropagationTime = 0;
+  double     meanMinersBlockPropagationTime = 0;
   double     meanBlockSize = 0;
   int        totalBlocks = 0;
   int        staleBlocks = 0;
@@ -463,7 +464,8 @@ void PrintTotalStats (nodeStatistics *stats, int totalNodes, double start, doubl
   uint32_t   nodes = 0;
   uint32_t   miners = 0;
   std::vector<double>    propagationTimes;
-  
+  std::vector<double>    minersPropagationTimes;
+
   for (int it = 0; it < totalNodes; it++ )
   {
     meanBlockReceiveTime = meanBlockReceiveTime*totalBlocks/(totalBlocks + stats[it].totalBlocks)
@@ -497,6 +499,8 @@ void PrintTotalStats (nodeStatistics *stats, int totalNodes, double start, doubl
     else
     {
       connectionsPerMiner = connectionsPerMiner*miners/static_cast<double>(miners + 1) + stats[it].connections/static_cast<double>(miners + 1);
+      meanMinersBlockPropagationTime = meanMinersBlockPropagationTime*miners/static_cast<double>(miners + 1) + stats[it].meanBlockPropagationTime/static_cast<double>(miners + 1);
+      minersPropagationTimes.push_back(stats[it].meanBlockPropagationTime);
       miners++;
     }
   }
@@ -510,7 +514,8 @@ void PrintTotalStats (nodeStatistics *stats, int totalNodes, double start, doubl
   double median = *(propagationTimes.begin()+propagationTimes.size()/2);
   double p_25 = *(propagationTimes.begin()+int(propagationTimes.size()*.25));
   double p_75 = *(propagationTimes.begin()+int(propagationTimes.size()*.75));
-  double p_90 = *(propagationTimes.begin()+int(propagationTimes.size()*.9));
+  double p_95 = *(propagationTimes.begin()+int(propagationTimes.size()*.95));
+  double minersMedian = *(minersPropagationTimes.begin()+int(propagationTimes.size()/2));
   
   std::cout << "\nTotal Stats:\n";
   std::cout << "Average Connections/node = " << connectionsPerNode << "\n";
@@ -522,7 +527,9 @@ void PrintTotalStats (nodeStatistics *stats, int totalNodes, double start, doubl
   std::cout << "Median Block Propagation Time = " << median << "s\n";
   std::cout << "25% percentile of Block Propagation Time = " << p_25 << "s\n";
   std::cout << "75% percentile of Block Propagation Time = " << p_75 << "s\n";
-  std::cout << "90% percentile of Block Propagation Time = " << p_90 << "s\n";
+  std::cout << "90% percentile of Block Propagation Time = " << p_95 << "s\n";
+  std::cout << "Miners Mean Block Propagation Time = " << meanMinersBlockPropagationTime << "s\n";
+  std::cout << "Miners Median Block Propagation Time = " << minersMedian << "s\n";
   std::cout << "Mean Block Size = " << meanBlockSize << " Bytes\n";
   std::cout << "Total Blocks = " << totalBlocks << "\n";
   std::cout << "Stale Blocks = " << staleBlocks << " (" 
