@@ -42,6 +42,11 @@ BitcoinSelfishMiner::GetTypeId (void)
                    TypeIdValue (UdpSocketFactory::GetTypeId ()),
                    MakeTypeIdAccessor (&BitcoinSelfishMiner::m_tid),
                    MakeTypeIdChecker ())
+    .AddAttribute ("NumberOfMiners", 
+				   "The number of miners",
+                   UintegerValue (16),
+                   MakeUintegerAccessor (&BitcoinSelfishMiner::m_noMiners),
+                   MakeUintegerChecker<uint32_t> ())
     .AddAttribute ("FixedBlockSize", 
 				   "The fixed size of the block",
                    UintegerValue (0),
@@ -64,14 +69,14 @@ BitcoinSelfishMiner::GetTypeId (void)
                    MakeDoubleChecker<double> ())	
     .AddAttribute ("BlockGenBinSize", 
 				   "The block generation bin size",
-                   DoubleValue (1./60),
+                   DoubleValue (-1),
                    MakeDoubleAccessor (&BitcoinSelfishMiner::m_blockGenBinSize),
                    MakeDoubleChecker<double> ())	
     .AddAttribute ("BlockGenParameter", 
 				   "The block generation distribution parameter",
-                   DoubleValue (0.183/120),
+                   DoubleValue (-1),
                    MakeDoubleAccessor (&BitcoinSelfishMiner::m_blockGenParameter),
-                   MakeDoubleChecker<double> ())	
+                   MakeDoubleChecker<double> ())
     .AddAttribute ("AverageBlockGenIntervalSeconds", 
 				   "The average block generation interval we aim at (in seconds)",
                    DoubleValue (10*60),
@@ -116,10 +121,17 @@ BitcoinSelfishMiner::StartApplication ()    // Called at time specified by Start
   NS_LOG_WARN ("Selfish Miner " << GetNode()->GetId() << " m_averageBlockGenIntervalSeconds = " << m_averageBlockGenIntervalSeconds << "s");
   NS_LOG_WARN ("Selfish Miner " << GetNode()->GetId() << " m_fixedBlockTimeGeneration = " << m_fixedBlockTimeGeneration << "s");
   NS_LOG_WARN ("Selfish Miner " << GetNode()->GetId() << " m_secureBlocks = " << m_secureBlocks);
-  NS_LOG_WARN ("Selfish Miner " << GetNode()->GetId() << " m_hashRate = " << m_hashRate);
+  NS_LOG_WARN ("Selfish Miner " << GetNode()->GetId() << " m_hashRate = " << m_hashRate << " " << m_advertiseBlocks);
+  NS_LOG_WARN ("Selfish Miner " << GetNode()->GetId() << " m_advertiseBlocks = " << m_advertiseBlocks);
 
-  m_blockGenParameter *= m_hashRate;
-	
+  if (m_blockGenBinSize < 0 && m_blockGenParameter < 0)
+  {
+    m_blockGenBinSize = 1./m_secondsPerMin/1000;
+    m_blockGenParameter = 0.19 * m_blockGenBinSize / 2;
+  }
+  else
+    m_blockGenParameter *= m_hashRate;
+
   if (m_fixedBlockTimeGeneration == 0)
 	m_blockGenTimeDistribution.param(std::geometric_distribution<int>::param_type(m_blockGenParameter)); 
 
@@ -157,6 +169,9 @@ BitcoinSelfishMiner::StartApplication ()    // Called at time specified by Start
     m_blockchain.AddBlock(newBlock); 
   } */
   
+  m_nodeStats->hashRate = m_hashRate;
+  m_nodeStats->miner = 1;
+
   ScheduleNextMiningEvent ();
 }
 

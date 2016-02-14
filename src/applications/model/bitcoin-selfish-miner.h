@@ -69,6 +69,7 @@ protected:
   bool       m_attackFinished;
   int        m_winningStreak;
   uint32_t   m_advertiseBlocks;
+
 };
 
 } // namespace ns3

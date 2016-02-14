@@ -119,6 +119,8 @@ BitcoinMinerHelper::SetMinerType (enum MinerType m)  //FIX ME
         m_factory.SetTypeId ("ns3::BitcoinSimpleAttacker");
 		SetFactoryAttributes();
 		m_factory.Set ("SecureBlocks", UintegerValue(m_secureBlocks));
+		m_factory.Set ("AdvertiseBlocks", UintegerValue(m_advertiseBlocks));
+
         break;
       }
       case SELFISH_MINER:  

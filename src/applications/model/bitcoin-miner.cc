@@ -88,6 +88,11 @@ BitcoinMiner::GetTypeId (void)
                    DoubleValue (10*60),
                    MakeDoubleAccessor (&BitcoinMiner::m_averageBlockGenIntervalSeconds),
                    MakeDoubleChecker<double> ())
+    .AddAttribute ("BitcoinPaperAttack", 
+				   "Simulate the behaviour of BitcoinPaperAttack",
+                   UintegerValue (0),
+                   MakeUintegerAccessor (&BitcoinMiner::m_bitcoinPaperAttack),
+                   MakeUintegerChecker<uint32_t> ())
     .AddTraceSource ("Rx",
                      "A packet has been received",
                      MakeTraceSourceAccessor (&BitcoinMiner::m_rxTrace),
@@ -136,7 +141,7 @@ BitcoinMiner::StartApplication ()    // Called at time specified by Start
   NS_LOG_WARN ("Miner " << GetNode()->GetId() << " m_averageBlockGenIntervalSeconds = " << m_averageBlockGenIntervalSeconds << "s");
   NS_LOG_WARN ("Miner " << GetNode()->GetId() << " m_fixedBlockTimeGeneration = " << m_fixedBlockTimeGeneration << "s");
   NS_LOG_WARN ("Miner " << GetNode()->GetId() << " m_hashRate = " << m_hashRate );
-  NS_LOG_WARN ("Miner " << GetNode()->GetId() << " m_blockBroadcastType = " << getBlockBroadcastType(m_blockBroadcastType) );
+  NS_LOG_WARN ("Miner " << GetNode()->GetId() << " m_blockBroadcastType = " << getBlockBroadcastType(m_blockBroadcastType));
 
   if (m_blockGenBinSize < 0 && m_blockGenParameter < 0)
   {
@@ -183,19 +188,9 @@ BitcoinMiner::StartApplication ()    // Called at time specified by Start
     m_blockchain.AddBlock(newBlock); 
   } */
   
-  m_nodeStats->nodeId = GetNode ()->GetId ();
-  m_nodeStats->meanBlockReceiveTime = 0;
-  m_nodeStats->meanBlockPropagationTime = 0;
-  m_nodeStats->meanBlockSize = 0;
-  m_nodeStats->totalBlocks = 0;
-  m_nodeStats->staleBlocks = 0;
-  m_nodeStats->miner = 1;
-  m_nodeStats->minerGeneratedBlocks = 0;
-  m_nodeStats->minerAverageBlockGenInterval = 0;
-  m_nodeStats->minerAverageBlockSize = 0;
-  m_nodeStats->minerAverageBlockSize = 0;
   m_nodeStats->hashRate = m_hashRate;
-  m_nodeStats->attackSuccess = 0;
+  m_nodeStats->miner = 1;
+
   ScheduleNextMiningEvent ();
 }
 
@@ -330,7 +325,7 @@ BitcoinMiner::ScheduleNextMiningEvent (void)
     //NS_LOG_DEBUG("m_nextBlockTime = " << m_nextBlockTime << ", binsize = " << m_blockGenBinSize << ", m_blockGenParameter = " << m_blockGenParameter << ", hashrate = " << m_hashRate);
     m_nextMiningEvent = Simulator::Schedule (Seconds(m_nextBlockTime), &BitcoinMiner::MineBlock, this);
 	
-    NS_LOG_DEBUG ("Time " << Simulator::Now ().GetSeconds () << ": Miner " << GetNode ()->GetId () << " will generate a block in " 
+    NS_LOG_WARN ("Time " << Simulator::Now ().GetSeconds () << ": Miner " << GetNode ()->GetId () << " will generate a block in " 
                  << m_nextBlockTime << "s or " << static_cast<int>(m_nextBlockTime) / m_secondsPerMin 
                  << "  min and  " << static_cast<int>(m_nextBlockTime) % m_secondsPerMin 
                  << "s using Geometric Block Time Generation with parameter = "<< m_blockGenParameter);
@@ -350,7 +345,16 @@ BitcoinMiner::MineBlock (void)
   std::string blockHash = stringStream.str();
   
   d.SetObject();
-
+  
+  if(m_bitcoinPaperAttack == 1)
+  {
+    height = m_minerGeneratedBlocks + 1;
+    if (m_minerGeneratedBlocks == 0)
+      parentBlockMinerId = -1;
+    else 
+	  parentBlockMinerId = GetNode ()->GetId ();
+  }
+  
   if (height == 1)
   {
     m_fistToMine = true;
@@ -460,10 +464,22 @@ void
 BitcoinMiner::ReceivedHigherBlock(const Block &newBlock)
 {
   NS_LOG_FUNCTION (this);
-  NS_LOG_DEBUG("Bitcoin miner "<< GetNode ()->GetId () << " added a new block in the m_blockchain with higher height: " << newBlock);
+  NS_LOG_WARN("Bitcoin miner " << GetNode ()->GetId () << " added a new block in the m_blockchain with higher height: " << newBlock);
   Simulator::Cancel (m_nextMiningEvent);
   ScheduleNextMiningEvent ();
 }
+
+
+void 
+BitcoinMiner::MinerReceivedNewBlock(void)
+{			    
+  NS_LOG_FUNCTION (this);
+  //REMOVE SOS
+  NS_LOG_WARN("Bitcoin miner " << GetNode ()->GetId () << " added a new block in the m_blockchain with lower height");
+  Simulator::Cancel (m_nextMiningEvent);
+  ScheduleNextMiningEvent ();
+}
+
 } // Namespace ns3
 
 

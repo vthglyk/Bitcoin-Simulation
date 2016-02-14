@@ -52,7 +52,7 @@ BitcoinNode::GetTypeId (void)
   return tid;
 }
 
-BitcoinNode::BitcoinNode (void) : m_bitcoinPort (8333), m_secondsPerMin(60), m_isMiner (false), m_countBytes (4),
+BitcoinNode::BitcoinNode (void) : m_bitcoinPort (8333), m_secondsPerMin(60), m_isMiner (false), m_countBytes (4), 
                                   m_inventorySizeBytes (36), m_getHeadersSizeBytes (72), m_headersSizeBytes (81), m_blockHeadersSizeBytes (80)
 {
   NS_LOG_FUNCTION (this);
@@ -138,6 +138,7 @@ BitcoinNode::StartApplication ()    // Called at time specified by Start
 {
   NS_LOG_FUNCTION (this);
   // Create the socket if not already
+  NS_LOG_WARN ("Node " << GetNode()->GetId() << ": m_bitcoinPaperAttack = " << m_bitcoinPaperAttack);
   NS_LOG_WARN ("Node " << GetNode()->GetId() << ": download speed = " << m_downloadSpeed << " Mbps");
   NS_LOG_WARN ("Node " << GetNode()->GetId() << ": upload speed = " << m_uploadSpeed << " Mbps");
   NS_LOG_INFO ("Node " << GetNode()->GetId() << ": m_numberOfPeers = " << m_numberOfPeers);
@@ -238,9 +239,9 @@ BitcoinNode::StopApplication ()     // Called at time specified by Stop
       m_socket->SetRecvCallback (MakeNullCallback<void, Ptr<Socket> > ());
     }
 
-  NS_LOG_WARN("\n\nBITCOIN NODE " << GetNode ()->GetId () << ":");
+  NS_LOG_WARN ("\n\nBITCOIN NODE " << GetNode ()->GetId () << ":");
   NS_LOG_WARN ("Current Top Block is:\n" << *(m_blockchain.GetCurrentTopBlock()));
-  NS_LOG_INFO("Current Blockchain is:\n" << m_blockchain);
+  NS_LOG_WARN ("Current Blockchain is:\n" << m_blockchain);
   //m_blockchain.PrintOrphans();
   //PrintQueueInv();
   //PrintInvTimeouts();
@@ -867,7 +868,11 @@ BitcoinNode::AfterBlockValidation(const Block &newBlock)
 			   
   if (newBlock.GetBlockHeight() > m_blockchain.GetBlockchainHeight())
     ReceivedHigherBlock(newBlock);
-
+  else if(m_isMiner && m_bitcoinPaperAttack == 1)
+  {
+    MinerReceivedNewBlock();
+  }
+  
   if (m_blockchain.IsOrphan(newBlock))
   {
     NS_LOG_INFO ("AfterBlockValidation: Block " << newBlock << " was orphan");
@@ -893,6 +898,7 @@ BitcoinNode::AfterBlockValidation(const Block &newBlock)
   
   AdvertiseNewBlock(newBlock);//////////////////////////////////////
   ValidateOrphanChildren(newBlock);
+  
 }  
 
 
@@ -1280,4 +1286,10 @@ BitcoinNode::HandleAccept (Ptr<Socket> s, const Address& from)
   s->SetRecvCallback (MakeCallback (&BitcoinNode::HandleRead, this));
 }
 
+void 
+BitcoinNode::MinerReceivedNewBlock(void)
+{			    
+  NS_LOG_FUNCTION (this);
+}
+  
 } // Namespace ns3

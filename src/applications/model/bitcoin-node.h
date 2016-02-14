@@ -99,7 +99,8 @@ protected:
   void SendBlock(std::string packetInfo, Address &from);				   
 
   virtual void ReceivedHigherBlock(const Block &newBlock);	//Called for blocks with better score(height)
-  
+  virtual void MinerReceivedNewBlock(void);				    
+
   void ValidateBlock(const Block &newBlock);
   void AfterBlockValidation(const Block &newBlock);
   void ValidateOrphanChildren(const Block &newBlock);
@@ -156,7 +157,8 @@ protected:
   
   /// Traced Callback: received packets, source address.
   TracedCallback<Ptr<const Packet>, const Address &> m_rxTrace;
-
+  
+  uint32_t        m_bitcoinPaperAttack;
 };
 
 } // namespace ns3

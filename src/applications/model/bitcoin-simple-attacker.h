@@ -66,9 +66,8 @@ protected:
   virtual void ReceivedHigherBlock(const Block &newBlock);	//Called for blocks with better score(height). Remove m_nextMiningEvent and call MineBlock again.
 
   uint32_t   m_secureBlocks;
-  bool       m_attackStarted;
   bool       m_attackFinished;
-
+  uint32_t   m_advertiseBlocks;
 };
 
 } // namespace ns3
