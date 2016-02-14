@@ -750,10 +750,23 @@ BitcoinNode::ReceiveBlock(const Block &newBlock)
   NS_LOG_FUNCTION (this);
   NS_LOG_INFO ("ReceiveBlock: At time " << Simulator::Now ().GetSeconds ()
                 << "s bitcoin node " << GetNode ()->GetId () << " received " << newBlock);
+
+  std::ostringstream   stringStream;  
+  std::string          blockHash = stringStream.str();
 				
+  stringStream << newBlock.GetBlockHeight() << "/" << newBlock.GetParentBlockMinerId();
+  blockHash = stringStream.str();
+  
   if (m_blockchain.HasBlock(newBlock))
   {
     NS_LOG_INFO("ReceiveBlock: Bitcoin node " << GetNode ()->GetId () << " has already added this block in the m_blockchain: " << newBlock);
+    
+	if (m_queueInv.find(blockHash) == m_queueInv.end())
+    {
+      m_queueInv.erase(blockHash);
+      Simulator::Cancel (m_invTimeouts[blockHash]);
+      m_invTimeouts.erase(blockHash);
+    }
   }
   else
   {
@@ -761,17 +774,17 @@ BitcoinNode::ReceiveBlock(const Block &newBlock)
     stringStream << newBlock.GetBlockHeight() << "/" << newBlock.GetMinerId();
     std::string blockHash = stringStream.str();
 	
-	m_receivedNotValidated.push_back(blockHash);
+    m_receivedNotValidated.push_back(blockHash);
 	//PrintQueueInv();
 	//PrintInvTimeouts();
 	
-	m_queueInv.erase(blockHash);
-	Simulator::Cancel (m_invTimeouts[blockHash]);
-	m_invTimeouts.erase(blockHash);
+    m_queueInv.erase(blockHash);
+    Simulator::Cancel (m_invTimeouts[blockHash]);
+    m_invTimeouts.erase(blockHash);
 	
     //PrintQueueInv();
 	//PrintInvTimeouts();
-	ValidateBlock (newBlock);
+    ValidateBlock (newBlock);
   }
 
 }

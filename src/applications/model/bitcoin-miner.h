@@ -104,6 +104,11 @@ public:
    */
   void SetHashRate (double blockGenParameter);  
   
+  /**
+   * set the type of block broadcast
+   */
+  void SetBlockBroadcastType (enum BlockBroadcastType blockBroadcastType);
+   
 protected:
   // inherited from Application base class.
   virtual void StartApplication (void);    // Called at time specified by Start
@@ -120,6 +125,7 @@ protected:
   
   virtual void ReceivedHigherBlock(const Block &newBlock);	//Called for blocks with better score(height). Remove m_nextMiningEvent and call MineBlock again.
   
+  int               m_noMiners;                
   uint32_t			m_fixedBlockSize;  
   double 			m_fixedBlockTimeGeneration; 	//!< Fixed Block Time Generation
   EventId			m_nextMiningEvent; 				//!< Event to mine the next block
@@ -137,6 +143,7 @@ protected:
   double			m_minerAverageBlockGenInterval;
   int				m_minerGeneratedBlocks;
   double			m_hashRate;
+  
   std::geometric_distribution<int> m_blockGenTimeDistribution ;
   
   int                                            m_nextBlockSize;
@@ -146,6 +153,8 @@ protected:
   const double  m_realAverageBlockGenIntervalSeconds;  //!< in seconds, 10 mins
   double        m_averageBlockGenIntervalSeconds;	   //!< the new m_averageBlockGenInterval we set
   
+  enum BlockBroadcastType   m_blockBroadcastType;
+
   //debug
   double       m_timeStart;
   double       m_timeFinish;

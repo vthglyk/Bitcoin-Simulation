@@ -26,6 +26,13 @@ enum MinerType
   SELFISH_MINER
 };
 
+enum BlockBroadcastType
+{
+  STANDARD,
+  UNSOLICITED,
+  RELAY_NETWORK
+};
+
 enum BitcoinRegion
 {
   NORTH_AMERICA,    //0
@@ -74,6 +81,7 @@ typedef struct {
 
 const char* getMessageName(enum Messages m);
 const char* getMinerType(enum MinerType m);
+const char* getBlockBroadcastType(enum BlockBroadcastType m);
 const char* getBitcoinRegion(enum BitcoinRegion m);
 enum BitcoinRegion getBitcoinEnum(uint32_t n);
 

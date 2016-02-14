@@ -590,6 +590,16 @@ const char* getMinerType(enum MinerType m)
    }
 }
 
+const char* getBlockBroadcastType(enum BlockBroadcastType m)
+{
+   switch (m) 
+   {
+      case STANDARD: return "STANDARD";
+      case UNSOLICITED: return "UNSOLICITED";
+      case RELAY_NETWORK: return "RELAY_NETWORK";
+   }
+}
+
 const char* getBitcoinRegion(enum BitcoinRegion m)
 {
    switch (m) 

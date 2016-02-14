@@ -48,6 +48,11 @@ BitcoinMiner::GetTypeId (void)
                    TypeIdValue (UdpSocketFactory::GetTypeId ()),
                    MakeTypeIdAccessor (&BitcoinMiner::m_tid),
                    MakeTypeIdChecker ())
+    .AddAttribute ("NumberOfMiners", 
+				   "The number of miners",
+                   UintegerValue (16),
+                   MakeUintegerAccessor (&BitcoinMiner::m_noMiners),
+                   MakeUintegerChecker<uint32_t> ())
     .AddAttribute ("FixedBlockSize", 
 				   "The fixed size of the block",
                    UintegerValue (0),
@@ -126,11 +131,13 @@ void
 BitcoinMiner::StartApplication ()    // Called at time specified by Start
 {
   BitcoinNode::StartApplication ();
+  NS_LOG_WARN ("Miner " << GetNode()->GetId() << " m_noMiners = " << m_noMiners << "");
   NS_LOG_WARN ("Miner " << GetNode()->GetId() << " m_realAverageBlockGenIntervalSeconds = " << m_realAverageBlockGenIntervalSeconds << "s");
   NS_LOG_WARN ("Miner " << GetNode()->GetId() << " m_averageBlockGenIntervalSeconds = " << m_averageBlockGenIntervalSeconds << "s");
   NS_LOG_WARN ("Miner " << GetNode()->GetId() << " m_fixedBlockTimeGeneration = " << m_fixedBlockTimeGeneration << "s");
   NS_LOG_WARN ("Miner " << GetNode()->GetId() << " m_hashRate = " << m_hashRate );
-  
+  NS_LOG_WARN ("Miner " << GetNode()->GetId() << " m_blockBroadcastType = " << getBlockBroadcastType(m_blockBroadcastType) );
+
   if (m_blockGenBinSize < 0 && m_blockGenParameter < 0)
   {
     m_blockGenBinSize = 1./m_secondsPerMin/1000;
@@ -295,7 +302,14 @@ BitcoinMiner::SetHashRate (double hashRate)
   NS_LOG_FUNCTION (this);
   m_hashRate = hashRate;
 }
- 
+
+void 
+BitcoinMiner::SetBlockBroadcastType (enum BlockBroadcastType blockBroadcastType)
+{
+  NS_LOG_FUNCTION (this);
+  m_blockBroadcastType = blockBroadcastType;
+}
+
 void
 BitcoinMiner::ScheduleNextMiningEvent (void)
 {

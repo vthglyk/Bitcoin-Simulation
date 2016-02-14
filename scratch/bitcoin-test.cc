@@ -165,7 +165,7 @@ main (int argc, char *argv[])
 											   
   //Install miners
   BitcoinMinerHelper bitcoinMinerHelper ("ns3::TcpSocketFactory", InetSocketAddress (Ipv4Address::GetAny (), bitcoinPort),
-                                          nodesConnections[miners[0]], peersDownloadSpeeds[0], nodesInternetSpeeds[0], 
+                                          nodesConnections[miners[0]], noMiners, peersDownloadSpeeds[0], nodesInternetSpeeds[0], 
 										  stats, minersHash[0], averageBlockGenIntervalSeconds);
   ApplicationContainer bitcoinMiners;
   int count = 0;
@@ -183,6 +183,7 @@ main (int argc, char *argv[])
 	  bitcoinMinerHelper.SetPeersDownloadSpeeds (peersDownloadSpeeds[miner]);
 	  bitcoinMinerHelper.SetNodeInternetSpeeds (nodesInternetSpeeds[miner]);
 	  bitcoinMinerHelper.SetNodeStats (&stats[miner]);
+	  bitcoinMinerHelper.SetBlockBroadcastType (UNSOLICITED);
 	  //bitcoinMinerHelper.SetAttribute("FixedBlockSize", UintegerValue(blockSize));
 
 	  bitcoinMiners.Add(bitcoinMinerHelper.Install (targetNode));
@@ -514,7 +515,7 @@ void PrintTotalStats (nodeStatistics *stats, int totalNodes, double start, doubl
   double median = *(propagationTimes.begin()+propagationTimes.size()/2);
   double p_25 = *(propagationTimes.begin()+int(propagationTimes.size()*.25));
   double p_75 = *(propagationTimes.begin()+int(propagationTimes.size()*.75));
-  double p_95 = *(propagationTimes.begin()+int(propagationTimes.size()*.95));
+  double p_90 = *(propagationTimes.begin()+int(propagationTimes.size()*.90));
   double minersMedian = *(minersPropagationTimes.begin()+int(propagationTimes.size()/2));
   
   std::cout << "\nTotal Stats:\n";
@@ -527,7 +528,7 @@ void PrintTotalStats (nodeStatistics *stats, int totalNodes, double start, doubl
   std::cout << "Median Block Propagation Time = " << median << "s\n";
   std::cout << "25% percentile of Block Propagation Time = " << p_25 << "s\n";
   std::cout << "75% percentile of Block Propagation Time = " << p_75 << "s\n";
-  std::cout << "90% percentile of Block Propagation Time = " << p_95 << "s\n";
+  std::cout << "90% percentile of Block Propagation Time = " << p_90 << "s\n";
   std::cout << "Miners Mean Block Propagation Time = " << meanMinersBlockPropagationTime << "s\n";
   std::cout << "Miners Median Block Propagation Time = " << minersMedian << "s\n";
   std::cout << "Mean Block Size = " << meanBlockSize << " Bytes\n";

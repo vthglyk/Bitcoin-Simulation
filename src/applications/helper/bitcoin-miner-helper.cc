@@ -29,19 +29,21 @@
 
 namespace ns3 {
 
-BitcoinMinerHelper::BitcoinMinerHelper (std::string protocol, Address address, std::vector<Ipv4Address> peers, 
+BitcoinMinerHelper::BitcoinMinerHelper (std::string protocol, Address address, std::vector<Ipv4Address> peers, int noMiners,
                                         std::map<Ipv4Address, double> &peersDownloadSpeeds, nodeInternetSpeeds &internetSpeeds,
 										nodeStatistics *stats, double hashRate, double averageBlockGenIntervalSeconds) : 
-                                        BitcoinNodeHelper (),  m_minerType (NORMAL_MINER), 
+                                        BitcoinNodeHelper (),  m_minerType (NORMAL_MINER), m_blockBroadcastType (STANDARD),
                                         m_secureBlocks (6), m_advertiseBlocks (0), 
                                         m_blockGenBinSize (-1), m_blockGenParameter (-1)
 {
   m_factory.SetTypeId ("ns3::BitcoinMiner");
   commonConstructor(protocol, address, peers, peersDownloadSpeeds, internetSpeeds, stats);
   
+  m_noMiners = noMiners;
   m_hashRate = hashRate;
   m_averageBlockGenIntervalSeconds = averageBlockGenIntervalSeconds;
   
+  m_factory.Set ("NumberOfMiners", UintegerValue(m_noMiners));
   m_factory.Set ("HashRate", DoubleValue(m_hashRate));
   m_factory.Set ("AverageBlockGenIntervalSeconds", DoubleValue(m_averageBlockGenIntervalSeconds));
 
@@ -60,6 +62,7 @@ BitcoinMinerHelper::InstallPriv (Ptr<Node> node) //FIX ME
 		app->SetPeersDownloadSpeeds(m_peersDownloadSpeeds);
 		app->SetNodeInternetSpeeds(m_internetSpeeds);
         app->SetNodeStats(m_nodeStats);
+        app->SetBlockBroadcastType(m_blockBroadcastType);
 
         node->AddApplication (app);
         return app;
@@ -71,6 +74,7 @@ BitcoinMinerHelper::InstallPriv (Ptr<Node> node) //FIX ME
 		app->SetPeersDownloadSpeeds(m_peersDownloadSpeeds);
 		app->SetNodeInternetSpeeds(m_internetSpeeds);
         app->SetNodeStats(m_nodeStats);
+        app->SetBlockBroadcastType(m_blockBroadcastType);
 
         node->AddApplication (app);
         return app;
@@ -82,6 +86,7 @@ BitcoinMinerHelper::InstallPriv (Ptr<Node> node) //FIX ME
 		app->SetPeersDownloadSpeeds(m_peersDownloadSpeeds);
 		app->SetNodeInternetSpeeds(m_internetSpeeds);
         app->SetNodeStats(m_nodeStats);
+        app->SetBlockBroadcastType(m_blockBroadcastType);
 
         node->AddApplication (app);
         return app;
@@ -132,10 +137,18 @@ BitcoinMinerHelper::SetMinerType (enum MinerType m)  //FIX ME
 
 
 void 
+BitcoinMinerHelper::SetBlockBroadcastType (enum BlockBroadcastType m)
+{
+  m_blockBroadcastType = m;
+}
+
+
+void 
 BitcoinMinerHelper::SetFactoryAttributes (void)
 {
   m_factory.Set ("Protocol", StringValue (m_protocol));
   m_factory.Set ("Local", AddressValue (m_address));
+  m_factory.Set ("NumberOfMiners", UintegerValue(m_noMiners));
   m_factory.Set ("HashRate", DoubleValue(m_hashRate));
   m_factory.Set ("AverageBlockGenIntervalSeconds", DoubleValue(m_averageBlockGenIntervalSeconds));
   

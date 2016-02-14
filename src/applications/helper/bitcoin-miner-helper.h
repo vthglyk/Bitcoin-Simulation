@@ -44,12 +44,13 @@ class BitcoinMinerHelper : public BitcoinNodeHelper
    * \param address the address of the bitcoin node,
    *
    */
-  BitcoinMinerHelper (std::string protocol, Address address, std::vector<Ipv4Address> peers, 
+  BitcoinMinerHelper (std::string protocol, Address address, std::vector<Ipv4Address> peers, int noMiners,
                       std::map<Ipv4Address, double> &peersDownloadSpeeds, nodeInternetSpeeds &internetSpeeds,
 					  nodeStatistics *stats, double hashRate, double averageBlockGenIntervalSeconds);
 					  
   enum MinerType GetMinerType(void);
   void SetMinerType (enum MinerType m);
+  void SetBlockBroadcastType (enum BlockBroadcastType m);
 
 protected:
   /**
@@ -64,13 +65,15 @@ protected:
   void SetFactoryAttributes (void);
   
   
-  enum MinerType   m_minerType;
-  double           m_hashRate;
-  double           m_blockGenBinSize;
-  double           m_blockGenParameter;
-  double           m_averageBlockGenIntervalSeconds;
-  uint32_t         m_secureBlocks;
-  uint32_t         m_advertiseBlocks;
+  enum MinerType            m_minerType;
+  enum BlockBroadcastType   m_blockBroadcastType;
+  int                       m_noMiners;
+  double                    m_hashRate;
+  double                    m_blockGenBinSize;
+  double                    m_blockGenParameter;
+  double                    m_averageBlockGenIntervalSeconds;
+  uint32_t                  m_secureBlocks;
+  uint32_t                  m_advertiseBlocks;
 };
 
 } // namespace ns3
