@@ -138,7 +138,6 @@ BitcoinNode::StartApplication ()    // Called at time specified by Start
 {
   NS_LOG_FUNCTION (this);
   // Create the socket if not already
-  NS_LOG_WARN ("Node " << GetNode()->GetId() << ": m_bitcoinPaperAttack = " << m_bitcoinPaperAttack);
   NS_LOG_WARN ("Node " << GetNode()->GetId() << ": download speed = " << m_downloadSpeed << " Mbps");
   NS_LOG_WARN ("Node " << GetNode()->GetId() << ": upload speed = " << m_uploadSpeed << " Mbps");
   NS_LOG_INFO ("Node " << GetNode()->GetId() << ": m_numberOfPeers = " << m_numberOfPeers);
@@ -868,10 +867,6 @@ BitcoinNode::AfterBlockValidation(const Block &newBlock)
 			   
   if (newBlock.GetBlockHeight() > m_blockchain.GetBlockchainHeight())
     ReceivedHigherBlock(newBlock);
-  else if(m_isMiner && m_bitcoinPaperAttack == 1)
-  {
-    MinerReceivedNewBlock();
-  }
   
   if (m_blockchain.IsOrphan(newBlock))
   {
@@ -1286,10 +1281,5 @@ BitcoinNode::HandleAccept (Ptr<Socket> s, const Address& from)
   s->SetRecvCallback (MakeCallback (&BitcoinNode::HandleRead, this));
 }
 
-void 
-BitcoinNode::MinerReceivedNewBlock(void)
-{			    
-  NS_LOG_FUNCTION (this);
-}
   
 } // Namespace ns3

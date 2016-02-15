@@ -124,7 +124,6 @@ protected:
   virtual void MineBlock (void);
   
   virtual void ReceivedHigherBlock(const Block &newBlock);	//Called for blocks with better score(height). Remove m_nextMiningEvent and call MineBlock again.
-  virtual void MinerReceivedNewBlock(void);				    
 
   int               m_noMiners;                
   uint32_t			m_fixedBlockSize;  

@@ -88,11 +88,6 @@ BitcoinMiner::GetTypeId (void)
                    DoubleValue (10*60),
                    MakeDoubleAccessor (&BitcoinMiner::m_averageBlockGenIntervalSeconds),
                    MakeDoubleChecker<double> ())
-    .AddAttribute ("BitcoinPaperAttack", 
-				   "Simulate the behaviour of BitcoinPaperAttack",
-                   UintegerValue (0),
-                   MakeUintegerAccessor (&BitcoinMiner::m_bitcoinPaperAttack),
-                   MakeUintegerChecker<uint32_t> ())
     .AddTraceSource ("Rx",
                      "A packet has been received",
                      MakeTraceSourceAccessor (&BitcoinMiner::m_rxTrace),
@@ -346,15 +341,6 @@ BitcoinMiner::MineBlock (void)
   
   d.SetObject();
   
-  if(m_bitcoinPaperAttack == 1)
-  {
-    height = m_minerGeneratedBlocks + 1;
-    if (m_minerGeneratedBlocks == 0)
-      parentBlockMinerId = -1;
-    else 
-	  parentBlockMinerId = GetNode ()->GetId ();
-  }
-  
   if (height == 1)
   {
     m_fistToMine = true;
@@ -469,16 +455,6 @@ BitcoinMiner::ReceivedHigherBlock(const Block &newBlock)
   ScheduleNextMiningEvent ();
 }
 
-
-void 
-BitcoinMiner::MinerReceivedNewBlock(void)
-{			    
-  NS_LOG_FUNCTION (this);
-  //REMOVE SOS
-  NS_LOG_WARN("Bitcoin miner " << GetNode ()->GetId () << " added a new block in the m_blockchain with lower height");
-  Simulator::Cancel (m_nextMiningEvent);
-  ScheduleNextMiningEvent ();
-}
 
 } // Namespace ns3
 

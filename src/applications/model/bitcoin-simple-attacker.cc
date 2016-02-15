@@ -92,11 +92,6 @@ BitcoinSimpleAttacker::GetTypeId (void)
                    UintegerValue (0),
                    MakeUintegerAccessor (&BitcoinSimpleAttacker::m_advertiseBlocks),
                    MakeUintegerChecker<uint32_t> ())
-    .AddAttribute ("BitcoinPaperAttack", 
-				   "Simulate the behaviour of BitcoinPaperAttack",
-                   UintegerValue (0),
-                   MakeUintegerAccessor (&BitcoinSimpleAttacker::m_bitcoinPaperAttack),
-                   MakeUintegerChecker<uint32_t> ())
     .AddTraceSource ("Rx",
                      "A packet has been received",
                      MakeTraceSourceAccessor (&BitcoinSimpleAttacker::m_rxTrace),

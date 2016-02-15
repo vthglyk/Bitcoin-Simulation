@@ -175,8 +175,6 @@ main (int argc, char *argv[])
         bitcoinMinerHelper.SetAttribute("HashRate", DoubleValue(minersHash[count]));
 	    bitcoinMinerHelper.SetPeersAddresses (nodesConnections[miner]);
 	    bitcoinMinerHelper.SetNodeStats (&stats[miner]);
-        if (advertiseBlocks)
-          bitcoinMinerHelper.SetAttribute("BitcoinPaperAttack", UintegerValue(1));
 	    bitcoinMiners.Add(bitcoinMinerHelper.Install (targetNode));
 /*         std::cout << "SystemId " << systemId << ": Miner " << miner.first << " with hash power = " << minersHash[count] 
 	              << " and systemId = " << targetNode->GetSystemId() << " was installed in node (" 
