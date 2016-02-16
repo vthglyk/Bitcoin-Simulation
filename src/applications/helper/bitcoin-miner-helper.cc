@@ -91,6 +91,18 @@ BitcoinMinerHelper::InstallPriv (Ptr<Node> node) //FIX ME
         node->AddApplication (app);
         return app;
 	  }
+      case SELFISH_MINER_TRIALS: 
+	  {
+        Ptr<BitcoinSelfishMinerTrials> app = m_factory.Create<BitcoinSelfishMinerTrials> ();
+        app->SetPeersAddresses(m_peersAddresses);
+		app->SetPeersDownloadSpeeds(m_peersDownloadSpeeds);
+		app->SetNodeInternetSpeeds(m_internetSpeeds);
+        app->SetNodeStats(m_nodeStats);
+        app->SetBlockBroadcastType(m_blockBroadcastType);
+
+        node->AddApplication (app);
+        return app;
+	  }
    }
    
 }
@@ -126,6 +138,15 @@ BitcoinMinerHelper::SetMinerType (enum MinerType m)  //FIX ME
       case SELFISH_MINER:  
       {
         m_factory.SetTypeId ("ns3::BitcoinSelfishMiner");
+		SetFactoryAttributes();
+		m_factory.Set ("SecureBlocks", UintegerValue(m_secureBlocks));
+		m_factory.Set ("AdvertiseBlocks", UintegerValue(m_advertiseBlocks));
+
+        break;
+      }
+      case SELFISH_MINER_TRIALS:  
+      {
+        m_factory.SetTypeId ("ns3::BitcoinSelfishMinerTrials");
 		SetFactoryAttributes();
 		m_factory.Set ("SecureBlocks", UintegerValue(m_secureBlocks));
 		m_factory.Set ("AdvertiseBlocks", UintegerValue(m_advertiseBlocks));

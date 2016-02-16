@@ -14,107 +14,107 @@
 #include "ns3/tcp-socket-factory.h"
 #include "ns3/uinteger.h"
 #include "ns3/double.h"
-#include "ns3/bitcoin-selfish-miner.h"
+#include "ns3/bitcoin-selfish-miner-trials.h"
 #include "../../rapidjson/document.h"
 #include "../../rapidjson/writer.h"
 #include "../../rapidjson/stringbuffer.h"
 
 namespace ns3 {
 
-NS_LOG_COMPONENT_DEFINE ("BitcoinSelfishMiner");
+NS_LOG_COMPONENT_DEFINE ("BitcoinSelfishMinerTrials");
 
-NS_OBJECT_ENSURE_REGISTERED (BitcoinSelfishMiner);
+NS_OBJECT_ENSURE_REGISTERED (BitcoinSelfishMinerTrials);
 
 TypeId 
-BitcoinSelfishMiner::GetTypeId (void)
+BitcoinSelfishMinerTrials::GetTypeId (void)
 {
-  static TypeId tid = TypeId ("ns3::BitcoinSelfishMiner")
+  static TypeId tid = TypeId ("ns3::BitcoinSelfishMinerTrials")
     .SetParent<Application> ()
     .SetGroupName("Applications")
-    .AddConstructor<BitcoinSelfishMiner> ()
+    .AddConstructor<BitcoinSelfishMinerTrials> ()
     .AddAttribute ("Local",
                    "The Address on which to Bind the rx socket.",
                    AddressValue (),
-                   MakeAddressAccessor (&BitcoinSelfishMiner::m_local),
+                   MakeAddressAccessor (&BitcoinSelfishMinerTrials::m_local),
                    MakeAddressChecker ())
     .AddAttribute ("Protocol",
                    "The type id of the protocol to use for the rx socket.",
                    TypeIdValue (UdpSocketFactory::GetTypeId ()),
-                   MakeTypeIdAccessor (&BitcoinSelfishMiner::m_tid),
+                   MakeTypeIdAccessor (&BitcoinSelfishMinerTrials::m_tid),
                    MakeTypeIdChecker ())
     .AddAttribute ("NumberOfMiners", 
 				   "The number of miners",
                    UintegerValue (16),
-                   MakeUintegerAccessor (&BitcoinSelfishMiner::m_noMiners),
+                   MakeUintegerAccessor (&BitcoinSelfishMinerTrials::m_noMiners),
                    MakeUintegerChecker<uint32_t> ())
     .AddAttribute ("FixedBlockSize", 
 				   "The fixed size of the block",
                    UintegerValue (0),
-                   MakeUintegerAccessor (&BitcoinSelfishMiner::m_fixedBlockSize),
+                   MakeUintegerAccessor (&BitcoinSelfishMinerTrials::m_fixedBlockSize),
                    MakeUintegerChecker<uint32_t> ())				   
     .AddAttribute ("FixedBlockIntervalGeneration", 
                    "The fixed time to wait between two consecutive block generations",
                    DoubleValue (0),
-                   MakeDoubleAccessor (&BitcoinSelfishMiner::m_fixedBlockTimeGeneration),
+                   MakeDoubleAccessor (&BitcoinSelfishMinerTrials::m_fixedBlockTimeGeneration),
                    MakeDoubleChecker<double> ())
     .AddAttribute ("InvTimeoutMinutes", 
 				   "The timeout of inv messages in minutes",
                    TimeValue (Minutes (20)),
-                   MakeTimeAccessor (&BitcoinSelfishMiner::m_invTimeoutMinutes),
+                   MakeTimeAccessor (&BitcoinSelfishMinerTrials::m_invTimeoutMinutes),
                    MakeTimeChecker())
     .AddAttribute ("HashRate", 
 				   "The hash rate of the selfish miner",
                    DoubleValue (0.2),
-                   MakeDoubleAccessor (&BitcoinSelfishMiner::m_hashRate),
+                   MakeDoubleAccessor (&BitcoinSelfishMinerTrials::m_hashRate),
                    MakeDoubleChecker<double> ())	
     .AddAttribute ("BlockGenBinSize", 
 				   "The block generation bin size",
                    DoubleValue (-1),
-                   MakeDoubleAccessor (&BitcoinSelfishMiner::m_blockGenBinSize),
+                   MakeDoubleAccessor (&BitcoinSelfishMinerTrials::m_blockGenBinSize),
                    MakeDoubleChecker<double> ())	
     .AddAttribute ("BlockGenParameter", 
 				   "The block generation distribution parameter",
                    DoubleValue (-1),
-                   MakeDoubleAccessor (&BitcoinSelfishMiner::m_blockGenParameter),
+                   MakeDoubleAccessor (&BitcoinSelfishMinerTrials::m_blockGenParameter),
                    MakeDoubleChecker<double> ())
     .AddAttribute ("AverageBlockGenIntervalSeconds", 
 				   "The average block generation interval we aim at (in seconds)",
                    DoubleValue (10*60),
-                   MakeDoubleAccessor (&BitcoinSelfishMiner::m_averageBlockGenIntervalSeconds),
+                   MakeDoubleAccessor (&BitcoinSelfishMinerTrials::m_averageBlockGenIntervalSeconds),
                    MakeDoubleChecker<double> ())
     .AddAttribute ("SecureBlocks", 
 				   "The number of blocks required for the secure confirmation of the transactions",
                    UintegerValue (6),
-                   MakeUintegerAccessor (&BitcoinSelfishMiner::m_secureBlocks),
+                   MakeUintegerAccessor (&BitcoinSelfishMinerTrials::m_secureBlocks),
                    MakeUintegerChecker<uint32_t> ())
     .AddAttribute ("AdvertiseBlocks", 
 				   "Choose whether the attacker will advertise his generated blocks",
                    UintegerValue (0),
-                   MakeUintegerAccessor (&BitcoinSelfishMiner::m_advertiseBlocks),
+                   MakeUintegerAccessor (&BitcoinSelfishMinerTrials::m_advertiseBlocks),
                    MakeUintegerChecker<uint32_t> ())
     .AddTraceSource ("Rx",
                      "A packet has been received",
-                     MakeTraceSourceAccessor (&BitcoinSelfishMiner::m_rxTrace),
+                     MakeTraceSourceAccessor (&BitcoinSelfishMinerTrials::m_rxTrace),
                      "ns3::Packet::AddressTracedCallback")
   ;
   return tid;
 }
 
 
-BitcoinSelfishMiner::BitcoinSelfishMiner () : BitcoinMiner(), m_attackFinished(false), m_winningStreak(0)
+BitcoinSelfishMinerTrials::BitcoinSelfishMinerTrials () : BitcoinMiner(), m_attackFinished(false), m_winningStreak(0), m_trials(1)
 {
   NS_LOG_FUNCTION (this);
 }
 
 
-BitcoinSelfishMiner::~BitcoinSelfishMiner(void)
+BitcoinSelfishMinerTrials::~BitcoinSelfishMinerTrials(void)
 {
   NS_LOG_FUNCTION (this);
 }
 
 
 void 
-BitcoinSelfishMiner::StartApplication ()    // Called at time specified by Start
+BitcoinSelfishMinerTrials::StartApplication ()    // Called at time specified by Start
 {
   BitcoinNode::StartApplication ();
   NS_LOG_WARN ("Selfish Miner " << GetNode()->GetId() << " m_realAverageBlockGenIntervalSeconds = " << m_realAverageBlockGenIntervalSeconds << "s");
@@ -176,7 +176,7 @@ BitcoinSelfishMiner::StartApplication ()    // Called at time specified by Start
 }
 
 void 
-BitcoinSelfishMiner::StopApplication ()
+BitcoinSelfishMinerTrials::StopApplication ()
 {
   BitcoinNode::StopApplication ();  
   Simulator::Cancel (m_nextMiningEvent);
@@ -194,7 +194,7 @@ BitcoinSelfishMiner::StopApplication ()
 }
 
 void 
-BitcoinSelfishMiner::DoDispose (void)
+BitcoinSelfishMinerTrials::DoDispose (void)
 {
   NS_LOG_FUNCTION (this);
   BitcoinMiner::DoDispose ();
@@ -202,7 +202,7 @@ BitcoinSelfishMiner::DoDispose (void)
 }
 
 void 
-BitcoinSelfishMiner::MineBlock (void)  //FIX ME
+BitcoinSelfishMinerTrials::MineBlock (void)  //FIX ME
 {
   NS_LOG_FUNCTION (this);
   rapidjson::Document d; 
@@ -220,7 +220,7 @@ BitcoinSelfishMiner::MineBlock (void)  //FIX ME
   {
     NS_LOG_WARN ("The attack was successful");
     m_attackFinished = true;
-	m_nodeStats->attackSuccess = 1;
+	m_nodeStats->attackSuccess = m_trials;
 	Simulator::Stop (Seconds (0));
   }
 
@@ -320,12 +320,13 @@ BitcoinSelfishMiner::MineBlock (void)  //FIX ME
 }
 
 void 
-BitcoinSelfishMiner::ReceivedHigherBlock(const Block &newBlock) //FIX ME
+BitcoinSelfishMinerTrials::ReceivedHigherBlock(const Block &newBlock) //FIX ME
 {
   NS_LOG_FUNCTION (this);
   NS_LOG_WARN("Bitcoin selfish miner "<< GetNode ()->GetId () << " added a new block in the m_blockchain with higher height: " << newBlock);
   NS_LOG_WARN (m_winningStreak);
   m_winningStreak = 0;
+  m_trials++;
   Simulator::Cancel (m_nextMiningEvent);
   ScheduleNextMiningEvent();
 

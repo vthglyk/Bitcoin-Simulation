@@ -23,7 +23,8 @@ enum MinerType
 {
   NORMAL_MINER,
   SIMPLE_ATTACKER,
-  SELFISH_MINER
+  SELFISH_MINER,
+  SELFISH_MINER_TRIALS
 };
 
 enum BlockBroadcastType

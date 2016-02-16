@@ -568,64 +568,65 @@ std::ostream& operator<< (std::ostream &out, Blockchain &blockchain)
 
 const char* getMessageName(enum Messages m) 
 {
-   switch (m) 
-   {
-      case INV: return "INV";
-      case GET_HEADERS: return "GET_HEADERS";
-      case HEADERS: return "HEADERS";
-      case GET_BLOCKS: return "GET_BLOCKS";
-      case BLOCK: return "BLOCK";
-      case GET_DATA: return "GET_DATA";
-      case NO_MESSAGE: return "NO_MESSAGE";
-   }
+  switch (m) 
+  {
+    case INV: return "INV";
+    case GET_HEADERS: return "GET_HEADERS";
+    case HEADERS: return "HEADERS";
+    case GET_BLOCKS: return "GET_BLOCKS";
+    case BLOCK: return "BLOCK";
+    case GET_DATA: return "GET_DATA";
+    case NO_MESSAGE: return "NO_MESSAGE";
+  }
 }
 
 const char* getMinerType(enum MinerType m)
 {
-   switch (m) 
-   {
-      case NORMAL_MINER: return "NORMAL_MINER";
-      case SIMPLE_ATTACKER: return "SIMPLE_ATTACKER";
-      case SELFISH_MINER: return "SELFISH_MINER";
-   }
+  switch (m) 
+  {
+    case NORMAL_MINER: return "NORMAL_MINER";
+    case SIMPLE_ATTACKER: return "SIMPLE_ATTACKER";
+    case SELFISH_MINER: return "SELFISH_MINER";
+    case SELFISH_MINER_TRIALS: return "SELFISH_MINER_TRIALS";
+  }
 }
 
 const char* getBlockBroadcastType(enum BlockBroadcastType m)
 {
-   switch (m) 
-   {
-      case STANDARD: return "STANDARD";
-      case UNSOLICITED: return "UNSOLICITED";
-      case RELAY_NETWORK: return "RELAY_NETWORK";
-   }
+  switch (m) 
+  {
+    case STANDARD: return "STANDARD";
+    case UNSOLICITED: return "UNSOLICITED";
+    case RELAY_NETWORK: return "RELAY_NETWORK";
+  }
 }
 
 const char* getBitcoinRegion(enum BitcoinRegion m)
 {
-   switch (m) 
-   {
-      case ASIA_PACIFIC: return "ASIA_PACIFIC";
-      case AUSTRALIA: return "AUSTRALIA";
-      case EUROPE: return "EUROPE";
-      case JAPAN: return "JAPAN";
-      case NORTH_AMERICA: return "NORTH_AMERICA";
-      case SOUTH_AMERICA: return "SOUTH_AMERICA";
-	  case OTHER: return "OTHER";
-   }
+  switch (m) 
+  {
+    case ASIA_PACIFIC: return "ASIA_PACIFIC";
+    case AUSTRALIA: return "AUSTRALIA";
+    case EUROPE: return "EUROPE";
+    case JAPAN: return "JAPAN";
+    case NORTH_AMERICA: return "NORTH_AMERICA";
+    case SOUTH_AMERICA: return "SOUTH_AMERICA";
+	case OTHER: return "OTHER";
+  }
 }
 
 
 enum BitcoinRegion getBitcoinEnum(uint32_t n)
 {
-   switch (n) 
-   {
-      case 0: return NORTH_AMERICA;
-      case 1: return EUROPE;
-      case 2: return SOUTH_AMERICA;
-      case 3: return ASIA_PACIFIC;
-      case 4: return JAPAN;
-      case 5: return AUSTRALIA;
-	  case 6: return OTHER;
-   }
+  switch (n) 
+  {
+    case 0: return NORTH_AMERICA;
+    case 1: return EUROPE;
+    case 2: return SOUTH_AMERICA;
+    case 3: return ASIA_PACIFIC;
+    case 4: return JAPAN;
+    case 5: return AUSTRALIA;
+	case 6: return OTHER;
+  }
 }
 }// Namespace ns3
