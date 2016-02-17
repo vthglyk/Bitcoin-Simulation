@@ -522,6 +522,8 @@ void PrintTotalStats (nodeStatistics *stats, int totalNodes, double start, doubl
   totalBlocks /= totalNodes;
   staleBlocks /= totalNodes;
   sort(propagationTimes.begin(), propagationTimes.end());
+  sort(minersPropagationTimes.begin(), minersPropagationTimes.end());
+
   double median = *(propagationTimes.begin()+propagationTimes.size()/2);
   double p_25 = *(propagationTimes.begin()+int(propagationTimes.size()*.25));
   double p_75 = *(propagationTimes.begin()+int(propagationTimes.size()*.75));
