@@ -60,19 +60,19 @@ BitcoinTopologyHelper::BitcoinTopologyHelper (uint32_t noCpus, uint32_t totalNoN
     for (int j = 0; j < 6; j++)
 	  m_regionLatencies[k][j] = regionLatencies[k][j];
   
-  m_regionDownloadSpeeds[NORTH_AMERICA] = 20.08;
-  m_regionDownloadSpeeds[EUROPE] = 15.9;
-  m_regionDownloadSpeeds[SOUTH_AMERICA] = 7.9;
-  m_regionDownloadSpeeds[ASIA_PACIFIC] = 9.46;
+  m_regionDownloadSpeeds[NORTH_AMERICA] = 41.68;
+  m_regionDownloadSpeeds[EUROPE] = 21.29;
+  m_regionDownloadSpeeds[SOUTH_AMERICA] = 9.89;
+  m_regionDownloadSpeeds[ASIA_PACIFIC] = 14.56;
   m_regionDownloadSpeeds[JAPAN] = 6.9;
-  m_regionDownloadSpeeds[AUSTRALIA] = 15.7;
+  m_regionDownloadSpeeds[AUSTRALIA] = 16;
 
-  m_regionUploadSpeeds[NORTH_AMERICA] = 3.84;
-  m_regionUploadSpeeds[EUROPE] = 5.95;
-  m_regionUploadSpeeds[SOUTH_AMERICA] = 2.5;
-  m_regionUploadSpeeds[ASIA_PACIFIC] = 4.69;
+  m_regionUploadSpeeds[NORTH_AMERICA] = 6.74;
+  m_regionUploadSpeeds[EUROPE] = 6.72;
+  m_regionUploadSpeeds[SOUTH_AMERICA] = 2.2;
+  m_regionUploadSpeeds[ASIA_PACIFIC] = 6.53;
   m_regionUploadSpeeds[JAPAN] = 1.7;
-  m_regionUploadSpeeds[AUSTRALIA] = 5.45;
+  m_regionUploadSpeeds[AUSTRALIA] = 6.1;
   srand (1000);
 
   // Bounds check

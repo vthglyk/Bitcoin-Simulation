@@ -526,7 +526,7 @@ void PrintTotalStats (nodeStatistics *stats, int totalNodes, double start, doubl
   double p_25 = *(propagationTimes.begin()+int(propagationTimes.size()*.25));
   double p_75 = *(propagationTimes.begin()+int(propagationTimes.size()*.75));
   double p_90 = *(propagationTimes.begin()+int(propagationTimes.size()*.90));
-  double minersMedian = *(minersPropagationTimes.begin()+int(propagationTimes.size()/2));
+  double minersMedian = *(minersPropagationTimes.begin()+int(minersPropagationTimes.size()/2));
   
   std::cout << "\nTotal Stats:\n";
   std::cout << "Average Connections/node = " << connectionsPerNode << "\n";
