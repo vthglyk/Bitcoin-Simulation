@@ -223,9 +223,6 @@ BitcoinNode::StopApplication ()     // Called at time specified by Stop
 {
   NS_LOG_FUNCTION (this);
 
-  for (auto &elem : m_peersSockets)
-    NS_LOG_DEBUG("\t" << elem.first);
-
   for (std::vector<Ipv4Address>::iterator i = m_peersAddresses.begin(); i != m_peersAddresses.end(); ++i) //close the outgoing sockets
   {
 	m_peersSockets[*i]->Close ();
@@ -694,26 +691,32 @@ BitcoinNode::HandleRead (Ptr<Socket> socket)
 
               for (j=0; j<d["blocks"].Size(); j++)
               {  
-/* 		        double bandwidth = m_peersDownloadSpeeds[InetSocketAddress::ConvertFrom(from).GetIpv4 ()] * 1000000 / 8; //m_bandwidth in Mbps, bandwidth in B/s
-				
-				NS_LOG_INFO("Node " << GetNode()->GetId() << "-" << InetSocketAddress::ConvertFrom(from).GetIpv4 () 
-				            << " " << m_peersDownloadSpeeds[InetSocketAddress::ConvertFrom(from).GetIpv4 ()] << " Mbps\n");
-							
-                fullBlockReceiveTime = d["blocks"][j]["size"].GetInt() / bandwidth + fullBlockReceiveTime; //FIX ME: constant MB/s
-                Block newBlock (d["blocks"][j]["height"].GetInt(), d["blocks"][j]["minerId"].GetInt(), d["blocks"][j]["parentBlockMinerId"].GetInt(), 
-                                d["blocks"][j]["size"].GetInt(), d["blocks"][j]["timeCreated"].GetDouble(), 
-                                Simulator::Now ().GetSeconds () + fullBlockReceiveTime, InetSocketAddress::ConvertFrom(from).GetIpv4 ());
+                int parentHeight = d["blocks"][j]["height"].GetInt() - 1;
+                int parentMinerId = d["blocks"][j]["parentBlockMinerId"].GetInt();
 
-                Simulator::Schedule (Seconds(fullBlockReceiveTime), &BitcoinNode::ReceiveBlock, this, newBlock);
-                NS_LOG_INFO("The full block " << newBlock << " will be received in " << fullBlockReceiveTime << "s"); */
+                EventId              timeout;
+                std::ostringstream   stringStream;  
+                std::string          blockHash = stringStream.str();
+				
+                stringStream << parentHeight << "/" << parentMinerId;
+                blockHash = stringStream.str();
 				
                 m_nodeStats->blockReceivedBytes += m_blockHeadersSizeBytes + m_countBytes + d["blocks"][j]["size"].GetInt();
-                Block newBlock (d["blocks"][j]["height"].GetInt(), d["blocks"][j]["minerId"].GetInt(), d["blocks"][j]["parentBlockMinerId"].GetInt(), 
-                                d["blocks"][j]["size"].GetInt(), d["blocks"][j]["timeCreated"].GetDouble(), 
-                                Simulator::Now ().GetSeconds (), InetSocketAddress::ConvertFrom(from).GetIpv4 ());
-
-                ReceiveBlock (newBlock);
 				
+                if (!m_blockchain.HasBlock(parentHeight, parentMinerId) && !ReceivedButNotValidated(blockHash))
+                {				  
+                  NS_LOG_INFO("The Block with height = " << d["blocks"][j]["height"].GetInt() 
+                               << " and minerId = " << d["blocks"][j]["minerId"].GetInt() 
+                               << " is an orphan, so it will be discarded\n");
+                }
+                else
+                {
+                  Block newBlock (d["blocks"][j]["height"].GetInt(), d["blocks"][j]["minerId"].GetInt(), d["blocks"][j]["parentBlockMinerId"].GetInt(), 
+                                  d["blocks"][j]["size"].GetInt(), d["blocks"][j]["timeCreated"].GetDouble(), 
+                                  Simulator::Now ().GetSeconds (), InetSocketAddress::ConvertFrom(from).GetIpv4 ());
+
+                  ReceiveBlock (newBlock);
+                }
               }
               break;
             }
@@ -754,12 +757,12 @@ BitcoinNode::ReceiveBlock(const Block &newBlock)
   std::ostringstream   stringStream;  
   std::string          blockHash = stringStream.str();
 				
-  stringStream << newBlock.GetBlockHeight() << "/" << newBlock.GetParentBlockMinerId();
+  stringStream << newBlock.GetBlockHeight() << "/" << newBlock.GetMinerId();
   blockHash = stringStream.str();
   
-  if (m_blockchain.HasBlock(newBlock))
+  if (m_blockchain.HasBlock(newBlock) || ReceivedButNotValidated(blockHash))
   {
-    NS_LOG_INFO("ReceiveBlock: Bitcoin node " << GetNode ()->GetId () << " has already added this block in the m_blockchain: " << newBlock);
+    NS_LOG_WARN ("ReceiveBlock: Bitcoin node " << GetNode ()->GetId () << " has already added this block in the m_blockchain: " << newBlock);
     
 	if (m_queueInv.find(blockHash) == m_queueInv.end())
     {
@@ -770,6 +773,8 @@ BitcoinNode::ReceiveBlock(const Block &newBlock)
   }
   else
   {
+    NS_LOG_WARN ("ReceiveBlock: Bitcoin node " << GetNode ()->GetId () << " has NOT added this block in the m_blockchain: " << newBlock);
+
 	std::ostringstream stringStream;
     stringStream << newBlock.GetBlockHeight() << "/" << newBlock.GetMinerId();
     std::string blockHash = stringStream.str();

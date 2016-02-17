@@ -125,6 +125,8 @@ protected:
   
   virtual void ReceivedHigherBlock(const Block &newBlock);	//Called for blocks with better score(height). Remove m_nextMiningEvent and call MineBlock again.
 
+  void SendBlock(std::string packetInfo, Ptr<Socket> to);				   
+
   int               m_noMiners;                
   uint32_t			m_fixedBlockSize;  
   double 			m_fixedBlockTimeGeneration; 	//!< Fixed Block Time Generation
@@ -153,7 +155,7 @@ protected:
   const double  m_realAverageBlockGenIntervalSeconds;  //!< in seconds, 10 mins
   double        m_averageBlockGenIntervalSeconds;	   //!< the new m_averageBlockGenInterval we set
   
-  enum BlockBroadcastType   m_blockBroadcastType;
+  enum BlockBroadcastType   m_blockBroadcastType;      //!< the type of broadcast
 
   //debug
   double       m_timeStart;

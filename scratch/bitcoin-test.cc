@@ -45,6 +45,8 @@ main (int argc, char *argv[])
 {
 #ifdef NS3_MPI
   bool nullmsg = false;
+  bool testScalability = false;
+  bool unsolicited = false;
   double tStart = get_wall_time(), tStartSimulation, tFinish;
   const int secsPerMin = 60;
   const uint16_t bitcoinPort = 8333;
@@ -55,7 +57,7 @@ main (int argc, char *argv[])
   int start = 0;
   double bandwidth = 8;
   double latency = 40;
-  bool testScalability = false;
+
   
   int totalNoNodes = 4;
 
@@ -101,6 +103,7 @@ main (int argc, char *argv[])
   cmd.AddValue ("maxConnections", "The maxConnectionsPerNode of the grid", maxConnectionsPerNode);
   cmd.AddValue ("blockIntervalMinutes", "The average block generation interval in minutes", averageBlockGenIntervalMinutes);
   cmd.AddValue ("test", "Test the scalability of the simulation", testScalability);
+  cmd.AddValue ("unsolicited", "Change the miners block broadcast type to UNSOLICITED", unsolicited);
 
   cmd.Parse(argc, argv);
   
@@ -183,7 +186,9 @@ main (int argc, char *argv[])
 	  bitcoinMinerHelper.SetPeersDownloadSpeeds (peersDownloadSpeeds[miner]);
 	  bitcoinMinerHelper.SetNodeInternetSpeeds (nodesInternetSpeeds[miner]);
 	  bitcoinMinerHelper.SetNodeStats (&stats[miner]);
-	  bitcoinMinerHelper.SetBlockBroadcastType (UNSOLICITED);
+      
+	  if(unsolicited)
+	    bitcoinMinerHelper.SetBlockBroadcastType (UNSOLICITED);
 	  //bitcoinMinerHelper.SetAttribute("FixedBlockSize", UintegerValue(blockSize));
 
 	  bitcoinMiners.Add(bitcoinMinerHelper.Install (targetNode));
@@ -196,7 +201,7 @@ main (int argc, char *argv[])
 	}				
 	count++;
 	if (testScalability == true)
-	  bitcoinMinerHelper.SetAttribute("FixedBlockIntervalGeneration", DoubleValue(1000));
+	  bitcoinMinerHelper.SetAttribute("FixedBlockIntervalGeneration", DoubleValue(1300));
 
   }
   bitcoinMiners.Start (Seconds (start));
@@ -351,6 +356,11 @@ main (int argc, char *argv[])
 	
     //PrintStatsForEachNode(stats, totalNoNodes);
     PrintTotalStats(stats, totalNoNodes, tStartSimulation, tFinish, averageBlockGenIntervalMinutes);
+    if(unsolicited)
+      std::cout << "The broadcast type was UNSOLICITED.\n";
+    else
+      std::cout << "The broadcast type was STANDARD.\n";
+
     std::cout << "\nThe simulation ran for " << tFinish - tStart << "s simulating "
               << stop << "mins. Performed " << stop * secsPerMin / (tFinish - tStart)
               << " faster than realtime.\n" << "Setup time = " << tStartSimulation - tStart << "s\n"
@@ -445,8 +455,8 @@ void PrintTotalStats (nodeStatistics *stats, int totalNodes, double start, doubl
   double     meanBlockPropagationTime = 0;
   double     meanMinersBlockPropagationTime = 0;
   double     meanBlockSize = 0;
-  int        totalBlocks = 0;
-  int        staleBlocks = 0;
+  double     totalBlocks = 0;
+  double     staleBlocks = 0;
   double     invReceivedBytes = 0;
   double     invSentBytes = 0;
   double     getHeadersReceivedBytes = 0;
@@ -509,8 +519,8 @@ void PrintTotalStats (nodeStatistics *stats, int totalNodes, double start, doubl
   averageBandwidthPerNode = invReceivedBytes + invSentBytes + getHeadersReceivedBytes + getHeadersSentBytes + headersReceivedBytes
                           + headersSentBytes + getDataReceivedBytes + getDataSentBytes + blockReceivedBytes + blockSentBytes;
 				   
-  totalBlocks /= static_cast<double>(totalNodes);
-  staleBlocks /= static_cast<double>(totalNodes);
+  totalBlocks /= totalNodes;
+  staleBlocks /= totalNodes;
   sort(propagationTimes.begin(), propagationTimes.end());
   double median = *(propagationTimes.begin()+propagationTimes.size()/2);
   double p_25 = *(propagationTimes.begin()+int(propagationTimes.size()*.25));
