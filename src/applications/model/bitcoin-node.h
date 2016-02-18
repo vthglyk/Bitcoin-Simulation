@@ -119,6 +119,9 @@ protected:
   
   bool RemoveReceivedButNotValidated (std::string blockHash);
   
+  bool OnlyHeadersReceived (std::string blockHash);
+  
+  bool RemoveOnlyHeadersReceived (std::string blockHash);
   
   // In the case of TCP, each socket accept returns a new socket, so the 
   // listening socket is stored separately from the accepted sockets
@@ -136,15 +139,16 @@ protected:
   double          m_downloadSpeed;
   double          m_uploadSpeed;
   
-  std::vector<Ipv4Address>		                      m_peersAddresses;        //!< The addresses of peers
+  std::vector<Ipv4Address>		                      m_peersAddresses;                 //!< The addresses of peers
   std::map<Ipv4Address, double>                       m_peersDownloadSpeeds;            //!< The peersDownloadSpeeds of channels
-  std::map<Ipv4Address, Ptr<Socket>>                  m_peersSockets;          //!< The sockets of peers
-  std::map<std::string, std::vector<Address>>         m_queueInv;              //!< map holding the addresses of nodes which sent an INV for a particular block
-  std::map<std::string, EventId>                      m_invTimeouts;           //!< map holding the event timeouts of inv messages
-  std::map<Address, std::string>                      m_bufferedData;          //!< map holding the buffered data from previous handleRead events
-  std::vector<std::string>                            m_receivedNotValidated;  //!< map holding the received but not yet validated blocks
-  nodeStatistics                                     *m_nodeStats;             //!< struct holding the node stats
-  std::vector<double>                                 m_sendBlockTimes;        //!< contains the times of the next sendBlock events
+  std::map<Ipv4Address, Ptr<Socket>>                  m_peersSockets;                   //!< The sockets of peers
+  std::map<std::string, std::vector<Address>>         m_queueInv;                       //!< map holding the addresses of nodes which sent an INV for a particular block
+  std::map<std::string, EventId>                      m_invTimeouts;                    //!< map holding the event timeouts of inv messages
+  std::map<Address, std::string>                      m_bufferedData;                   //!< map holding the buffered data from previous handleRead events
+  std::vector<std::string>                            m_receivedNotValidated;           //!< vector holding the received but not yet validated blocks
+  std::vector<std::string>                            m_onlyHeadersReceived;            //!< vector holding the blocks that we know but not received
+  nodeStatistics                                     *m_nodeStats;                      //!< struct holding the node stats
+  std::vector<double>                                 m_sendBlockTimes;                 //!< contains the times of the next sendBlock events
   
   const int		  m_bitcoinPort;   //!< 8333
   const int       m_secondsPerMin; //!< 8333

@@ -173,7 +173,7 @@ main (int argc, char *argv[])
   ApplicationContainer bitcoinMiners;
   int count = 0;
   if (testScalability == true)
-    bitcoinMinerHelper.SetAttribute("FixedBlockIntervalGeneration", DoubleValue(600));
+    bitcoinMinerHelper.SetAttribute("FixedBlockIntervalGeneration", DoubleValue(averageBlockGenIntervalSeconds));
 
   for(auto &miner : miners)
   {
@@ -201,7 +201,7 @@ main (int argc, char *argv[])
 	}				
 	count++;
 	if (testScalability == true)
-	  bitcoinMinerHelper.SetAttribute("FixedBlockIntervalGeneration", DoubleValue(1300));
+	  bitcoinMinerHelper.SetAttribute("FixedBlockIntervalGeneration", DoubleValue(3*averageBlockGenIntervalSeconds));
 
   }
   bitcoinMiners.Start (Seconds (start));
