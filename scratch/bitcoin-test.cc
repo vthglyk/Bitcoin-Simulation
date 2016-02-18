@@ -182,7 +182,8 @@ main (int argc, char *argv[])
 	if (systemId == targetNode->GetSystemId())
 	{
       bitcoinMinerHelper.SetAttribute("HashRate", DoubleValue(minersHash[count]));
-	  bitcoinMinerHelper.SetPeersAddresses (nodesConnections[miner]);
+      //bitcoinMinerHelper.SetAttribute("InvTimeoutMinutes", TimeValue (Minutes (2*averageBlockGenIntervalMinutes)));	  
+      bitcoinMinerHelper.SetPeersAddresses (nodesConnections[miner]);
 	  bitcoinMinerHelper.SetPeersDownloadSpeeds (peersDownloadSpeeds[miner]);
 	  bitcoinMinerHelper.SetNodeInternetSpeeds (nodesInternetSpeeds[miner]);
 	  bitcoinMinerHelper.SetNodeStats (&stats[miner]);
@@ -222,6 +223,7 @@ main (int argc, char *argv[])
   
       if ( std::find(miners.begin(), miners.end(), node.first) == miners.end() )
 	  {
+        //bitcoinNodeHelper.SetAttribute("InvTimeoutMinutes", TimeValue (Minutes (2*averageBlockGenIntervalMinutes)));	  
 	    bitcoinNodeHelper.SetPeersAddresses (node.second);
 	    bitcoinNodeHelper.SetPeersDownloadSpeeds (peersDownloadSpeeds[node.first]);
 	    bitcoinNodeHelper.SetNodeInternetSpeeds (nodesInternetSpeeds[node.first]);

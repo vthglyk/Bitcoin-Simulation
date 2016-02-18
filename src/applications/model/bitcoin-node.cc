@@ -375,7 +375,7 @@ BitcoinNode::HandleRead (Ptr<Socket> socket)
                    * Check if we have already request the block
                    */
 				   
-                  if (m_queueInv.find(parsedInv) == m_queueInv.end())
+                  if (m_invTimeouts.find(parsedInv) == m_invTimeouts.end())
                   {
                     NS_LOG_INFO("INV: Bitcoin node " << GetNode ()->GetId ()
                                  << " has not requested the block yet");
@@ -641,7 +641,7 @@ BitcoinNode::HandleRead (Ptr<Socket> socket)
                    * Acquire parent
                    */
 	  
-                  if (m_queueInv.find(blockHash) == m_queueInv.end())
+                  if (m_invTimeouts.find(blockHash) == m_invTimeouts.end())
                   {
                     NS_LOG_INFO("INV: Bitcoin node " << GetNode ()->GetId ()
                                  << " has not requested its parent block yet");
@@ -729,6 +729,16 @@ BitcoinNode::HandleRead (Ptr<Socket> socket)
                   NS_LOG_INFO("The Block with height = " << d["blocks"][j]["height"].GetInt() 
                                << " and minerId = " << d["blocks"][j]["minerId"].GetInt() 
                                << " is an orphan, so it will be discarded\n");
+							   
+                  stringStream.clear();
+                  stringStream.str("");
+				  
+                  stringStream << height << "/" << minerId;
+                  blockHash = stringStream.str();
+				
+                  m_queueInv.erase(blockHash);
+                  Simulator::Cancel (m_invTimeouts[blockHash]);
+                  m_invTimeouts.erase(blockHash);
                 }
                 else
                 {
@@ -785,7 +795,7 @@ BitcoinNode::ReceiveBlock(const Block &newBlock)
   {
     NS_LOG_INFO ("ReceiveBlock: Bitcoin node " << GetNode ()->GetId () << " has already added this block in the m_blockchain: " << newBlock);
     
-	if (m_queueInv.find(blockHash) == m_queueInv.end())
+	if (m_invTimeouts.find(blockHash) == m_invTimeouts.end())
     {
       m_queueInv.erase(blockHash);
       Simulator::Cancel (m_invTimeouts[blockHash]);
