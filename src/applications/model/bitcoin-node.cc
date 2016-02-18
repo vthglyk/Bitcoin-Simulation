@@ -620,6 +620,7 @@ BitcoinNode::HandleRead (Ptr<Socket> socket)
                 EventId              timeout;
                 std::ostringstream   stringStream;  
                 std::string          blockHash = stringStream.str();
+                std::string          parentBlockHash = stringStream.str();
 
                 stringStream << height << "/" << minerId;
                 blockHash = stringStream.str();
@@ -629,9 +630,9 @@ BitcoinNode::HandleRead (Ptr<Socket> socket)
                 stringStream.str("");
 				
                 stringStream << parentHeight << "/" << parentMinerId;
-                blockHash = stringStream.str();
+                parentBlockHash = stringStream.str();
 				
-                if (!m_blockchain.HasBlock(parentHeight, parentMinerId) && !ReceivedButNotValidated(blockHash))
+                if (!m_blockchain.HasBlock(parentHeight, parentMinerId) && !ReceivedButNotValidated(parentBlockHash))
                 {				  
                   NS_LOG_INFO("The Block with height = " << d["blocks"][j]["height"].GetInt() 
                                << " and minerId = " << d["blocks"][j]["minerId"].GetInt() 
@@ -641,13 +642,13 @@ BitcoinNode::HandleRead (Ptr<Socket> socket)
                    * Acquire parent
                    */
 	  
-                  if (m_invTimeouts.find(blockHash) == m_invTimeouts.end())
+                  if (m_invTimeouts.find(parentBlockHash) == m_invTimeouts.end())
                   {
                     NS_LOG_INFO("INV: Bitcoin node " << GetNode ()->GetId ()
                                  << " has not requested its parent block yet");
-                    requestBlocks.push_back(blockHash.c_str());
-                    timeout = Simulator::Schedule (m_invTimeoutMinutes, &BitcoinNode::InvTimeoutExpired, this, blockHash);
-                    m_invTimeouts[blockHash] = timeout;
+                    requestBlocks.push_back(parentBlockHash.c_str());
+                    timeout = Simulator::Schedule (m_invTimeoutMinutes, &BitcoinNode::InvTimeoutExpired, this, parentBlockHash);
+                    m_invTimeouts[parentBlockHash] = timeout;
                   }
                   else
                   {
@@ -655,7 +656,7 @@ BitcoinNode::HandleRead (Ptr<Socket> socket)
                                  << " has already requested the block");
                   }
 				  
-                  m_queueInv[blockHash].push_back(from); //FIX ME: check if it should be placed inside if
+                  m_queueInv[parentBlockHash].push_back(from); //FIX ME: check if it should be placed inside if
                   //PrintQueueInv();
 				  //PrintInvTimeouts();
 				  
@@ -709,7 +710,8 @@ BitcoinNode::HandleRead (Ptr<Socket> socket)
 
                 EventId              timeout;
                 std::ostringstream   stringStream;  
-                std::string          blockHash = stringStream.str();
+                std::string          blockHash;
+                std::string          parentBlockHash;
 				
                 stringStream << height << "/" << minerId;
                 blockHash = stringStream.str();
@@ -720,22 +722,16 @@ BitcoinNode::HandleRead (Ptr<Socket> socket)
                 stringStream.str("");
 				
                 stringStream << parentHeight << "/" << parentMinerId;
-                blockHash = stringStream.str();
+                parentBlockHash = stringStream.str();
 				
                 m_nodeStats->blockReceivedBytes += m_blockHeadersSizeBytes + m_countBytes + d["blocks"][j]["size"].GetInt();
 				
-                if (!m_blockchain.HasBlock(parentHeight, parentMinerId) && !ReceivedButNotValidated(blockHash) && !OnlyHeadersReceived(blockHash))
+                if (!m_blockchain.HasBlock(parentHeight, parentMinerId) && !ReceivedButNotValidated(parentBlockHash) && !OnlyHeadersReceived(parentBlockHash))
                 {				  
                   NS_LOG_INFO("The Block with height = " << d["blocks"][j]["height"].GetInt() 
                                << " and minerId = " << d["blocks"][j]["minerId"].GetInt() 
                                << " is an orphan, so it will be discarded\n");
 							   
-                  stringStream.clear();
-                  stringStream.str("");
-				  
-                  stringStream << height << "/" << minerId;
-                  blockHash = stringStream.str();
-				
                   m_queueInv.erase(blockHash);
                   Simulator::Cancel (m_invTimeouts[blockHash]);
                   m_invTimeouts.erase(blockHash);
