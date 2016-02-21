@@ -53,7 +53,7 @@ BitcoinNode::GetTypeId (void)
 }
 
 BitcoinNode::BitcoinNode (void) : m_bitcoinPort (8333), m_secondsPerMin(60), m_isMiner (false), m_countBytes (4), 
-                                  m_inventorySizeBytes (36), m_getHeadersSizeBytes (72), m_headersSizeBytes (81), m_blockHeadersSizeBytes (80)
+                                  m_inventorySizeBytes (36), m_getHeadersSizeBytes (72), m_headersSizeBytes (80), m_blockHeadersSizeBytes (80)
 {
   NS_LOG_FUNCTION (this);
   m_socket = 0;
@@ -263,15 +263,7 @@ BitcoinNode::StopApplication ()     // Called at time specified by Stop
   m_nodeStats->longestFork = m_blockchain.GetLongestForkSize();
   m_nodeStats->blocksInForks = m_blockchain.GetBlocksInForks();
   
-/*     std::cout << "\nNode " << m_nodeStats->nodeId << " statistics:\n";
-    std::cout << "Mean Block Receive Time = " << m_nodeStats->meanBlockReceiveTime << " or " 
-              << static_cast<int>(m_nodeStats->meanBlockReceiveTime) / m_secondsPerMin << "min and " 
-			  << m_nodeStats->meanBlockReceiveTime - static_cast<int>(m_nodeStats->meanBlockReceiveTime) / m_secondsPerMin * m_secondsPerMin << "s\n";
-    std::cout << "Mean Block Propagation Time = " << m_nodeStats->meanBlockPropagationTime << "s\n";
-    std::cout << "Mean Block Size = " << m_nodeStats->meanBlockSize << " Bytes\n";
-    std::cout << "Total Blocks = " << m_nodeStats->totalBlocks << "\n";
-    std::cout << "Stale Blocks = " << m_nodeStats->staleBlocks << " (" 
-              << 100. * m_nodeStats->staleBlocks / m_nodeStats->totalBlocks << "%)\n"; */
+
 }
 
 void 
@@ -619,8 +611,8 @@ BitcoinNode::HandleRead (Ptr<Socket> socket)
 				
                 EventId              timeout;
                 std::ostringstream   stringStream;  
-                std::string          blockHash = stringStream.str();
-                std::string          parentBlockHash = stringStream.str();
+                std::string          blockHash;
+                std::string          parentBlockHash ;
 
                 stringStream << height << "/" << minerId;
                 blockHash = stringStream.str();
@@ -724,7 +716,7 @@ BitcoinNode::HandleRead (Ptr<Socket> socket)
                 stringStream << parentHeight << "/" << parentMinerId;
                 parentBlockHash = stringStream.str();
 				
-                m_nodeStats->blockReceivedBytes += m_blockHeadersSizeBytes + m_countBytes + d["blocks"][j]["size"].GetInt();
+                m_nodeStats->blockReceivedBytes += d["blocks"][j]["size"].GetInt();
 				
                 if (!m_blockchain.HasBlock(parentHeight, parentMinerId) && !ReceivedButNotValidated(parentBlockHash) && !OnlyHeadersReceived(parentBlockHash))
                 {				  
@@ -1042,7 +1034,7 @@ BitcoinNode::SendMessage(enum Messages receivedMessage,  enum Messages responseM
     case BLOCK:
     {
 	  for(int k = 0; k < d["blocks"].Size(); k++)
-        m_nodeStats->blockSentBytes += m_blockHeadersSizeBytes + m_countBytes + d["blocks"][k]["size"].GetInt();
+        m_nodeStats->blockSentBytes += d["blocks"][k]["size"].GetInt();
       break;
     }
     case GET_DATA:
@@ -1102,7 +1094,7 @@ BitcoinNode::SendMessage(enum Messages receivedMessage,  enum Messages responseM
     case BLOCK:
     {
 	  for(int k = 0; k < d["blocks"].Size(); k++)
-        m_nodeStats->blockSentBytes += m_blockHeadersSizeBytes + m_countBytes + d["blocks"][k]["size"].GetInt();
+        m_nodeStats->blockSentBytes += d["blocks"][k]["size"].GetInt();
       break;
     }
     case GET_DATA:
@@ -1165,7 +1157,7 @@ BitcoinNode::SendMessage(enum Messages receivedMessage,  enum Messages responseM
     case BLOCK:
     {
 	  for(int k = 0; k < d["blocks"].Size(); k++)
-        m_nodeStats->blockSentBytes += m_blockHeadersSizeBytes + m_countBytes + d["blocks"][k]["size"].GetInt();
+        m_nodeStats->blockSentBytes += d["blocks"][k]["size"].GetInt();
       break;
     }
     case GET_DATA:

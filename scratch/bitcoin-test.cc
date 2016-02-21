@@ -47,6 +47,7 @@ main (int argc, char *argv[])
   bool nullmsg = false;
   bool testScalability = false;
   bool unsolicited = false;
+  bool relayNetwork = false;
   double tStart = get_wall_time(), tStartSimulation, tFinish;
   const int secsPerMin = 60;
   const uint16_t bitcoinPort = 8333;
@@ -104,6 +105,7 @@ main (int argc, char *argv[])
   cmd.AddValue ("blockIntervalMinutes", "The average block generation interval in minutes", averageBlockGenIntervalMinutes);
   cmd.AddValue ("test", "Test the scalability of the simulation", testScalability);
   cmd.AddValue ("unsolicited", "Change the miners block broadcast type to UNSOLICITED", unsolicited);
+  cmd.AddValue ("relayNetwork", "Change the miners block broadcast type to RELAY_NETWORK", relayNetwork);
 
   cmd.Parse(argc, argv);
   
@@ -135,8 +137,8 @@ main (int argc, char *argv[])
   uint32_t systemCount = 1;
 #endif
 
-  //LogComponentEnable("BitcoinNode", LOG_LEVEL_WARN);
-  //LogComponentEnable("BitcoinMiner", LOG_LEVEL_WARN);
+  //LogComponentEnable("BitcoinNode", LOG_LEVEL_INFO);
+  //LogComponentEnable("BitcoinMiner", LOG_LEVEL_INFO);
   //LogComponentEnable("Ipv4AddressGenerator", LOG_LEVEL_FUNCTION);
   //LogComponentEnable("OnOffApplication", LOG_LEVEL_DEBUG);
   //LogComponentEnable("OnOffApplication", LOG_LEVEL_WARN);
@@ -147,7 +149,12 @@ main (int argc, char *argv[])
     std::cout << "The minersHash entries does not match the number of miners\n";
     return 0;
   }
- 
+  if (unsolicited && relayNetwork)
+  {
+    std::cout << "You have set both the unsolicited and the relayNetwork flag\n";
+    return 0;
+  }
+  
   BitcoinTopologyHelper bitcoinTopologyHelper (systemCount, totalNoNodes, noMiners, minersRegions,
                                                bandwidth, minConnectionsPerNode, 
                                                maxConnectionsPerNode, latency, 2, systemId);
@@ -182,7 +189,7 @@ main (int argc, char *argv[])
 	if (systemId == targetNode->GetSystemId())
 	{
       bitcoinMinerHelper.SetAttribute("HashRate", DoubleValue(minersHash[count]));
-      //bitcoinMinerHelper.SetAttribute("InvTimeoutMinutes", TimeValue (Minutes (2*averageBlockGenIntervalMinutes)));	  
+      bitcoinMinerHelper.SetAttribute("InvTimeoutMinutes", TimeValue (Minutes (2*averageBlockGenIntervalMinutes)));	  
       bitcoinMinerHelper.SetPeersAddresses (nodesConnections[miner]);
 	  bitcoinMinerHelper.SetPeersDownloadSpeeds (peersDownloadSpeeds[miner]);
 	  bitcoinMinerHelper.SetNodeInternetSpeeds (nodesInternetSpeeds[miner]);
@@ -190,6 +197,8 @@ main (int argc, char *argv[])
       
 	  if(unsolicited)
 	    bitcoinMinerHelper.SetBlockBroadcastType (UNSOLICITED);
+	  if(relayNetwork)
+	    bitcoinMinerHelper.SetBlockBroadcastType (RELAY_NETWORK);
 	  //bitcoinMinerHelper.SetAttribute("FixedBlockSize", UintegerValue(blockSize));
 
 	  bitcoinMiners.Add(bitcoinMinerHelper.Install (targetNode));
@@ -223,7 +232,7 @@ main (int argc, char *argv[])
   
       if ( std::find(miners.begin(), miners.end(), node.first) == miners.end() )
 	  {
-        //bitcoinNodeHelper.SetAttribute("InvTimeoutMinutes", TimeValue (Minutes (2*averageBlockGenIntervalMinutes)));	  
+        bitcoinNodeHelper.SetAttribute("InvTimeoutMinutes", TimeValue (Minutes (2*averageBlockGenIntervalMinutes)));	  
 	    bitcoinNodeHelper.SetPeersAddresses (node.second);
 	    bitcoinNodeHelper.SetPeersDownloadSpeeds (peersDownloadSpeeds[node.first]);
 	    bitcoinNodeHelper.SetNodeInternetSpeeds (nodesInternetSpeeds[node.first]);
@@ -358,8 +367,11 @@ main (int argc, char *argv[])
 	
     //PrintStatsForEachNode(stats, totalNoNodes);
     PrintTotalStats(stats, totalNoNodes, tStartSimulation, tFinish, averageBlockGenIntervalMinutes);
+	
     if(unsolicited)
       std::cout << "The broadcast type was UNSOLICITED.\n";
+    else if(relayNetwork)
+      std::cout << "The broadcast type was RELAY_NETWORK.\n";
     else
       std::cout << "The broadcast type was STANDARD.\n";
 
