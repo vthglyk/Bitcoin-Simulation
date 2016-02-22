@@ -56,7 +56,7 @@ main (int argc, char *argv[])
   double averageBlockGenIntervalSeconds = 10 * secsPerMin; //seconds
   double fixedHashRate = 0.5;
   int start = 0;
-  double bandwidth = 8;
+  double bandwidthSDDivider = -1;
   double latency = 40;
 
   
@@ -95,7 +95,7 @@ main (int argc, char *argv[])
   
   CommandLine cmd;
   cmd.AddValue ("nullmsg", "Enable the use of null-message synchronization", nullmsg);
-  cmd.AddValue ("bandwidth", "The bandwidth of the nodes (Mbps)", bandwidth);
+  cmd.AddValue ("bandwidthSDDivider", "The divider for the standard deviation of bandwidths", bandwidthSDDivider);
   cmd.AddValue ("latency", "The latency of the nodes (ms)", latency);
   cmd.AddValue ("blockSize", "The the fixed block size (Bytes)", blockSize);
   cmd.AddValue ("noBlocks", "The number of generated blocks", targetNumberOfBlocks);
@@ -156,7 +156,7 @@ main (int argc, char *argv[])
   }
   
   BitcoinTopologyHelper bitcoinTopologyHelper (systemCount, totalNoNodes, noMiners, minersRegions,
-                                               bandwidth, minConnectionsPerNode, 
+                                               bandwidthSDDivider, minConnectionsPerNode, 
                                                maxConnectionsPerNode, latency, 2, systemId);
 
   // Install stack on Grid

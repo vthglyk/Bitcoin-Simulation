@@ -38,9 +38,9 @@ namespace ns3 {
 NS_LOG_COMPONENT_DEFINE ("BitcoinTopologyHelper");
 
 BitcoinTopologyHelper::BitcoinTopologyHelper (uint32_t noCpus, uint32_t totalNoNodes, uint32_t noMiners, enum BitcoinRegion *minersRegions,
-                                              double bandwidth, int minConnectionsPerNode, int maxConnectionsPerNode,
+                                              double bandwidthSDDevider, int minConnectionsPerNode, int maxConnectionsPerNode,
 						                      double latencyParetoMean, double latencyParetoShape, uint32_t systemId)
-  : m_noCpus(noCpus), m_totalNoNodes (totalNoNodes), m_noMiners (noMiners), m_bandwidth (bandwidth), 
+  : m_noCpus(noCpus), m_totalNoNodes (totalNoNodes), m_noMiners (noMiners), m_bandwidthSDDevider (bandwidthSDDevider), 
     m_minConnectionsPerNode (minConnectionsPerNode), m_maxConnectionsPerNode (maxConnectionsPerNode), 
 	m_totalNoLinks (0), m_latencyParetoMean (latencyParetoMean), m_latencyParetoShape (latencyParetoShape), 
 	m_systemId (systemId), m_minConnectionsPerMiner (700), m_maxConnectionsPerMiner (800),
@@ -548,9 +548,24 @@ BitcoinTopologyHelper::AssignInternetSpeeds(uint32_t id)
     m_nodesInternetSpeeds[id].uploadSpeed = m_minerUploadSpeed;
   }
   else{
-    m_nodesInternetSpeeds[id].downloadSpeed = m_regionDownloadSpeeds[m_bitcoinNodesRegion[id]];
-    m_nodesInternetSpeeds[id].uploadSpeed = m_regionUploadSpeeds[m_bitcoinNodesRegion[id]];
+    if(m_bandwidthSDDevider < 0)
+	{
+      m_nodesInternetSpeeds[id].downloadSpeed = m_regionDownloadSpeeds[m_bitcoinNodesRegion[id]];
+      m_nodesInternetSpeeds[id].uploadSpeed = m_regionUploadSpeeds[m_bitcoinNodesRegion[id]];
+    }
+    else
+    {
+      std::normal_distribution<double> downloadDistribution(m_regionDownloadSpeeds[m_bitcoinNodesRegion[id]], m_regionDownloadSpeeds[m_bitcoinNodesRegion[id]] / m_bandwidthSDDevider);
+      std::normal_distribution<double> uploadDistribution(m_regionUploadSpeeds[m_bitcoinNodesRegion[id]], m_regionUploadSpeeds[m_bitcoinNodesRegion[id]] / m_bandwidthSDDevider);
+
+      m_nodesInternetSpeeds[id].downloadSpeed = downloadDistribution(m_generator);
+      m_nodesInternetSpeeds[id].uploadSpeed = uploadDistribution(m_generator);
+    }
   }
+  
+/*  if (m_systemId == 0)
+    std::cout << "SystemId = " << m_systemId << " assigned node " << id << " in " << getBitcoinRegion(getBitcoinEnum(m_bitcoinNodesRegion[id])) 
+              << " with download speed = " << m_nodesInternetSpeeds[id].downloadSpeed << " Mbps and upload speed " << m_nodesInternetSpeeds[id].uploadSpeed << " Mbps\n"; */
 }
 
 

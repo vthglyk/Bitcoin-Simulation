@@ -142,7 +142,7 @@ private:
   uint32_t     m_totalNoNodes;                  //!< The total number of nodes
   uint32_t     m_noMiners;                      //!< The total number of miners
   uint32_t     m_noCpus;                        //!< The number of the available cpus in the simulation
-  double       m_bandwidth;                     //!<  The bandwidth of the point-to-point links
+  double       m_bandwidthSDDevider;            //!<  The bandwidth of the point-to-point links
   double       m_latencyParetoMean;             //!<  The pareto mean for the latency of the point-to-point links
   double       m_latencyParetoShape;            //!<  The pareto shape for the latency of the point-to-point links
   int          m_minConnectionsPerNode;         //!<  The minimum connections per node
