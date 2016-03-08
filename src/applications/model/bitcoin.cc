@@ -601,6 +601,16 @@ const char* getBlockBroadcastType(enum BlockBroadcastType m)
   }
 }
 
+const char* getCryptocurrency(enum Cryptocurrency m)
+{
+  switch (m) 
+  {
+    case BITCOIN: return "BITCOIN";
+    case LITECOIN: return "LITECOIN";
+    case DOGECOIN: return "DOGECOIN";
+  }
+}
+
 const char* getBitcoinRegion(enum BitcoinRegion m)
 {
   switch (m) 

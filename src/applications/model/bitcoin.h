@@ -34,6 +34,13 @@ enum BlockBroadcastType
   RELAY_NETWORK
 };
 
+enum Cryptocurrency
+{
+  BITCOIN,
+  LITECOIN,
+  DOGECOIN
+};
+
 enum BitcoinRegion
 {
   NORTH_AMERICA,    //0
@@ -84,6 +91,7 @@ const char* getMessageName(enum Messages m);
 const char* getMinerType(enum MinerType m);
 const char* getBlockBroadcastType(enum BlockBroadcastType m);
 const char* getBitcoinRegion(enum BitcoinRegion m);
+const char* getCryptocurrency(enum Cryptocurrency m);
 enum BitcoinRegion getBitcoinEnum(uint32_t n);
 
 class Block

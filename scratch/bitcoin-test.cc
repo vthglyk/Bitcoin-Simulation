@@ -48,6 +48,8 @@ main (int argc, char *argv[])
   bool testScalability = false;
   bool unsolicited = false;
   bool relayNetwork = false;
+  bool litecoin = false;
+  bool dogecoin = false;
   double tStart = get_wall_time(), tStartSimulation, tFinish;
   const int secsPerMin = 60;
   const uint16_t bitcoinPort = 8333;
@@ -106,16 +108,35 @@ main (int argc, char *argv[])
   cmd.AddValue ("test", "Test the scalability of the simulation", testScalability);
   cmd.AddValue ("unsolicited", "Change the miners block broadcast type to UNSOLICITED", unsolicited);
   cmd.AddValue ("relayNetwork", "Change the miners block broadcast type to RELAY_NETWORK", relayNetwork);
+  cmd.AddValue ("litecoin", "Imitate the litecoin network behaviour", litecoin);
+  cmd.AddValue ("dogecoin", "Imitate the litecoin network behaviour", dogecoin);
 
   cmd.Parse(argc, argv);
   
+  if (litecoin && dogecoin)
+  {
+    std::cout << "You cannot select both litecoin and dogecoin behaviour" << std::endl;
+	return 0;
+  }
+  
+  if (litecoin)
+  {
+    std::cout << "Litecoin Mode selected" << std::endl;
+    averageBlockGenIntervalMinutes =  2.5;
+  }
+  else if (dogecoin)
+  {
+    std::cout << "Dogecoin Mode selected" << std::endl;
+    averageBlockGenIntervalMinutes =  1;
+  }
+
   averageBlockGenIntervalSeconds = averageBlockGenIntervalMinutes * secsPerMin;
   stop = targetNumberOfBlocks * averageBlockGenIntervalMinutes; //seconds
   nodeStatistics *stats = new nodeStatistics[totalNoNodes];
   averageBlockGenIntervalMinutes = averageBlockGenIntervalSeconds/secsPerMin;
   blockSize = blockSize*averageBlockGenIntervalMinutes/realAverageBlockGenIntervalMinutes;
-  
-#ifdef MPI_TEST
+
+  #ifdef MPI_TEST
   // Distributed simulation setup; by default use granted time window algorithm.
   if(nullmsg) 
     {
@@ -138,7 +159,7 @@ main (int argc, char *argv[])
 #endif
 
   //LogComponentEnable("BitcoinNode", LOG_LEVEL_INFO);
-  //LogComponentEnable("BitcoinMiner", LOG_LEVEL_INFO);
+  //LogComponentEnable("BitcoinMiner", LOG_LEVEL_WARN);
   //LogComponentEnable("Ipv4AddressGenerator", LOG_LEVEL_FUNCTION);
   //LogComponentEnable("OnOffApplication", LOG_LEVEL_DEBUG);
   //LogComponentEnable("OnOffApplication", LOG_LEVEL_WARN);
@@ -189,7 +210,11 @@ main (int argc, char *argv[])
 	if (systemId == targetNode->GetSystemId())
 	{
       bitcoinMinerHelper.SetAttribute("HashRate", DoubleValue(minersHash[count]));
-      bitcoinMinerHelper.SetAttribute("InvTimeoutMinutes", TimeValue (Minutes (2*averageBlockGenIntervalMinutes)));	  
+      bitcoinMinerHelper.SetAttribute("InvTimeoutMinutes", TimeValue (Minutes (2*averageBlockGenIntervalMinutes)));
+      if (litecoin)	  
+        bitcoinMinerHelper.SetAttribute("Cryptocurrency", UintegerValue (LITECOIN));	  
+      else if (dogecoin)	  
+        bitcoinMinerHelper.SetAttribute("Cryptocurrency", UintegerValue (DOGECOIN));
       bitcoinMinerHelper.SetPeersAddresses (nodesConnections[miner]);
 	  bitcoinMinerHelper.SetPeersDownloadSpeeds (peersDownloadSpeeds[miner]);
 	  bitcoinMinerHelper.SetNodeInternetSpeeds (nodesInternetSpeeds[miner]);
@@ -365,7 +390,7 @@ main (int argc, char *argv[])
   {
     tFinish=get_wall_time();
 	
-    //PrintStatsForEachNode(stats, totalNoNodes);
+    PrintStatsForEachNode(stats, totalNoNodes);
     PrintTotalStats(stats, totalNoNodes, tStartSimulation, tFinish, averageBlockGenIntervalMinutes);
 	
     if(unsolicited)

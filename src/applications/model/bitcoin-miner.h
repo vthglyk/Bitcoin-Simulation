@@ -158,6 +158,7 @@ protected:
   double        m_averageBlockGenIntervalSeconds;	   //!< the new m_averageBlockGenInterval we set
   
   enum BlockBroadcastType   m_blockBroadcastType;      //!< the type of broadcast
+  enum Cryptocurrency       m_cryptocurrency;
 
   //debug
   double       m_timeStart;
