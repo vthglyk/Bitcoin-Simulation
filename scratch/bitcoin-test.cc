@@ -123,11 +123,13 @@ main (int argc, char *argv[])
   {
     std::cout << "Litecoin Mode selected" << std::endl;
     averageBlockGenIntervalMinutes =  2.5;
+    totalNoNodes = 1000;
   }
   else if (dogecoin)
   {
     std::cout << "Dogecoin Mode selected" << std::endl;
     averageBlockGenIntervalMinutes =  1;
+	totalNoNodes = 650;
   }
 
   averageBlockGenIntervalSeconds = averageBlockGenIntervalMinutes * secsPerMin;
