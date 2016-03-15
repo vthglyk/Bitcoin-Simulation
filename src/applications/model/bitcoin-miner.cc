@@ -643,7 +643,6 @@ BitcoinMiner::MineBlock (void)
   block.Accept(blockWriter);
   
   int count = 0;
-        NS_LOG_INFO ( invInfo.GetString());
 		
   for (std::vector<Ipv4Address>::const_iterator i = m_peersAddresses.begin(); i != m_peersAddresses.end(); ++i, ++count)
   {
@@ -674,7 +673,6 @@ BitcoinMiner::MineBlock (void)
         double eventTime;
 		
         m_nodeStats->blockSentBytes += m_bitcoinMessageHeader + block["blocks"][0]["size"].GetInt();
-
 
 			  
 /* 				std::cout << "Node " << GetNode()->GetId() << "-" << *i 
@@ -810,7 +808,7 @@ BitcoinMiner::SendBlock(std::string packetInfo, Ptr<Socket> to)
   
   m_sendBlockTimes.erase(m_sendBlockTimes.begin());				
   SendMessage(NO_MESSAGE, BLOCK, d, to);
-  m_nodeStats->blockSentBytes -= d["blocks"][0]["size"].GetInt();
+  m_nodeStats->blockSentBytes -= m_bitcoinMessageHeader + d["blocks"][0]["size"].GetInt();
 }
 } // Namespace ns3
 
