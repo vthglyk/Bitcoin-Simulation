@@ -34,6 +34,12 @@ enum BlockBroadcastType
   RELAY_NETWORK
 };
 
+enum ProtocolType
+{
+  STANDARD_PROTOCOL,
+  SENDHEADERS
+};
+
 enum Cryptocurrency
 {
   BITCOIN,
@@ -90,6 +96,7 @@ typedef struct {
 const char* getMessageName(enum Messages m);
 const char* getMinerType(enum MinerType m);
 const char* getBlockBroadcastType(enum BlockBroadcastType m);
+const char* getProtocolType(enum ProtocolType m);
 const char* getBitcoinRegion(enum BitcoinRegion m);
 const char* getCryptocurrency(enum Cryptocurrency m);
 enum BitcoinRegion getBitcoinEnum(uint32_t n);

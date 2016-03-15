@@ -63,6 +63,7 @@ BitcoinMinerHelper::InstallPriv (Ptr<Node> node) //FIX ME
 		app->SetNodeInternetSpeeds(m_internetSpeeds);
         app->SetNodeStats(m_nodeStats);
         app->SetBlockBroadcastType(m_blockBroadcastType);
+        app->SetProtocolType(m_protocolType);
 
         node->AddApplication (app);
         return app;
@@ -75,6 +76,7 @@ BitcoinMinerHelper::InstallPriv (Ptr<Node> node) //FIX ME
 		app->SetNodeInternetSpeeds(m_internetSpeeds);
         app->SetNodeStats(m_nodeStats);
         app->SetBlockBroadcastType(m_blockBroadcastType);
+        app->SetProtocolType(m_protocolType);
 
         node->AddApplication (app);
         return app;
@@ -87,6 +89,7 @@ BitcoinMinerHelper::InstallPriv (Ptr<Node> node) //FIX ME
 		app->SetNodeInternetSpeeds(m_internetSpeeds);
         app->SetNodeStats(m_nodeStats);
         app->SetBlockBroadcastType(m_blockBroadcastType);
+        app->SetProtocolType(m_protocolType);
 
         node->AddApplication (app);
         return app;
@@ -99,6 +102,7 @@ BitcoinMinerHelper::InstallPriv (Ptr<Node> node) //FIX ME
 		app->SetNodeInternetSpeeds(m_internetSpeeds);
         app->SetNodeStats(m_nodeStats);
         app->SetBlockBroadcastType(m_blockBroadcastType);
+        app->SetProtocolType(m_protocolType);
 
         node->AddApplication (app);
         return app;

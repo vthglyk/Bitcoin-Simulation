@@ -66,6 +66,11 @@ public:
    */
   void SetNodeStats (nodeStatistics *nodeStats);
   
+  /**
+   * set the protocol
+   */
+  void SetProtocolType (enum ProtocolType protocolType);
+
 protected:
   virtual void DoDispose (void);
 
@@ -149,10 +154,12 @@ protected:
   std::vector<std::string>                            m_onlyHeadersReceived;            //!< vector holding the blocks that we know but not received
   nodeStatistics                                     *m_nodeStats;                      //!< struct holding the node stats
   std::vector<double>                                 m_sendBlockTimes;                 //!< contains the times of the next sendBlock events
-  
+  enum ProtocolType									  m_protocolType;                   //!< protocol type
+
   const int		  m_bitcoinPort;   //!< 8333
   const int       m_secondsPerMin; //!< 8333
   const int       m_countBytes;    //!< The size of count variable in messages, 4 Bytes
+  const int       m_bitcoinMessageHeader; //!< The size of the bitcoin Message Header
   const int       m_inventorySizeBytes; //!< The size of inventories in INV messages, 36 Bytes
   const int       m_getHeadersSizeBytes; //!< The size of the GET_HEADERS message, 72 Bytes
   const int       m_headersSizeBytes; //!< 80 Bytes

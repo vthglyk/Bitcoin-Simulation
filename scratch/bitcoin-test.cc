@@ -24,7 +24,7 @@
 #include "ns3/applications-module.h"
 #include "ns3/point-to-point-layout-module.h"
 #include "ns3/mpi-interface.h"
-#define MPI_TEST
+//#define MPI_TEST
 
 #ifdef NS3_MPI
 #include <mpi.h>
@@ -50,6 +50,7 @@ main (int argc, char *argv[])
   bool relayNetwork = false;
   bool litecoin = false;
   bool dogecoin = false;
+  bool sendheaders = false;
   double tStart = get_wall_time(), tStartSimulation, tFinish;
   const int secsPerMin = 60;
   const uint16_t bitcoinPort = 8333;
@@ -108,6 +109,7 @@ main (int argc, char *argv[])
   cmd.AddValue ("test", "Test the scalability of the simulation", testScalability);
   cmd.AddValue ("unsolicited", "Change the miners block broadcast type to UNSOLICITED", unsolicited);
   cmd.AddValue ("relayNetwork", "Change the miners block broadcast type to RELAY_NETWORK", relayNetwork);
+  cmd.AddValue ("sendheaders", "Change the protocol to sendheaders", sendheaders);
   cmd.AddValue ("litecoin", "Imitate the litecoin network behaviour", litecoin);
   cmd.AddValue ("dogecoin", "Imitate the litecoin network behaviour", dogecoin);
 
@@ -160,8 +162,8 @@ main (int argc, char *argv[])
   uint32_t systemCount = 1;
 #endif
 
-  //LogComponentEnable("BitcoinNode", LOG_LEVEL_INFO);
-  //LogComponentEnable("BitcoinMiner", LOG_LEVEL_WARN);
+  LogComponentEnable("BitcoinNode", LOG_LEVEL_INFO);
+  LogComponentEnable("BitcoinMiner", LOG_LEVEL_INFO);
   //LogComponentEnable("Ipv4AddressGenerator", LOG_LEVEL_FUNCTION);
   //LogComponentEnable("OnOffApplication", LOG_LEVEL_DEBUG);
   //LogComponentEnable("OnOffApplication", LOG_LEVEL_WARN);
@@ -217,6 +219,10 @@ main (int argc, char *argv[])
         bitcoinMinerHelper.SetAttribute("Cryptocurrency", UintegerValue (LITECOIN));	  
       else if (dogecoin)	  
         bitcoinMinerHelper.SetAttribute("Cryptocurrency", UintegerValue (DOGECOIN));
+	
+      if (sendheaders)	  
+        bitcoinMinerHelper.SetProtocolType(SENDHEADERS);	  
+
       bitcoinMinerHelper.SetPeersAddresses (nodesConnections[miner]);
 	  bitcoinMinerHelper.SetPeersDownloadSpeeds (peersDownloadSpeeds[miner]);
 	  bitcoinMinerHelper.SetNodeInternetSpeeds (nodesInternetSpeeds[miner]);
@@ -265,6 +271,9 @@ main (int argc, char *argv[])
 	    bitcoinNodeHelper.SetNodeInternetSpeeds (nodesInternetSpeeds[node.first]);
 		bitcoinNodeHelper.SetNodeStats (&stats[node.first]);
 		
+        if (sendheaders)	  
+          bitcoinNodeHelper.SetProtocolType(SENDHEADERS);	
+	  
 	    bitcoinNodes.Add(bitcoinNodeHelper.Install (targetNode));
 /*         std::cout << "SystemId " << systemId << ": Node " << node.first << " with systemId = " << targetNode->GetSystemId() 
 		          << " was installed in node " << targetNode->GetId () <<  std::endl; */

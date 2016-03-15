@@ -601,6 +601,15 @@ const char* getBlockBroadcastType(enum BlockBroadcastType m)
   }
 }
 
+const char* getProtocolType(enum ProtocolType m)
+{
+  switch (m) 
+  {
+    case STANDARD_PROTOCOL: return "STANDARD_PROTOCOL";
+    case SENDHEADERS: return "SENDHEADERS";
+  }
+}
+
 const char* getCryptocurrency(enum Cryptocurrency m)
 {
   switch (m) 

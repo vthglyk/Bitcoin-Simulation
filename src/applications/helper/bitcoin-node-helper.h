@@ -103,6 +103,8 @@ public:
   void SetNodeInternetSpeeds (nodeInternetSpeeds &internetSpeeds);
 
   void SetNodeStats (nodeStatistics *nodeStats);
+
+  void SetProtocolType (enum ProtocolType protocolType);
   
 protected:
   /**
@@ -121,6 +123,8 @@ protected:
   std::map<Ipv4Address, double>                       m_peersDownloadSpeeds;
   nodeInternetSpeeds                                  m_internetSpeeds;
   nodeStatistics                                      *m_nodeStats;
+  enum ProtocolType									  m_protocolType;
+
 };
 
 } // namespace ns3
