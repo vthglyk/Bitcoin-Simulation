@@ -102,8 +102,7 @@ BitcoinMiner::GetTypeId (void)
 }
 
 BitcoinMiner::BitcoinMiner () : BitcoinNode(), m_realAverageBlockGenIntervalSeconds(10*m_secondsPerMin),
-                                m_timeStart (0), m_timeFinish (0), m_fistToMine (false), 
-                                m_averageTransactionSize (522.4), m_transactionIndexSize (2)
+                                m_timeStart (0), m_timeFinish (0), m_fistToMine (false)
 {
   NS_LOG_FUNCTION (this);
   m_minerAverageBlockGenInterval = 0;
@@ -590,7 +589,7 @@ BitcoinMiner::MineBlock (void)
       value = BLOCK;
       block.AddMember("message", value, block.GetAllocator());
 
-      value.SetString("block"); //Remove
+      value.SetString("compressed-block"); //Remove
       block.AddMember("type", value, block.GetAllocator());
 
       value = newBlock.GetBlockHeight ();

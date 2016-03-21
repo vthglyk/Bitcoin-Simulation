@@ -44,6 +44,7 @@ main (int argc, char *argv[])
 {
 #ifdef NS3_MPI
   bool nullmsg = false;
+  enum Cryptocurrency  cryptocurrency = BITCOIN;
   double tStart = get_wall_time(), tFinish, tSimStart, tSimFinish;
   const int secsPerMin = 60;
   const uint16_t bitcoinPort = 8333;
@@ -139,7 +140,7 @@ main (int argc, char *argv[])
   
 	
     BitcoinTopologyHelper bitcoinTopologyHelper (systemCount, totalNoNodes, noMiners, minersRegions,
-                                                 bandwidth, minConnectionsPerNode, 
+                                                 bandwidth, cryptocurrency, minConnectionsPerNode, 
                                                  maxConnectionsPerNode, latency, 2, systemId);
 
     // Install stack on Grid

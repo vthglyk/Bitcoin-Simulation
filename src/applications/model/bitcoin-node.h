@@ -143,6 +143,8 @@ protected:
   bool            m_isMiner;
   double          m_downloadSpeed;
   double          m_uploadSpeed;
+  double 		  m_averageTransactionSize;
+  int             m_transactionIndexSize;         //!< The transaction index size in bytes.
   
   std::vector<Ipv4Address>		                      m_peersAddresses;                 //!< The addresses of peers
   std::map<Ipv4Address, double>                       m_peersDownloadSpeeds;            //!< The peersDownloadSpeeds of channels

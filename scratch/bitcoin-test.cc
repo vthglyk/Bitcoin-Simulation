@@ -24,7 +24,7 @@
 #include "ns3/applications-module.h"
 #include "ns3/point-to-point-layout-module.h"
 #include "ns3/mpi-interface.h"
-//#define MPI_TEST
+#define MPI_TEST
 
 #ifdef NS3_MPI
 #include <mpi.h>
@@ -51,6 +51,7 @@ main (int argc, char *argv[])
   bool litecoin = false;
   bool dogecoin = false;
   bool sendheaders = false;
+  enum Cryptocurrency  cryptocurrency = BITCOIN;
   double tStart = get_wall_time(), tStartSimulation, tFinish;
   const int secsPerMin = 60;
   const uint16_t bitcoinPort = 8333;
@@ -65,8 +66,8 @@ main (int argc, char *argv[])
   
   int totalNoNodes = 4;
 
-  int minConnectionsPerNode = 2;
-  int maxConnectionsPerNode = 3;
+  int minConnectionsPerNode = -1;
+  int maxConnectionsPerNode = -1;
 #ifdef MPI_TEST
   int noMiners = 16;
   double minersHash[] = {0.289, 0.196, 0.159, 0.133, 0.066, 0.054,
@@ -123,15 +124,15 @@ main (int argc, char *argv[])
   
   if (litecoin)
   {
-    std::cout << "Litecoin Mode selected" << std::endl;
     averageBlockGenIntervalMinutes =  2.5;
     totalNoNodes = 1000;
+    cryptocurrency = LITECOIN;
   }
   else if (dogecoin)
   {
-    std::cout << "Dogecoin Mode selected" << std::endl;
     averageBlockGenIntervalMinutes =  1;
 	totalNoNodes = 650;
+    cryptocurrency = DOGECOIN;
   }
 
   averageBlockGenIntervalSeconds = averageBlockGenIntervalMinutes * secsPerMin;
@@ -163,7 +164,7 @@ main (int argc, char *argv[])
 #endif
 
   //LogComponentEnable("BitcoinNode", LOG_LEVEL_INFO);
-  LogComponentEnable("BitcoinMiner", LOG_LEVEL_WARN);
+  //LogComponentEnable("BitcoinMiner", LOG_LEVEL_WARN);
   //LogComponentEnable("Ipv4AddressGenerator", LOG_LEVEL_FUNCTION);
   //LogComponentEnable("OnOffApplication", LOG_LEVEL_DEBUG);
   //LogComponentEnable("OnOffApplication", LOG_LEVEL_WARN);
@@ -181,7 +182,7 @@ main (int argc, char *argv[])
   }
   
   BitcoinTopologyHelper bitcoinTopologyHelper (systemCount, totalNoNodes, noMiners, minersRegions,
-                                               bandwidthSDDivider, minConnectionsPerNode, 
+                                               bandwidthSDDivider, cryptocurrency, minConnectionsPerNode, 
                                                maxConnectionsPerNode, latency, 2, systemId);
 
   // Install stack on Grid
@@ -522,11 +523,17 @@ void PrintTotalStats (nodeStatistics *stats, int totalNodes, double start, doubl
   double     averageBandwidthPerNode = 0;
   double     connectionsPerNode = 0;
   double     connectionsPerMiner = 0;
+  double     download = 0;
+  double     upload = 0;
+
   uint32_t   nodes = 0;
   uint32_t   miners = 0;
   std::vector<double>    propagationTimes;
   std::vector<double>    minersPropagationTimes;
-
+  std::vector<double>    downloadBandwidths;
+  std::vector<double>    uploadBandwidths;
+  std::vector<double>    totalBandwidths;
+  
   for (int it = 0; it < totalNodes; it++ )
   {
     meanBlockReceiveTime = meanBlockReceiveTime*totalBlocks/(totalBlocks + stats[it].totalBlocks)
@@ -545,15 +552,23 @@ void PrintTotalStats (nodeStatistics *stats, int totalNodes, double start, doubl
     headersSentBytes = headersSentBytes*it/static_cast<double>(it + 1) + stats[it].headersSentBytes/static_cast<double>(it + 1);
     getDataReceivedBytes = getDataReceivedBytes*it/static_cast<double>(it + 1) + stats[it].getDataReceivedBytes/static_cast<double>(it + 1);
     getDataSentBytes = getDataSentBytes*it/static_cast<double>(it + 1) + stats[it].getDataSentBytes/static_cast<double>(it + 1);
-	if(relayNetwork)
-      blockReceivedBytes = blockSentBytes*it/static_cast<double>(it + 1) + stats[it].blockSentBytes/static_cast<double>(it + 1);
-    else
-      blockReceivedBytes = blockReceivedBytes*it/static_cast<double>(it + 1) + stats[it].blockReceivedBytes/static_cast<double>(it + 1);
+    blockReceivedBytes = blockReceivedBytes*it/static_cast<double>(it + 1) + stats[it].blockReceivedBytes/static_cast<double>(it + 1);
     blockSentBytes = blockSentBytes*it/static_cast<double>(it + 1) + stats[it].blockSentBytes/static_cast<double>(it + 1);
     longestFork = longestFork*it/static_cast<double>(it + 1) + stats[it].longestFork/static_cast<double>(it + 1);
     blocksInForks = blocksInForks*it/static_cast<double>(it + 1) + stats[it].blocksInForks/static_cast<double>(it + 1);
 	
 	propagationTimes.push_back(stats[it].meanBlockPropagationTime);
+
+    download = stats[it].invReceivedBytes + stats[it].getHeadersReceivedBytes + stats[it].headersReceivedBytes +
+             + stats[it].getDataReceivedBytes + stats[it].blockReceivedBytes;
+    upload = stats[it].invSentBytes + stats[it].getHeadersSentBytes + stats[it].headersSentBytes
+           + stats[it].getDataSentBytes + stats[it].blockSentBytes;
+    download = download / (1000 *(stats[it].totalBlocks - 1) * averageBlockGenIntervalMinutes * secPerMin) * 8;
+    upload = upload / (1000 *(stats[it].totalBlocks - 1) * averageBlockGenIntervalMinutes * secPerMin) * 8;
+    downloadBandwidths.push_back(download);  
+    uploadBandwidths.push_back(upload);     	  
+    totalBandwidths.push_back(download + upload); 
+
 	
 	if(stats[it].miner == 0)
     {
@@ -636,6 +651,44 @@ void PrintTotalStats (nodeStatistics *stats, int totalNodes, double start, doubl
             << averageBandwidthPerNode / (1000 *(totalBlocks - 1) * averageBlockGenIntervalMinutes * secPerMin) * 8
             << " Kbps and " << averageBandwidthPerNode / (1000 * (totalBlocks - 1)) << " KB/block)\n";
   std::cout << (finish - start)/ (totalBlocks - 1)<< "s per generated block\n";
+  
+  
+  std::cout << "\nDownload Bandwidths = [";
+  double average = 0;
+  for(auto it = downloadBandwidths.begin(); it != downloadBandwidths.end(); it++)
+  {
+    if (it == downloadBandwidths.begin())
+      std::cout << *it;
+    else
+      std::cout << ", " << *it ;
+    average += *it;
+  }
+  std::cout << "] average = " << average/totalBandwidths.size() << "\n" ;
+  
+  std::cout << "\nUpload Bandwidths = [";
+  average = 0;
+  for(auto it = uploadBandwidths.begin(); it != uploadBandwidths.end(); it++)
+  {
+    if (it == uploadBandwidths.begin())
+      std::cout << *it;
+    else
+      std::cout << ", " << *it ;
+    average += *it;
+  }
+  std::cout << "] average = " << average/totalBandwidths.size() << "\n" ;
+  
+  std::cout << "\nTotal Bandwidths = [";
+  average = 0;
+  for(auto it = totalBandwidths.begin(); it != totalBandwidths.end(); it++)
+  {
+    if (it == totalBandwidths.begin())
+      std::cout << *it;
+    else
+      std::cout << ", " << *it ;
+    average += *it;
+  }
+  std::cout << "] average = " << average/totalBandwidths.size() << "\n" ;
+
 }
 
 void PrintBitcoinRegionStats (uint32_t *bitcoinNodesRegions, uint32_t totalNodes)

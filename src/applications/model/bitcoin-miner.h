@@ -145,8 +145,7 @@ protected:
   double			m_minerAverageBlockGenInterval;
   int				m_minerGeneratedBlocks;
   double			m_hashRate;
-  double 		    m_averageTransactionSize;
-  int               m_transactionIndexSize;         //!< The transaction index size in bytes.
+
   std::geometric_distribution<int> m_blockGenTimeDistribution ;
   
   int                                            m_nextBlockSize;

@@ -53,7 +53,8 @@ BitcoinNode::GetTypeId (void)
 }
 
 BitcoinNode::BitcoinNode (void) : m_bitcoinPort (8333), m_secondsPerMin(60), m_isMiner (false), m_countBytes (4), m_bitcoinMessageHeader (24),
-                                  m_inventorySizeBytes (36), m_getHeadersSizeBytes (72), m_headersSizeBytes (80), m_blockHeadersSizeBytes (80)
+                                  m_inventorySizeBytes (36), m_getHeadersSizeBytes (72), m_headersSizeBytes (80), m_blockHeadersSizeBytes (80),
+                                  m_averageTransactionSize (522.4), m_transactionIndexSize (2)
 {
   NS_LOG_FUNCTION (this);
   m_socket = 0;
@@ -769,6 +770,7 @@ BitcoinNode::HandleRead (Ptr<Socket> socket)
                 std::ostringstream   stringStream;  
                 std::string          blockHash;
                 std::string          parentBlockHash;
+                std::string          blockType;
 				
                 stringStream << height << "/" << minerId;
                 blockHash = stringStream.str();
@@ -781,7 +783,16 @@ BitcoinNode::HandleRead (Ptr<Socket> socket)
                 stringStream << parentHeight << "/" << parentMinerId;
                 parentBlockHash = stringStream.str();
 				
-                m_nodeStats->blockReceivedBytes += d["blocks"][j]["size"].GetInt();
+				blockType = d["type"].GetString();
+				
+                if (blockType == "block")
+                  m_nodeStats->blockReceivedBytes += d["blocks"][j]["size"].GetInt();
+                else if (blockType == "compressed-block")
+                {
+                  int    noTransactions = static_cast<int>((d["blocks"][j]["size"].GetInt() - m_blockHeadersSizeBytes)/m_averageTransactionSize);
+                  long   blockSize = m_blockHeadersSizeBytes + m_transactionIndexSize*noTransactions;
+                  m_nodeStats->blockReceivedBytes += blockSize;
+                }
 				
                 if (!m_blockchain.HasBlock(parentHeight, parentMinerId) && !ReceivedButNotValidated(parentBlockHash) && !OnlyHeadersReceived(parentBlockHash))
                 {				  

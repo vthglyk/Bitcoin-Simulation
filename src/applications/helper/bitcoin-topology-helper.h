@@ -56,8 +56,8 @@ public:
    *                     in the grid
    */
   BitcoinTopologyHelper (uint32_t noCpus, uint32_t totalNoNodes, uint32_t noMiners, enum BitcoinRegion *minersRegions,
-                         double bandwidth, int minConnectionsPerNode, int maxConnectionsPerNode,
-						 double paretoMean, double latencyParetoShape, uint32_t systemId = 0);
+                         double bandwidthSDDevider, enum Cryptocurrency cryptocurrency, int minConnectionsPerNode, 
+                         int maxConnectionsPerNode, double latencyParetoMean, double latencyParetoShape, uint32_t systemId);
 
   ~BitcoinTopologyHelper ();
 
@@ -155,6 +155,7 @@ private:
   uint32_t     m_systemId;
   
   enum BitcoinRegion                             *m_minersRegions;
+  enum Cryptocurrency                             m_cryptocurrency;
   std::vector<uint32_t>                           m_miners;                  //!< The ids of the miners
   std::map<uint32_t, std::vector<uint32_t>>       m_nodesConnections;        //!< key = nodeId
   std::map<uint32_t, std::vector<Ipv4Address>>    m_nodesConnectionsIps;     //!< key = nodeId
@@ -166,16 +167,27 @@ private:
   double                                          m_regionDownloadSpeeds[6];     
   double                                          m_regionUploadSpeeds[6];     
   
-  std::vector<NetDeviceContainer> m_colDevices;         //!< NetDevices in a column
-  std::vector<Ipv4InterfaceContainer> m_colInterfaces;  //!< IPv4 interfaces in a column
-  std::vector<Ipv6InterfaceContainer> m_rowInterfaces6; //!< IPv6 interfaces in a row
-  std::vector<Ipv6InterfaceContainer> m_colInterfaces6; //!< IPv6 interfaces in a column
 
   std::map<uint32_t, std::map<Ipv4Address, double>>    m_peersDownloadSpeeds;     //!< key1 = nodeId, key2 = Ipv4Address of peer
   std::map<uint32_t, nodeInternetSpeeds>               m_nodesInternetSpeeds;     //!< key = nodeId
+  std::map<uint32_t, int>                              m_minConnections;          //!< key = nodeId
+  std::map<uint32_t, int>                              m_maxConnections;          //!< key = nodeId
 
   std::default_random_engine                     m_generator;
   std::piecewise_constant_distribution<double>   m_nodesDistribution;
+  std::piecewise_constant_distribution<double>   m_connectionsDistribution;
+  std::piecewise_constant_distribution<double>   m_europeDownloadBandwidthDistribution;
+  std::piecewise_constant_distribution<double>   m_europeUploadBandwidthDistribution;
+  std::piecewise_constant_distribution<double>   m_northAmericaDownloadBandwidthDistribution;
+  std::piecewise_constant_distribution<double>   m_northAmericaUploadBandwidthDistribution;
+  std::piecewise_constant_distribution<double>   m_asiaPacificDownloadBandwidthDistribution;
+  std::piecewise_constant_distribution<double>   m_asiaPacificUploadBandwidthDistribution;
+  std::piecewise_constant_distribution<double>   m_japanDownloadBandwidthDistribution;
+  std::piecewise_constant_distribution<double>   m_japanUploadBandwidthDistribution;
+  std::piecewise_constant_distribution<double>   m_southAmericaDownloadBandwidthDistribution;
+  std::piecewise_constant_distribution<double>   m_southAmericaUploadBandwidthDistribution;
+  std::piecewise_constant_distribution<double>   m_australiaDownloadBandwidthDistribution;
+  std::piecewise_constant_distribution<double>   m_australiaUploadBandwidthDistribution;
 };
 
 } // namespace ns3
