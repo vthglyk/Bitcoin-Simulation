@@ -30,7 +30,6 @@
 #include <fstream>
 #include <time.h>
 #include <sys/time.h>
-#include "ns3/bandwidth-distributions.h"
 
 static double GetWallTime();
 namespace ns3 {
