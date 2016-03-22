@@ -183,7 +183,7 @@ main (int argc, char *argv[])
   
   BitcoinTopologyHelper bitcoinTopologyHelper (systemCount, totalNoNodes, noMiners, minersRegions,
                                                bandwidthSDDivider, cryptocurrency, minConnectionsPerNode, 
-                                               maxConnectionsPerNode, latency, 2, systemId);
+                                               maxConnectionsPerNode, latency, 5, systemId);
 
   // Install stack on Grid
   InternetStackHelper stack;
