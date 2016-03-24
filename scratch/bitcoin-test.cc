@@ -69,14 +69,24 @@ main (int argc, char *argv[])
   int minConnectionsPerNode = -1;
   int maxConnectionsPerNode = -1;
 #ifdef MPI_TEST
-  int noMiners = 16;
-  double minersHash[] = {0.289, 0.196, 0.159, 0.133, 0.066, 0.054,
-                         0.029, 0.016, 0.012, 0.012, 0.012, 0.009,
-                         0.005, 0.005, 0.002, 0.002};
-  enum BitcoinRegion minersRegions[] = {ASIA_PACIFIC, ASIA_PACIFIC, ASIA_PACIFIC, NORTH_AMERICA, ASIA_PACIFIC, NORTH_AMERICA,
-                                        EUROPE, EUROPE, NORTH_AMERICA, NORTH_AMERICA, NORTH_AMERICA, EUROPE,
-                                        NORTH_AMERICA, NORTH_AMERICA, NORTH_AMERICA, NORTH_AMERICA};
-                          
+  int noMiners;
+  double *minersHash;
+  enum BitcoinRegion *minersRegions;
+  
+  double bitcoinMinersHash[] = {0.289, 0.196, 0.159, 0.133, 0.066, 0.054,
+                                0.029, 0.016, 0.012, 0.012, 0.012, 0.009,
+                                0.005, 0.005, 0.002, 0.002};
+  enum BitcoinRegion bitcoinMinersRegions[] = {ASIA_PACIFIC, ASIA_PACIFIC, ASIA_PACIFIC, NORTH_AMERICA, ASIA_PACIFIC, NORTH_AMERICA,
+                                               EUROPE, EUROPE, NORTH_AMERICA, NORTH_AMERICA, NORTH_AMERICA, EUROPE,
+                                               NORTH_AMERICA, NORTH_AMERICA, NORTH_AMERICA, NORTH_AMERICA};
+
+  double litecoinMinersHash[] = {36.6, 31.4, 12.2, 7.2, 2.8, 2.4, 2.2, 1.8, 1.2, 1, 0.6, 0.6};
+  enum BitcoinRegion litecoinMinersRegions[] = {ASIA_PACIFIC, ASIA_PACIFIC, ASIA_PACIFIC, NORTH_AMERICA, EUROPE, NORTH_AMERICA,
+                                                NORTH_AMERICA, ASIA_PACIFIC, NORTH_AMERICA, NORTH_AMERICA, NORTH_AMERICA, NORTH_AMERICA};	
+
+  double dogecoinMinersHash[] = {33, 26, 19, 9, 3, 2, 2, 2, 4};
+  enum BitcoinRegion dogecoinMinersRegions[] = {ASIA_PACIFIC, ASIA_PACIFIC, ASIA_PACIFIC, NORTH_AMERICA, EUROPE, NORTH_AMERICA,
+                                                NORTH_AMERICA, ASIA_PACIFIC, NORTH_AMERICA};
 #else
   int noMiners = 3;
   double minersHash[] = {0.4, 0.3, 0.3};
@@ -127,12 +137,44 @@ main (int argc, char *argv[])
     averageBlockGenIntervalMinutes =  2.5;
     totalNoNodes = 1000;
     cryptocurrency = LITECOIN;
+	
+    noMiners = sizeof(litecoinMinersHash)/sizeof(double);
+    minersHash = new double[noMiners];
+	minersRegions = new enum BitcoinRegion[noMiners];
+	
+    for(int i = 0; i < noMiners; i++)
+    {
+      minersHash[i] = litecoinMinersHash[i];
+      minersRegions[i] = litecoinMinersRegions[i];
+    }	  
   }
   else if (dogecoin)
   {
     averageBlockGenIntervalMinutes =  1;
 	totalNoNodes = 650;
     cryptocurrency = DOGECOIN;
+	
+    noMiners = sizeof(dogecoinMinersHash)/sizeof(double);
+    minersHash = new double[noMiners];
+	minersRegions = new enum BitcoinRegion[noMiners];
+	
+    for(int i = 0; i < noMiners; i++)
+    {
+      minersHash[i] = dogecoinMinersHash[i];
+      minersRegions[i] = dogecoinMinersRegions[i];
+    }	
+  }
+  else
+  {
+    noMiners = sizeof(bitcoinMinersHash)/sizeof(double);
+    minersHash = new double[noMiners];
+	minersRegions = new enum BitcoinRegion[noMiners];
+	
+    for(int i = 0; i < noMiners; i++)
+    {
+      minersHash[i] = bitcoinMinersHash[i];
+      minersRegions[i] = bitcoinMinersRegions[i];
+    }	
   }
 
   averageBlockGenIntervalSeconds = averageBlockGenIntervalMinutes * secsPerMin;
@@ -170,11 +212,6 @@ main (int argc, char *argv[])
   //LogComponentEnable("OnOffApplication", LOG_LEVEL_WARN);
 
   
-  if (sizeof(minersHash)/sizeof(double) != noMiners)
-  {
-    std::cout << "The minersHash entries does not match the number of miners\n";
-    return 0;
-  }
   if (unsolicited && relayNetwork)
   {
     std::cout << "You have set both the unsolicited and the relayNetwork flag\n";
