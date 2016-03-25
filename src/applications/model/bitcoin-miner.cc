@@ -48,6 +48,11 @@ BitcoinMiner::GetTypeId (void)
                    TypeIdValue (UdpSocketFactory::GetTypeId ()),
                    MakeTypeIdAccessor (&BitcoinMiner::m_tid),
                    MakeTypeIdChecker ())
+    .AddAttribute ("BlockTorrent",
+                   "Enable the BlockTorrent protocol",
+                   BooleanValue (false),
+                   MakeBooleanAccessor (&BitcoinMiner::m_blockTorrent),
+                   MakeBooleanChecker ())
     .AddAttribute ("NumberOfMiners", 
 				   "The number of miners",
                    UintegerValue (16),
@@ -92,6 +97,11 @@ BitcoinMiner::GetTypeId (void)
 				   "BITCOIN, LITECOIN, DOGECOIN",
                    UintegerValue (0),
                    MakeUintegerAccessor (&BitcoinMiner::m_cryptocurrency),
+                   MakeUintegerChecker<uint32_t> ())
+    .AddAttribute ("ChunkSize", 
+				   "The fixed size of the block chunk",
+                   UintegerValue (100000),
+                   MakeUintegerAccessor (&BitcoinMiner::m_chunkSize),
                    MakeUintegerChecker<uint32_t> ())
     .AddTraceSource ("Rx",
                      "A packet has been received",
@@ -465,13 +475,33 @@ BitcoinMiner::MineBlock (void)
 	  
 	  if (m_protocolType == STANDARD_PROTOCOL)
 	  {
-	    value = INV;
-        inv.AddMember("message", value, inv.GetAllocator());
+        if (!m_blockTorrent)
+        {
+	      value = INV;
+          inv.AddMember("message", value, inv.GetAllocator());
+		  
+          value.SetString(blockHash.c_str(), blockHash.size(), inv.GetAllocator());
+          array.PushBack(value, inv.GetAllocator());
 		
-        value.SetString(blockHash.c_str(), blockHash.size(), inv.GetAllocator());
-        array.PushBack(value, inv.GetAllocator());
-		
-        inv.AddMember("inv", array, block.GetAllocator()); 
+          inv.AddMember("inv", array, block.GetAllocator()); 
+        }
+        else
+        {
+	      value = EXT_INV;
+          inv.AddMember("message", value, inv.GetAllocator());
+        
+          value.SetString(blockHash.c_str(), blockHash.size(), inv.GetAllocator());
+          blockInfo.AddMember("hash", value, block.GetAllocator ());
+
+	      value = newBlock.GetBlockSizeBytes ();
+          blockInfo.AddMember("size", value, block.GetAllocator ());
+		  
+	      value = true;
+          blockInfo.AddMember("fullBlock", value, block.GetAllocator ());
+		  
+          array.PushBack(blockInfo, block.GetAllocator());
+          inv.AddMember("inv", array, block.GetAllocator()); 
+		}
 	  }
 	  else if (m_protocolType == SENDHEADERS)
 	  {

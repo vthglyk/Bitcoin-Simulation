@@ -577,6 +577,12 @@ const char* getMessageName(enum Messages m)
     case BLOCK: return "BLOCK";
     case GET_DATA: return "GET_DATA";
     case NO_MESSAGE: return "NO_MESSAGE";
+    case EXT_INV: return "EXT_INV";
+    case EXT_GET_HEADERS: return "EXT_GET_HEADERS";
+    case EXT_HEADERS: return "EXT_HEADERS";
+    case EXT_GET_BLOCKS: return "EXT_GET_BLOCKS";
+    case EXT_BLOCK: return "EXT_BLOCK";
+    case EXT_GET_DATA: return "EXT_GET_DATA";
   }
 }
 

@@ -51,6 +51,7 @@ main (int argc, char *argv[])
   bool litecoin = false;
   bool dogecoin = false;
   bool sendheaders = false;
+  bool blockTorrent = false;
   enum Cryptocurrency  cryptocurrency = BITCOIN;
   double tStart = get_wall_time(), tStartSimulation, tFinish;
   const int secsPerMin = 60;
@@ -68,10 +69,11 @@ main (int argc, char *argv[])
 
   int minConnectionsPerNode = -1;
   int maxConnectionsPerNode = -1;
-#ifdef MPI_TEST
-  int noMiners;
   double *minersHash;
   enum BitcoinRegion *minersRegions;
+  int noMiners;
+
+#ifdef MPI_TEST
   
   double bitcoinMinersHash[] = {0.289, 0.196, 0.159, 0.133, 0.066, 0.054,
                                 0.029, 0.016, 0.012, 0.012, 0.012, 0.009,
@@ -80,17 +82,25 @@ main (int argc, char *argv[])
                                                EUROPE, EUROPE, NORTH_AMERICA, NORTH_AMERICA, NORTH_AMERICA, EUROPE,
                                                NORTH_AMERICA, NORTH_AMERICA, NORTH_AMERICA, NORTH_AMERICA};
 
-  double litecoinMinersHash[] = {36.6, 31.4, 12.2, 7.2, 2.8, 2.4, 2.2, 1.8, 1.2, 1, 0.6, 0.6};
+  double litecoinMinersHash[] = {0.366, 0.314, 0.122, 0.072, 0.028, 0.024, 0.022, 0.018, 0.012, 0.01, 0.006, 0.006};
   enum BitcoinRegion litecoinMinersRegions[] = {ASIA_PACIFIC, ASIA_PACIFIC, ASIA_PACIFIC, NORTH_AMERICA, EUROPE, NORTH_AMERICA,
                                                 NORTH_AMERICA, ASIA_PACIFIC, NORTH_AMERICA, NORTH_AMERICA, NORTH_AMERICA, NORTH_AMERICA};	
 
-  double dogecoinMinersHash[] = {33, 26, 19, 9, 3, 2, 2, 2, 4};
+  double dogecoinMinersHash[] = {0.33, 0.26, 0.19, 0.09, 0.03, 0.02, 0.02, 0.02, 0.01, 0.01, 0.01, 0.01};
+  enum BitcoinRegion dogecoinMinersRegions[] = {ASIA_PACIFIC, ASIA_PACIFIC, ASIA_PACIFIC, NORTH_AMERICA, EUROPE, NORTH_AMERICA,
+                                                NORTH_AMERICA, ASIA_PACIFIC, NORTH_AMERICA, ASIA_PACIFIC, NORTH_AMERICA, NORTH_AMERICA};
+#else
+	
+  double bitcoinMinersHash[] = {0.4, 0.3, 0.3};
+  enum BitcoinRegion bitcoinMinersRegions[] = {ASIA_PACIFIC, ASIA_PACIFIC, ASIA_PACIFIC};
+  
+  double litecoinMinersHash[] = {0.366, 0.314, 0.122, 0.072, 0.028, 0.024, 0.022, 0.018, 0.012, 0.01, 0.006, 0.006};
+  enum BitcoinRegion litecoinMinersRegions[] = {ASIA_PACIFIC, ASIA_PACIFIC, ASIA_PACIFIC, NORTH_AMERICA, EUROPE, NORTH_AMERICA,
+                                                NORTH_AMERICA, ASIA_PACIFIC, NORTH_AMERICA, NORTH_AMERICA, NORTH_AMERICA, NORTH_AMERICA};	
+
+  double dogecoinMinersHash[] = {0.33, 0.26, 0.19, 0.09, 0.03, 0.02, 0.02, 0.02, 0.04};
   enum BitcoinRegion dogecoinMinersRegions[] = {ASIA_PACIFIC, ASIA_PACIFIC, ASIA_PACIFIC, NORTH_AMERICA, EUROPE, NORTH_AMERICA,
                                                 NORTH_AMERICA, ASIA_PACIFIC, NORTH_AMERICA};
-#else
-  int noMiners = 3;
-  double minersHash[] = {0.4, 0.3, 0.3};
-  enum BitcoinRegion minersRegions[] = {ASIA_PACIFIC, ASIA_PACIFIC, ASIA_PACIFIC};
 #endif
 
   double averageBlockGenIntervalMinutes = averageBlockGenIntervalSeconds/secsPerMin;
@@ -123,6 +133,7 @@ main (int argc, char *argv[])
   cmd.AddValue ("sendheaders", "Change the protocol to sendheaders", sendheaders);
   cmd.AddValue ("litecoin", "Imitate the litecoin network behaviour", litecoin);
   cmd.AddValue ("dogecoin", "Imitate the litecoin network behaviour", dogecoin);
+  cmd.AddValue ("blockTorrent", "Enable the BlockTorrent protocol", blockTorrent);
 
   cmd.Parse(argc, argv);
   
@@ -257,10 +268,12 @@ main (int argc, char *argv[])
         bitcoinMinerHelper.SetAttribute("Cryptocurrency", UintegerValue (LITECOIN));	  
       else if (dogecoin)	  
         bitcoinMinerHelper.SetAttribute("Cryptocurrency", UintegerValue (DOGECOIN));
-	
+
       if (sendheaders)	  
         bitcoinMinerHelper.SetProtocolType(SENDHEADERS);	  
-
+      if (blockTorrent)	  
+        bitcoinMinerHelper.SetAttribute("BlockTorrent", BooleanValue(true));
+	
       bitcoinMinerHelper.SetPeersAddresses (nodesConnections[miner]);
 	  bitcoinMinerHelper.SetPeersDownloadSpeeds (peersDownloadSpeeds[miner]);
 	  bitcoinMinerHelper.SetNodeInternetSpeeds (nodesInternetSpeeds[miner]);
@@ -311,6 +324,8 @@ main (int argc, char *argv[])
 		
         if (sendheaders)	  
           bitcoinNodeHelper.SetProtocolType(SENDHEADERS);	
+        if (blockTorrent)	  
+          bitcoinNodeHelper.SetAttribute("BlockTorrent", BooleanValue(true));
 	  
 	    bitcoinNodes.Add(bitcoinNodeHelper.Install (targetNode));
 /*         std::cout << "SystemId " << systemId << ": Node " << node.first << " with systemId = " << targetNode->GetSystemId() 

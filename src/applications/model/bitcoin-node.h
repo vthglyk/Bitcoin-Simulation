@@ -8,6 +8,7 @@
 #include "ns3/traced-callback.h"
 #include "ns3/address.h"
 #include "bitcoin.h"
+#include "ns3/boolean.h"
 #include "../../rapidjson/document.h"
 #include "../../rapidjson/writer.h"
 #include "../../rapidjson/stringbuffer.h"
@@ -117,7 +118,8 @@ protected:
 
   void PrintQueueInv();
   void PrintInvTimeouts();
-
+  void PrintQueueChunks();
+  
   void InvTimeoutExpired (std::string blockHash);
 
   bool ReceivedButNotValidated (std::string blockHash);
@@ -145,11 +147,15 @@ protected:
   double          m_uploadSpeed;
   double 		  m_averageTransactionSize;
   int             m_transactionIndexSize;         //!< The transaction index size in bytes.
+  bool            m_blockTorrent;
+  uint32_t        m_chunkSize;
   
   std::vector<Ipv4Address>		                      m_peersAddresses;                 //!< The addresses of peers
   std::map<Ipv4Address, double>                       m_peersDownloadSpeeds;            //!< The peersDownloadSpeeds of channels
   std::map<Ipv4Address, Ptr<Socket>>                  m_peersSockets;                   //!< The sockets of peers
   std::map<std::string, std::vector<Address>>         m_queueInv;                       //!< map holding the addresses of nodes which sent an INV for a particular block
+  std::map<std::string, std::vector<Address>>         m_queueChunkPeers;                //!< map holding the addresses of nodes from which we are waiting for a CHUNK
+  std::map<std::string, std::vector<int>>             m_queueChunks;                    //!< map holding the addresses of nodes from which we are waiting for a CHUNK
   std::map<std::string, EventId>                      m_invTimeouts;                    //!< map holding the event timeouts of inv messages
   std::map<Address, std::string>                      m_bufferedData;                   //!< map holding the buffered data from previous handleRead events
   std::vector<std::string>                            m_receivedNotValidated;           //!< vector holding the received but not yet validated blocks

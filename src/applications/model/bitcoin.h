@@ -16,7 +16,13 @@ enum Messages
   GET_BLOCKS,		//3
   BLOCK,			//4
   GET_DATA,			//5
-  NO_MESSAGE        //6
+  NO_MESSAGE,       //6
+  EXT_INV,			//7
+  EXT_GET_HEADERS,	//8
+  EXT_HEADERS,		//9
+  EXT_GET_BLOCKS,	//10
+  EXT_BLOCK,		//11
+  EXT_GET_DATA,		//12
 };
 
 enum MinerType
