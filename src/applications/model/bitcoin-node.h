@@ -101,8 +101,10 @@ protected:
    */
   void HandlePeerError (Ptr<Socket> socket);
 
-  void ReceiveBlock(const Block &newBlock);				    //Called for every new block
-  void ReceivedLastChunk(const Block &newBlock);				//Called when we receive the last chunk of the block
+  void ReceivedBlockMessage(std::string &blockInfo, Address &from);			//Called for every BLOCK message
+  void ReceivedChunkMessage(std::string &chunkInfo, Address &from);			//Called for every BLOCK message
+  void ReceiveBlock(const Block &newBlock);				                    //Called for every new block
+  void ReceivedLastChunk(const Block &newBlock);				            //Called when we receive the last chunk of the block
 
   void SendBlock(std::string packetInfo, Address &from);				   
   void SendChunk(std::string packetInfo, Address &from);				   
@@ -172,6 +174,7 @@ protected:
   std::map<std::string, Block>                        m_onlyHeadersReceived;            //!< vector holding the blocks that we know but not received
   nodeStatistics                                     *m_nodeStats;                      //!< struct holding the node stats
   std::vector<double>                                 m_sendBlockTimes;                 //!< contains the times of the next sendBlock events
+  std::vector<double>                                 m_receiveBlockTimes;              //!< contains the times of the next sendBlock events
   enum ProtocolType									  m_protocolType;                   //!< protocol type
 
   const int		  m_bitcoinPort;   //!< 8333
