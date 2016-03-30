@@ -91,8 +91,10 @@ main (int argc, char *argv[])
                                                 NORTH_AMERICA, ASIA_PACIFIC, NORTH_AMERICA, ASIA_PACIFIC, NORTH_AMERICA, NORTH_AMERICA};
 #else
 	
-  double bitcoinMinersHash[] = {0.4, 0.3, 0.3};
-  enum BitcoinRegion bitcoinMinersRegions[] = {ASIA_PACIFIC, ASIA_PACIFIC, ASIA_PACIFIC};
+/*   double bitcoinMinersHash[] = {0.4, 0.3, 0.3};
+  enum BitcoinRegion bitcoinMinersRegions[] = {ASIA_PACIFIC, ASIA_PACIFIC, ASIA_PACIFIC}; */
+  double bitcoinMinersHash[] = {1};
+  enum BitcoinRegion bitcoinMinersRegions[] = {ASIA_PACIFIC};
   
   double litecoinMinersHash[] = {0.366, 0.314, 0.122, 0.072, 0.028, 0.024, 0.022, 0.018, 0.012, 0.01, 0.006, 0.006};
   enum BitcoinRegion litecoinMinersRegions[] = {ASIA_PACIFIC, ASIA_PACIFIC, ASIA_PACIFIC, NORTH_AMERICA, EUROPE, NORTH_AMERICA,
@@ -283,7 +285,7 @@ main (int argc, char *argv[])
 	    bitcoinMinerHelper.SetBlockBroadcastType (UNSOLICITED);
 	  if(relayNetwork)
 	    bitcoinMinerHelper.SetBlockBroadcastType (RELAY_NETWORK);
-	  //bitcoinMinerHelper.SetAttribute("FixedBlockSize", UintegerValue(blockSize));
+	  bitcoinMinerHelper.SetAttribute("FixedBlockSize", UintegerValue(blockSize));
 
 	  bitcoinMiners.Add(bitcoinMinerHelper.Install (targetNode));
 /*       std::cout << "SystemId " << systemId << ": Miner " << miner << " with hash power = " << minersHash[count] 

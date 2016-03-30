@@ -28,6 +28,12 @@ Block::Block(int blockHeight, int minerId, int parentBlockMinerId, int blockSize
 
 }
 
+Block::Block()
+{  
+  Block(0, 0, 0, 0, 0, 0, Ipv4Address("0.0.0.0"));
+
+}
+
 Block::Block (const Block &blockSource)
 {  
   m_blockHeight = blockSource.m_blockHeight;
@@ -39,7 +45,6 @@ Block::Block (const Block &blockSource)
   m_receivedFromIpv4 = blockSource.m_receivedFromIpv4;
 
 }
-
 
 Block::~Block (void)
 {
@@ -150,6 +155,71 @@ Block::operator= (const Block &blockSource)
 
   return *this;
 }
+
+/**
+ *
+ * Class BitcoinChunk functions
+ *
+ */
+ 
+BitcoinChunk::BitcoinChunk(int blockHeight, int minerId, int chunkId, int parentBlockMinerId, int blockSizeBytes, 
+             double timeCreated, double timeReceived, Ipv4Address receivedFromIpv4)
+{  
+  Block (blockHeight, minerId, parentBlockMinerId, blockSizeBytes, 
+         timeCreated, timeReceived, receivedFromIpv4);
+  m_chunkId = chunkId;
+}
+
+BitcoinChunk::BitcoinChunk()
+{  
+  BitcoinChunk(0, 0, 0, 0, 0, 0, 0, Ipv4Address("0.0.0.0"));
+}
+
+BitcoinChunk::BitcoinChunk (const BitcoinChunk &chunkSource)
+{  
+  m_blockHeight = chunkSource.m_blockHeight;
+  m_minerId = chunkSource.m_minerId;
+  m_chunkId = chunkSource.m_chunkId;
+  m_parentBlockMinerId = chunkSource.m_parentBlockMinerId;
+  m_blockSizeBytes = chunkSource.m_blockSizeBytes;
+  m_timeCreated = chunkSource.m_timeCreated;
+  m_timeReceived = chunkSource.m_timeReceived;
+  m_receivedFromIpv4 = chunkSource.m_receivedFromIpv4;
+
+}
+
+BitcoinChunk::~BitcoinChunk (void)
+{
+}
+
+int 
+BitcoinChunk::GetChunkId (void) const
+{
+  return m_chunkId;
+}
+
+void
+BitcoinChunk::SetChunkId (int chunkId)
+{
+  m_chunkId = chunkId;
+}
+
+BitcoinChunk& 
+BitcoinChunk::operator= (const BitcoinChunk &chunkSource)
+{  
+  m_blockHeight = chunkSource.m_blockHeight;
+  m_minerId = chunkSource.m_minerId;
+  m_chunkId = chunkSource.m_chunkId;
+  m_parentBlockMinerId = chunkSource.m_parentBlockMinerId;
+  m_blockSizeBytes = chunkSource.m_blockSizeBytes;
+  m_timeCreated = chunkSource.m_timeCreated;
+  m_timeReceived = chunkSource.m_timeReceived;
+  m_receivedFromIpv4 = chunkSource.m_receivedFromIpv4;
+
+  return *this;
+}
+
+
 /**
  *
  * Class Blockchain functions
@@ -243,6 +313,13 @@ Blockchain::ReturnBlock(int height, int minerId)
     if (block_it->GetBlockHeight() == height && block_it->GetMinerId() == minerId)
 	  return *block_it;
   }
+  
+  for (block_it = m_orphans.begin();  block_it < m_orphans.end(); block_it++)
+  {
+    if (block_it->GetBlockHeight() == height && block_it->GetMinerId() == minerId)
+	  return *block_it;
+  }
+  
   return Block(-1, -1, -1, -1, -1, -1, Ipv4Address("0.0.0.0"));
 }
 
@@ -533,6 +610,26 @@ bool operator== (const Block &block1, const Block &block2)
 	return false;
 }
 
+bool operator== (const BitcoinChunk &chunk1, const BitcoinChunk &chunk2)
+{
+  if (chunk1.GetBlockHeight() == chunk2.GetBlockHeight() && chunk1.GetMinerId() == chunk2.GetMinerId() && chunk1.GetChunkId() == chunk2.GetChunkId())
+    return true;
+  else
+	return false;
+}
+
+bool operator< (const BitcoinChunk &chunk1, const BitcoinChunk &chunk2)
+{
+  if (chunk1.GetBlockHeight() < chunk2.GetBlockHeight())
+    return true;
+  else if (chunk1.GetBlockHeight() == chunk2.GetBlockHeight() && chunk1.GetMinerId() < chunk2.GetMinerId())
+	return true;
+  else if (chunk1.GetBlockHeight() == chunk2.GetBlockHeight() && chunk1.GetMinerId() == chunk2.GetMinerId() && chunk1.GetChunkId() < chunk2.GetChunkId())
+	return true;
+  else
+    return false;
+}
+
 std::ostream& operator<< (std::ostream &out, const Block &block)
 {
 
@@ -543,6 +640,21 @@ std::ostream& operator<< (std::ostream &out, const Block &block)
 		"m_timeCreated: " << block.GetTimeCreated() << ", " <<
 		"m_timeReceived: " << block.GetTimeReceived() << ", " <<
 		"m_receivedFromIpv4: " << block.GetReceivedFromIpv4() <<
+		")";
+    return out;
+}
+
+std::ostream& operator<< (std::ostream &out, const BitcoinChunk &chunk)
+{
+
+    out << "(m_blockHeight: " << chunk.GetBlockHeight() << ", " <<
+        "m_minerId: " << chunk.GetMinerId() << ", " <<
+        "chunkId: " << chunk.GetChunkId() << ", " <<
+        "m_parentBlockMinerId: " << chunk.GetParentBlockMinerId() << ", " <<
+		"m_blockSizeBytes: " << chunk.GetBlockSizeBytes() << ", " <<
+		"m_timeCreated: " << chunk.GetTimeCreated() << ", " <<
+		"m_timeReceived: " << chunk.GetTimeReceived() << ", " <<
+		"m_receivedFromIpv4: " << chunk.GetReceivedFromIpv4() <<
 		")";
     return out;
 }
@@ -581,7 +693,7 @@ const char* getMessageName(enum Messages m)
     case EXT_GET_HEADERS: return "EXT_GET_HEADERS";
     case EXT_HEADERS: return "EXT_HEADERS";
     case EXT_GET_BLOCKS: return "EXT_GET_BLOCKS";
-    case EXT_BLOCK: return "EXT_BLOCK";
+    case CHUNK: return "CHUNK";
     case EXT_GET_DATA: return "EXT_GET_DATA";
   }
 }

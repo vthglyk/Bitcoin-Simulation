@@ -21,7 +21,7 @@ enum Messages
   EXT_GET_HEADERS,	//8
   EXT_HEADERS,		//9
   EXT_GET_BLOCKS,	//10
-  EXT_BLOCK,		//11
+  CHUNK,		    //11
   EXT_GET_DATA,		//12
 };
 
@@ -112,6 +112,7 @@ class Block
 public:
   Block (int blockHeight, int minerId, int parentBlockMinerId = 0, int blockSizeBytes = 0, 
          double timeCreated = 0, double timeReceived = 0, Ipv4Address receivedFromIpv4 = Ipv4Address("0.0.0.0"));
+  Block ();
   Block (const Block &blockSource);  // Copy constructor
   virtual ~Block (void);
  
@@ -128,7 +129,6 @@ public:
   void SetBlockSizeBytes (int blockSizeBytes);
   
   double GetTimeCreated (void) const;
-  
   double GetTimeReceived (void) const;
 
   Ipv4Address GetReceivedFromIpv4 (void) const;
@@ -138,12 +138,12 @@ public:
 
   bool IsChild (const Block &block) const; //check if it is the child of block
   
-  Block& operator= (const Block &blockSource);
+  Block& operator= (const Block &blockSource); //Assignment Constructor
   
   friend bool operator== (const Block &block1, const Block &block2);
   friend std::ostream& operator<< (std::ostream &out, const Block &block);
   
-private:	
+protected:	
   int           m_blockHeight;
   int           m_minerId;
   int           m_parentBlockMinerId;
@@ -151,7 +151,29 @@ private:
   double        m_timeCreated;
   double        m_timeReceived;
   Ipv4Address   m_receivedFromIpv4;
+};
+
+class BitcoinChunk : public Block
+{
+public:
+  BitcoinChunk (int blockHeight, int minerId, int chunkId, int parentBlockMinerId = 0, int blockSizeBytes = 0, 
+         double timeCreated = 0, double timeReceived = 0, Ipv4Address receivedFromIpv4 = Ipv4Address("0.0.0.0"));
+  BitcoinChunk ();
+  BitcoinChunk (const BitcoinChunk &chunkSource);  // Copy constructor
+  virtual ~BitcoinChunk (void);
+ 
+  int GetChunkId (void) const;
+  void SetChunkId (int minerId);
   
+  BitcoinChunk& operator= (const BitcoinChunk &chunkSource); //Assignment Constructor
+  
+  friend bool operator== (const BitcoinChunk &chunk, const BitcoinChunk &chunk2);
+  friend bool operator< (const BitcoinChunk &chunk, const BitcoinChunk &chunk2);
+  friend std::ostream& operator<< (std::ostream &out, const BitcoinChunk &chunk);
+  
+protected:	
+  int           m_chunkId;
+
 };
 
 class Blockchain

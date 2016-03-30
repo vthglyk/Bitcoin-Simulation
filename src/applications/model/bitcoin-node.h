@@ -102,7 +102,10 @@ protected:
   void HandlePeerError (Ptr<Socket> socket);
 
   void ReceiveBlock(const Block &newBlock);				    //Called for every new block
+  void ReceivedLastChunk(const Block &newBlock);				//Called when we receive the last chunk of the block
+
   void SendBlock(std::string packetInfo, Address &from);				   
+  void SendChunk(std::string packetInfo, Address &from);				   
 
   virtual void ReceivedHigherBlock(const Block &newBlock);	//Called for blocks with better score(height)
 
@@ -111,6 +114,8 @@ protected:
   void ValidateOrphanChildren(const Block &newBlock);
   
   void AdvertiseNewBlock (const Block &newBlock);
+  void AdvertiseFullBlock (const Block &newBlock);
+  void AdvertiseFirstChunk (const Block &newBlock);
 
   void SendMessage(enum Messages receivedMessage,  enum Messages responseMessage, rapidjson::Document &d, Ptr<Socket> outgoingSocket);
   void SendMessage(enum Messages receivedMessage,  enum Messages responseMessage, rapidjson::Document &d, Address &outgoingAddress);
@@ -118,17 +123,20 @@ protected:
 
   void PrintQueueInv();
   void PrintInvTimeouts();
+  void PrintChunkTimeouts();
   void PrintQueueChunks();
+  void PrintQueueChunkPeers();
+  void PrintReceivedChunks();
+  void PrintOnlyHeadersReceived();
   
   void InvTimeoutExpired (std::string blockHash);
+  void ChunkTimeoutExpired (std::string chunk);
 
   bool ReceivedButNotValidated (std::string blockHash);
-  
-  bool RemoveReceivedButNotValidated (std::string blockHash);
-  
+  void RemoveReceivedButNotValidated (std::string blockHash);
+
   bool OnlyHeadersReceived (std::string blockHash);
-  
-  bool RemoveOnlyHeadersReceived (std::string blockHash);
+  bool HasChunk (std::string blockHash, int chunk);
   
   // In the case of TCP, each socket accept returns a new socket, so the 
   // listening socket is stored separately from the accepted sockets
@@ -154,12 +162,14 @@ protected:
   std::map<Ipv4Address, double>                       m_peersDownloadSpeeds;            //!< The peersDownloadSpeeds of channels
   std::map<Ipv4Address, Ptr<Socket>>                  m_peersSockets;                   //!< The sockets of peers
   std::map<std::string, std::vector<Address>>         m_queueInv;                       //!< map holding the addresses of nodes which sent an INV for a particular block
-  std::map<std::string, std::vector<Address>>         m_queueChunkPeers;                //!< map holding the addresses of nodes from which we are waiting for a CHUNK
-  std::map<std::string, std::vector<int>>             m_queueChunks;                    //!< map holding the addresses of nodes from which we are waiting for a CHUNK
+  std::map<std::string, std::vector<Address>>         m_queueChunkPeers;                //!< map holding the addresses of nodes from which we are waiting for a CHUNK, key = block_hash
+  std::map<std::string, std::vector<int>>             m_queueChunks;                    //!< map holding the chunks of the blocks which we have not requested yet, key = block_hash
+  std::map<std::string, std::vector<int>>             m_receivedChunks;                 //!< map holding the chunks of the blocks which we are currently downloading, key = block_hash
   std::map<std::string, EventId>                      m_invTimeouts;                    //!< map holding the event timeouts of inv messages
+  std::map<std::string, EventId>                      m_chunkTimeouts;                  //!< map holding the event timeouts of chunk messages
   std::map<Address, std::string>                      m_bufferedData;                   //!< map holding the buffered data from previous handleRead events
   std::vector<std::string>                            m_receivedNotValidated;           //!< vector holding the received but not yet validated blocks
-  std::vector<std::string>                            m_onlyHeadersReceived;            //!< vector holding the blocks that we know but not received
+  std::map<std::string, Block>                        m_onlyHeadersReceived;            //!< vector holding the blocks that we know but not received
   nodeStatistics                                     *m_nodeStats;                      //!< struct holding the node stats
   std::vector<double>                                 m_sendBlockTimes;                 //!< contains the times of the next sendBlock events
   enum ProtocolType									  m_protocolType;                   //!< protocol type

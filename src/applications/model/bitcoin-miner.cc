@@ -483,7 +483,7 @@ BitcoinMiner::MineBlock (void)
           value.SetString(blockHash.c_str(), blockHash.size(), inv.GetAllocator());
           array.PushBack(value, inv.GetAllocator());
 		
-          inv.AddMember("inv", array, block.GetAllocator()); 
+          inv.AddMember("inv", array, inv.GetAllocator()); 
         }
         else
         {
@@ -491,43 +491,43 @@ BitcoinMiner::MineBlock (void)
           inv.AddMember("message", value, inv.GetAllocator());
         
           value.SetString(blockHash.c_str(), blockHash.size(), inv.GetAllocator());
-          blockInfo.AddMember("hash", value, block.GetAllocator ());
+          blockInfo.AddMember("hash", value, inv.GetAllocator ());
 
 	      value = newBlock.GetBlockSizeBytes ();
-          blockInfo.AddMember("size", value, block.GetAllocator ());
+          blockInfo.AddMember("size", value, inv.GetAllocator ());
 		  
 	      value = true;
-          blockInfo.AddMember("fullBlock", value, block.GetAllocator ());
+          blockInfo.AddMember("fullBlock", value, inv.GetAllocator ());
 		  
-          array.PushBack(blockInfo, block.GetAllocator());
-          inv.AddMember("inv", array, block.GetAllocator()); 
+          array.PushBack(blockInfo, inv.GetAllocator());
+          inv.AddMember("inv", array, inv.GetAllocator()); 
 		}
 	  }
 	  else if (m_protocolType == SENDHEADERS)
 	  {
         value = HEADERS;
-        inv.AddMember("message", value, block.GetAllocator());
+        inv.AddMember("message", value, inv.GetAllocator());
 
         value = newBlock.GetBlockHeight ();
-        blockInfo.AddMember("height", value, block.GetAllocator ());
+        blockInfo.AddMember("height", value, inv.GetAllocator ());
 
         value = newBlock.GetMinerId ();
-        blockInfo.AddMember("minerId", value, block.GetAllocator ());
+        blockInfo.AddMember("minerId", value, inv.GetAllocator ());
 
         value = newBlock.GetParentBlockMinerId ();
-        blockInfo.AddMember("parentBlockMinerId", value, block.GetAllocator ());
+        blockInfo.AddMember("parentBlockMinerId", value, inv.GetAllocator ());
 
         value = newBlock.GetBlockSizeBytes ();
-        blockInfo.AddMember("size", value, block.GetAllocator ());
+        blockInfo.AddMember("size", value, inv.GetAllocator ());
 
         value = newBlock.GetTimeCreated ();
-        blockInfo.AddMember("timeCreated", value, block.GetAllocator ());
+        blockInfo.AddMember("timeCreated", value, inv.GetAllocator ());
 
         value = newBlock.GetTimeReceived ();							
-        blockInfo.AddMember("timeReceived", value, block.GetAllocator ());
+        blockInfo.AddMember("timeReceived", value, inv.GetAllocator ());
 
-        array.PushBack(blockInfo, block.GetAllocator());
-        inv.AddMember("blocks", array, block.GetAllocator());      
+        array.PushBack(blockInfo, inv.GetAllocator());
+        inv.AddMember("blocks", array, inv.GetAllocator());      
       }	
       break;
     }
@@ -584,33 +584,33 @@ BitcoinMiner::MineBlock (void)
         value.SetString(blockHash.c_str(), blockHash.size(), inv.GetAllocator());
         invArray.PushBack(value, inv.GetAllocator());
 		
-        inv.AddMember("inv", invArray, block.GetAllocator()); 
+        inv.AddMember("inv", invArray, inv.GetAllocator()); 
       }
 	  else if (m_protocolType == SENDHEADERS)
 	  {
         value = HEADERS;
-        inv.AddMember("message", value, block.GetAllocator());
+        inv.AddMember("message", value, inv.GetAllocator());
 
         value = newBlock.GetBlockHeight ();
-        headersInfo.AddMember("height", value, block.GetAllocator ());
+        headersInfo.AddMember("height", value, inv.GetAllocator ());
 
         value = newBlock.GetMinerId ();
-        headersInfo.AddMember("minerId", value, block.GetAllocator ());
+        headersInfo.AddMember("minerId", value, inv.GetAllocator ());
 
         value = newBlock.GetParentBlockMinerId ();
-        headersInfo.AddMember("parentBlockMinerId", value, block.GetAllocator ());
+        headersInfo.AddMember("parentBlockMinerId", value, inv.GetAllocator ());
 
         value = newBlock.GetBlockSizeBytes ();
-        headersInfo.AddMember("size", value, block.GetAllocator ());
+        headersInfo.AddMember("size", value, inv.GetAllocator ());
 
         value = newBlock.GetTimeCreated ();
-        headersInfo.AddMember("timeCreated", value, block.GetAllocator ());
+        headersInfo.AddMember("timeCreated", value, inv.GetAllocator ());
 
         value = newBlock.GetTimeReceived ();							
-        headersInfo.AddMember("timeReceived", value, block.GetAllocator ());
+        headersInfo.AddMember("timeReceived", value, inv.GetAllocator ());
 
-        invArray.PushBack(headersInfo, block.GetAllocator());
-        inv.AddMember("blocks", invArray, block.GetAllocator());      
+        invArray.PushBack(headersInfo, inv.GetAllocator());
+        inv.AddMember("blocks", invArray, inv.GetAllocator());      
       }	
 	  
 	  
