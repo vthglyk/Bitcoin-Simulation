@@ -163,10 +163,10 @@ Block::operator= (const Block &blockSource)
  */
  
 BitcoinChunk::BitcoinChunk(int blockHeight, int minerId, int chunkId, int parentBlockMinerId, int blockSizeBytes, 
-             double timeCreated, double timeReceived, Ipv4Address receivedFromIpv4)
+             double timeCreated, double timeReceived, Ipv4Address receivedFromIpv4) :  
+             Block (blockHeight, minerId, parentBlockMinerId, blockSizeBytes, 
+                    timeCreated, timeReceived, receivedFromIpv4)
 {  
-  Block (blockHeight, minerId, parentBlockMinerId, blockSizeBytes, 
-         timeCreated, timeReceived, receivedFromIpv4);
   m_chunkId = chunkId;
 }
 

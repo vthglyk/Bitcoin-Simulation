@@ -170,12 +170,12 @@ protected:
   std::map<std::string, EventId>                      m_invTimeouts;                    //!< map holding the event timeouts of inv messages
   std::map<std::string, EventId>                      m_chunkTimeouts;                  //!< map holding the event timeouts of chunk messages
   std::map<Address, std::string>                      m_bufferedData;                   //!< map holding the buffered data from previous handleRead events
-  std::vector<std::string>                            m_receivedNotValidated;           //!< vector holding the received but not yet validated blocks
+  std::map<std::string, Block>                        m_receivedNotValidated;           //!< vector holding the received but not yet validated blocks
   std::map<std::string, Block>                        m_onlyHeadersReceived;            //!< vector holding the blocks that we know but not received
   nodeStatistics                                     *m_nodeStats;                      //!< struct holding the node stats
   std::vector<double>                                 m_sendBlockTimes;                 //!< contains the times of the next sendBlock events
   std::vector<double>                                 m_receiveBlockTimes;              //!< contains the times of the next sendBlock events
-  enum ProtocolType									  m_protocolType;                   //!< protocol type
+  enum ProtocolType                                   m_protocolType;                   //!< protocol type
 
   const int		  m_bitcoinPort;   //!< 8333
   const int       m_secondsPerMin; //!< 8333

@@ -155,12 +155,15 @@ BitcoinNode::StartApplication ()    // Called at time specified by Start
 {
   NS_LOG_FUNCTION (this);
   // Create the socket if not already
-  NS_LOG_INFO ("Node " << GetNode()->GetId() << ": download speed = " << m_downloadSpeed << " bps");
-  NS_LOG_INFO ("Node " << GetNode()->GetId() << ": upload speed = " << m_uploadSpeed << " bps");
+  
+  srand(time(NULL) + GetNode()->GetId());
+  NS_LOG_INFO ("Node " << GetNode()->GetId() << ": download speed = " << m_downloadSpeed << " B/s");
+  NS_LOG_INFO ("Node " << GetNode()->GetId() << ": upload speed = " << m_uploadSpeed << " B/s");
   NS_LOG_INFO ("Node " << GetNode()->GetId() << ": m_numberOfPeers = " << m_numberOfPeers);
   NS_LOG_INFO ("Node " << GetNode()->GetId() << ": m_invTimeoutMinutes = " << m_invTimeoutMinutes.GetMinutes() << "mins");
   NS_LOG_WARN ("Node " << GetNode()->GetId() << ": m_protocolType = " << getProtocolType(m_protocolType));
   NS_LOG_WARN ("Node " << GetNode()->GetId() << ": m_blockTorrent = " << m_blockTorrent);
+  NS_LOG_WARN ("Node " << GetNode()->GetId() << ": m_chunkSize = " << m_chunkSize << " Bytes");
 
   NS_LOG_INFO ("Node " << GetNode()->GetId() << ": My peers are");
   
@@ -372,7 +375,7 @@ BitcoinNode::HandleRead (Ptr<Socket> socket)
 				int minerId = atoi(parsedInv.substr(invPos+1, parsedInv.size()).c_str());
 				  
                 								  
-                if (m_blockchain.HasBlock(height, minerId) || ReceivedButNotValidated(parsedInv))
+                if (m_blockchain.HasBlock(height, minerId) || m_blockchain.IsOrphan(height, minerId) || ReceivedButNotValidated(parsedInv))
                 {
                   NS_LOG_INFO("INV: Bitcoin node " << GetNode ()->GetId () 
 				  << " has already received the block with height = " 
@@ -451,7 +454,7 @@ BitcoinNode::HandleRead (Ptr<Socket> socket)
 				int minerId = atoi(blockHash.substr(invPos+1, blockHash.size()).c_str());
 				  
                 								  
-                if (m_blockchain.HasBlock(height, minerId) || ReceivedButNotValidated(blockHash))
+                if (m_blockchain.HasBlock(height, minerId) || m_blockchain.IsOrphan(height, minerId) || ReceivedButNotValidated(blockHash))
                 {
                   NS_LOG_INFO("EXT_INV: Bitcoin node " << GetNode ()->GetId () 
 				  << " has already received the block with height = " 
@@ -466,11 +469,11 @@ BitcoinNode::HandleRead (Ptr<Socket> socket)
                   if (m_queueChunks.find(blockHash) == m_queueChunks.end())
                   {
                     NS_LOG_INFO("EXT_INV: Bitcoin node " << GetNode ()->GetId ()
-                               << " does not have an entry in m_queueChunks " << ceil(blockSize/static_cast<double>(m_chunkSize)));			       
+                               << " does not have an entry in m_queueChunks");			       
                     for (int i = 0; i < ceil(blockSize/static_cast<double>(m_chunkSize)); i++)
                       m_queueChunks[blockHash].push_back(i);
                   }
-                  PrintQueueChunks();
+                  //PrintQueueChunks();
 				  
 				  
                   /**
@@ -503,9 +506,10 @@ BitcoinNode::HandleRead (Ptr<Socket> socket)
                       }
                     }
 					
+/*                     std::cout << "candidateChunks = ";
                     for (auto chunk : candidateChunks)
                       std::cout << chunk << ", ";
-                    std::cout << "\n";
+                    std::cout << "\n"; */
 
                     if (candidateChunks.size() > 0)
                     {
@@ -532,10 +536,10 @@ BitcoinNode::HandleRead (Ptr<Socket> socket)
                                   << " will not request any chunks from this peer, because it has already all the available ones");
                     }
 					
-                    PrintQueueChunks();
+/*                     PrintQueueChunks();
                     PrintChunkTimeouts();
                     PrintQueueChunkPeers();
-                    PrintReceivedChunks();
+                    PrintReceivedChunks(); */
                   }
                   else
                   {
@@ -591,7 +595,7 @@ BitcoinNode::HandleRead (Ptr<Socket> socket)
                   int height = atoi(chunkHashHelp.substr(0, invPos).c_str());
 				  
                   chunkHashHelp.erase(0, invPos + invDelimiter.length());
-                  invPos = chunkHash.find(invDelimiter);
+                  invPos = chunkHashHelp.find(invDelimiter);
                   int minerId = atoi(chunkHashHelp.substr(0, invPos).c_str());
 				  
                   chunkHashHelp.erase(0, invPos + invDelimiter.length());
@@ -635,11 +639,11 @@ BitcoinNode::HandleRead (Ptr<Socket> socket)
               for (j=0; j<d["blocks"].Size(); j++)
               {  
                 std::string   invDelimiter = "/";
-                std::string   parsedInv = d["blocks"][j].GetString();
-                size_t        invPos = parsedInv.find(invDelimiter);
-				  
-                int height = atoi(parsedInv.substr(0, invPos).c_str());
-                int minerId = atoi(parsedInv.substr(invPos+1, parsedInv.size()).c_str());
+                std::string   blockHash = d["blocks"][j].GetString();
+                size_t        invPos = blockHash.find(invDelimiter);
+				
+                int height = atoi(blockHash.substr(0, invPos).c_str());
+                int minerId = atoi(blockHash.substr(invPos+1, blockHash.size()).c_str());
 				
                 if (m_blockchain.HasBlock(height, minerId) || m_blockchain.IsOrphan(height, minerId))
                 {
@@ -648,6 +652,13 @@ BitcoinNode::HandleRead (Ptr<Socket> socket)
                   << height << " and minerId = " << minerId);
                   Block newBlock (m_blockchain.ReturnBlock (height, minerId));
                   requestHeaders.push_back(newBlock);
+                }
+                else if (ReceivedButNotValidated(blockHash))
+                {
+                  NS_LOG_INFO("GET_HEADERS: Bitcoin node " << GetNode ()->GetId () 
+                  << " has received but not yet validated the block with height = " 
+                  << height << " and minerId = " << minerId);
+                  requestHeaders.push_back(m_receivedNotValidated[blockHash]);
                 }
                 else
                 {
@@ -722,6 +733,13 @@ BitcoinNode::HandleRead (Ptr<Socket> socket)
                   Block newBlock (m_blockchain.ReturnBlock (height, minerId));
                   requestHeaders.push_back(newBlock); 
                 }
+                else if (ReceivedButNotValidated(blockHash))
+                {
+                  NS_LOG_INFO("EXT_GET_HEADERS: Bitcoin node " << GetNode ()->GetId () 
+                  << " has received but not yet validated the block with height = " 
+                  << height << " and minerId = " << minerId);
+                  requestHeaders.push_back(m_receivedNotValidated[blockHash]); 
+                }
                 else if (OnlyHeadersReceived(blockHash))	
                 {	
 			      //FIX ME: 
@@ -773,7 +791,9 @@ BitcoinNode::HandleRead (Ptr<Socket> socket)
                   value = block_it->GetTimeReceived ();							
                   chunkInfo.AddMember("timeReceived", value, d.GetAllocator ());
 
-                  if (m_blockchain.HasBlock(block_it->GetBlockHeight (), block_it->GetMinerId ()) || m_blockchain.IsOrphan(block_it->GetBlockHeight (), block_it->GetMinerId ()))
+                  if (m_blockchain.HasBlock(block_it->GetBlockHeight (), block_it->GetMinerId ()) 
+                      || m_blockchain.IsOrphan(block_it->GetBlockHeight (), block_it->GetMinerId ())
+                      || ReceivedButNotValidated(blockHash))
                   {
                     value = true;							
                     chunkInfo.AddMember("fullBlock", value, d.GetAllocator ());
@@ -923,7 +943,7 @@ BitcoinNode::HandleRead (Ptr<Socket> socket)
 			  
               int j;
               int totalChunkMessageSize = 0;
-              std::map<std::string, std::string>    requestedChunks;
+              std::map<std::string, int>            requestedChunks;
               std::vector<std::string>::iterator    chunk_it;
               
               //m_nodeStats->getDataReceivedBytes += m_bitcoinMessageHeader + m_countBytes + d["blocks"].Size()*m_inventorySizeBytes;
@@ -937,11 +957,12 @@ BitcoinNode::HandleRead (Ptr<Socket> socket)
                 std::string            blockHash;
                 size_t                 invPos = chunkHashHelp.find(invDelimiter);
                 std::vector<int>       candidateChunks;
-  
+                int                    blockSize = -1;
+				
                 int height = atoi(chunkHashHelp.substr(0, invPos).c_str());
 				  
                 chunkHashHelp.erase(0, invPos + invDelimiter.length());
-                invPos = chunkHash.find(invDelimiter);
+                invPos = chunkHashHelp.find(invDelimiter);
                 int minerId = atoi(chunkHashHelp.substr(0, invPos).c_str());
 				  
                 chunkHashHelp.erase(0, invPos + invDelimiter.length());
@@ -949,12 +970,12 @@ BitcoinNode::HandleRead (Ptr<Socket> socket)
                 help << height << "/" << minerId;
                 blockHash = help.str();
 
-                if (m_blockchain.HasBlock(height, minerId) || m_blockchain.IsOrphan(height, minerId))
+                if (m_blockchain.HasBlock(height, minerId) || m_blockchain.IsOrphan(height, minerId) || ReceivedButNotValidated(blockHash))
                 {
                   NS_LOG_INFO("EXT_GET_DATA: Bitcoin node " << GetNode ()->GetId () 
                   << " has already received the block with height = " 
                   << height << " and minerId = " << minerId);
-                  requestedChunks[chunkHash] = "empty";
+                  requestedChunks[chunkHash] = -1;
                 }
                 else if (OnlyHeadersReceived(blockHash))	
                 {	
@@ -962,7 +983,8 @@ BitcoinNode::HandleRead (Ptr<Socket> socket)
                   NS_LOG_INFO("EXT_GET_DATA: Bitcoin node " << GetNode ()->GetId () 
                   << " has received the headers (and maybe some chunks) of the block with hash = " << blockHash); 
                   if (HasChunk(blockHash, chunkId))
-                    requestedChunks[chunkHash] = "empty";
+                    requestedChunks[chunkHash] = -1;
+                  blockSize = m_onlyHeadersReceived[blockHash].GetBlockSizeBytes();
                 }
                 else
                 {
@@ -986,13 +1008,14 @@ BitcoinNode::HandleRead (Ptr<Socket> socket)
                   }
                 }
 
-                for (auto chunk : candidateChunks)
-                  std::cout << chunk << ", ";
-                std::cout << "\n";
+/*                     std::cout << "candidateChunks = ";
+                    for (auto chunk : candidateChunks)
+                      std::cout << chunk << ", ";
+                    std::cout << "\n"; */
 
                 if (candidateChunks.size() > 0)
                 {
-                   EventId              timeout;
+                  EventId              timeout;
                   int randomIndex = rand() % candidateChunks.size();
 				  
                   NS_LOG_INFO("EXT_GET_DATA: Bitcoin node " << GetNode ()->GetId ()
@@ -1003,11 +1026,14 @@ BitcoinNode::HandleRead (Ptr<Socket> socket)
 																		  
                   std::ostringstream chunk;
                   chunk << blockHash << "/" << candidateChunks[randomIndex];
-                  requestedChunks[blockHash] = chunk.str();
-					  
-                  timeout = Simulator::Schedule (Minutes(m_invTimeoutMinutes.GetMinutes() / ceil(d["chunks"][j]["size"].GetInt()/static_cast<double>(m_chunkSize))),
+                  requestedChunks[chunkHash] = candidateChunks[randomIndex];
+
+                  if (blockSize == -1)
+                    NS_FATAL_ERROR ("blockSize == -1");
+				
+                  timeout = Simulator::Schedule (Minutes(m_invTimeoutMinutes.GetMinutes() / ceil(blockSize/static_cast<double>(m_chunkSize))),
                                                      &BitcoinNode::ChunkTimeoutExpired, this, chunk.str());//FIX ME: the timeout
-													 
+
                   m_chunkTimeouts[chunk.str()] = timeout;
                   m_queueChunkPeers[blockHash].push_back(from);
                 }
@@ -1018,6 +1044,7 @@ BitcoinNode::HandleRead (Ptr<Socket> socket)
                 }
               }
 			  
+
               if (!requestedChunks.empty())
               {
                 rapidjson::Value value;
@@ -1055,6 +1082,13 @@ BitcoinNode::HandleRead (Ptr<Socket> socket)
                   if (m_blockchain.HasBlock(height, minerId) || m_blockchain.IsOrphan(height, minerId))
                   {
                     newBlock = m_blockchain.ReturnBlock (height, minerId);
+                    value = true;
+                    chunkInfo.AddMember("fullBlock", value, d.GetAllocator ());
+                    blockSize = newBlock.GetBlockSizeBytes ();
+                  }
+                  else if (ReceivedButNotValidated(blockHash))
+                  {
+                    newBlock = m_receivedNotValidated[blockHash];
                     value = true;
                     chunkInfo.AddMember("fullBlock", value, d.GetAllocator ());
                     blockSize = newBlock.GetBlockSizeBytes ();
@@ -1113,12 +1147,17 @@ BitcoinNode::HandleRead (Ptr<Socket> socket)
                   value = newBlock.GetTimeReceived ();							
                   chunkInfo.AddMember("timeReceived", value, d.GetAllocator ());
 				  
-                  if (requestedChunk.second != "empty")
+                  if (requestedChunk.second != -1)
                   {
-                    value.SetString(requestedChunk.second.c_str(), requestedChunk.second.size(), d.GetAllocator());
+                    value = requestedChunk.second;
                     requestChunks.PushBack(value, d.GetAllocator());
                   }
                   chunkInfo.AddMember("requestChunks", requestChunks, d.GetAllocator ());
+				  
+/* 				  //Test chunk to chunk messages
+				  value = 1;
+				  requestChunks.PushBack(value, d.GetAllocator());
+				  chunkInfo.AddMember("requestChunks", requestChunks, d.GetAllocator ()); */
 				  
                   chunkArray.PushBack(chunkInfo, d.GetAllocator());
                 }	
@@ -1200,7 +1239,7 @@ BitcoinNode::HandleRead (Ptr<Socket> socket)
                 stringStream << parentHeight << "/" << parentMinerId;
                 parentBlockHash = stringStream.str();
 				
-                if(m_protocolType == SENDHEADERS && !m_blockchain.HasBlock(height, minerId) && !ReceivedButNotValidated(blockHash))
+                if(m_protocolType == SENDHEADERS && !m_blockchain.HasBlock(height, minerId) && !m_blockchain.IsOrphan(height, minerId) && !ReceivedButNotValidated(blockHash))
                 {
                   NS_LOG_INFO("We have not received an INV for the block with height = " << d["blocks"][j]["height"].GetInt() 
                                << " and minerId = " << d["blocks"][j]["minerId"].GetInt());
@@ -1228,7 +1267,7 @@ BitcoinNode::HandleRead (Ptr<Socket> socket)
                 }
 				  
 				  
-			    if (!m_blockchain.HasBlock(parentHeight, parentMinerId) && !ReceivedButNotValidated(parentBlockHash))
+			    if (!m_blockchain.HasBlock(parentHeight, parentMinerId) && !m_blockchain.IsOrphan(parentHeight, parentMinerId) && !ReceivedButNotValidated(parentBlockHash))
                 {				  
                   NS_LOG_INFO("The Block with height = " << d["blocks"][j]["height"].GetInt() 
                                << " and minerId = " << d["blocks"][j]["minerId"].GetInt() 
@@ -1399,6 +1438,8 @@ BitcoinNode::HandleRead (Ptr<Socket> socket)
               }
               m_receiveBlockTimes.push_back(Simulator::Now ().GetSeconds() + receiveTime);
 			  
+              NS_LOG_INFO("CHUNK:  Node " << GetNode()->GetId() << " will receive the full chunk message at " << Simulator::Now ().GetSeconds() + receiveTime);
+						  
               Simulator::Schedule (Seconds(receiveTime), &BitcoinNode::ReceivedChunkMessage, this, help, from);
 			  
               break;
@@ -1468,7 +1509,8 @@ BitcoinNode::ReceivedBlockMessage(std::string &blockInfo, Address &from)
     stringStream << parentHeight << "/" << parentMinerId;
     parentBlockHash = stringStream.str();
 				
-    if (!m_blockchain.HasBlock(parentHeight, parentMinerId) && !ReceivedButNotValidated(parentBlockHash) && !OnlyHeadersReceived(parentBlockHash))
+    if (!m_blockchain.HasBlock(parentHeight, parentMinerId) && !m_blockchain.IsOrphan(parentHeight, parentMinerId) 
+        && !ReceivedButNotValidated(parentBlockHash) && !OnlyHeadersReceived(parentBlockHash))
     {				  
       NS_LOG_INFO("The Block with height = " << d["blocks"][j]["height"].GetInt() 
                  << " and minerId = " << d["blocks"][j]["minerId"].GetInt() 
@@ -1505,7 +1547,7 @@ BitcoinNode::ReceivedChunkMessage(std::string &chunkInfo, Address &from)
 
   std::vector<std::string>                    getDataMessages;
   std::map<BitcoinChunk, std::vector<int>>    chunkMessages;
-
+  int totalChunkMessageSize = 0;
 			  
   m_nodeStats->blockReceivedBytes += m_bitcoinMessageHeader;
   for (int j=0; j<d["chunks"].Size(); j++)
@@ -1540,11 +1582,11 @@ BitcoinNode::ReceivedChunkMessage(std::string &chunkInfo, Address &from)
 				
     blockType = d["type"].GetString();
 
-    PrintQueueChunks();
+/*     PrintQueueChunks();
     PrintChunkTimeouts();
     PrintQueueChunkPeers();
     PrintReceivedChunks();
-    PrintOnlyHeadersReceived();
+    PrintOnlyHeadersReceived(); */
 
     if (m_chunkTimeouts.find(chunkHash) != m_chunkTimeouts.end())
     {
@@ -1562,13 +1604,14 @@ BitcoinNode::ReceivedChunkMessage(std::string &chunkInfo, Address &from)
 				  
       //FIX ME: When to advertise?
       if (m_receivedChunks[blockHash].size() == 1)
-      AdvertiseFirstChunk (Block (d["chunks"][j]["height"].GetInt(), d["chunks"][j]["minerId"].GetInt(), d["chunks"][j]["parentBlockMinerId"].GetInt(), 
-      d["chunks"][j]["size"].GetInt(), d["chunks"][j]["timeCreated"].GetDouble(), 
-      Simulator::Now ().GetSeconds (), InetSocketAddress::ConvertFrom(from).GetIpv4 ()));
+        AdvertiseFirstChunk (Block (d["chunks"][j]["height"].GetInt(), d["chunks"][j]["minerId"].GetInt(), d["chunks"][j]["parentBlockMinerId"].GetInt(), 
+                                    d["chunks"][j]["size"].GetInt(), d["chunks"][j]["timeCreated"].GetDouble(), 
+                                    Simulator::Now ().GetSeconds (), InetSocketAddress::ConvertFrom(from).GetIpv4 ()));
 				
       if (m_receivedChunks[blockHash].size() == ceil(d["chunks"][j]["size"].GetInt()/static_cast<double>(m_chunkSize)))
       {
-        if (!m_blockchain.HasBlock(parentHeight, parentMinerId) && !ReceivedButNotValidated(parentBlockHash) && !OnlyHeadersReceived(parentBlockHash))
+        if (!m_blockchain.HasBlock(parentHeight, parentMinerId) && !m_blockchain.IsOrphan(parentHeight, parentMinerId)
+            && !ReceivedButNotValidated(parentBlockHash) && !OnlyHeadersReceived(parentBlockHash))
         {				  
           NS_LOG_INFO("The Block with height = " << d["chunks"][j]["height"].GetInt() 
                       << " and minerId = " << d["chunks"][j]["minerId"].GetInt() 
@@ -1585,9 +1628,18 @@ BitcoinNode::ReceivedChunkMessage(std::string &chunkInfo, Address &from)
                           Simulator::Now ().GetSeconds (), InetSocketAddress::ConvertFrom(from).GetIpv4 ());
 
           ReceivedLastChunk (newBlock);
-          m_onlyHeadersReceived.erase(blockHash);
         }
-                      
+		
+        for (int ii = 0; ii < d["chunks"][j]["requestChunks"].Size(); ii++)
+        {
+          BitcoinChunk newChunk(d["chunks"][j]["height"].GetInt(), d["chunks"][j]["minerId"].GetInt(), 
+                                -1, d["chunks"][j]["parentBlockMinerId"].GetInt(), //-1 if we are not going to request a chunk
+                                d["chunks"][j]["size"].GetInt(), d["chunks"][j]["timeCreated"].GetDouble(), 
+                                Simulator::Now ().GetSeconds (), InetSocketAddress::ConvertFrom(from).GetIpv4 ());
+          chunkMessages[newChunk].push_back(d["chunks"][j]["requestChunks"][ii].GetInt());
+        }
+		
+        m_onlyHeadersReceived.erase(blockHash);              
         m_queueChunkPeers.erase (blockHash);	 
         m_queueChunks.erase (blockHash);
         m_receivedChunks.erase (blockHash);
@@ -1609,10 +1661,10 @@ BitcoinNode::ReceivedChunkMessage(std::string &chunkInfo, Address &from)
           }
         }
 
-        std::cout << "candidateChunks = ";
+/*         std::cout << "candidateChunks = ";
         for (auto chunk : candidateChunks)
           std::cout << chunk << ", ";
-        std::cout << "\n";
+        std::cout << "\n"; */
 
         if (candidateChunks.size() > 0)
         {
@@ -1631,10 +1683,13 @@ BitcoinNode::ReceivedChunkMessage(std::string &chunkInfo, Address &from)
           else
           {
             for (int ii = 0; ii < d["chunks"][j]["requestChunks"].Size(); ii++)
-              chunkMessages[BitcoinChunk(d["blocks"][j]["height"].GetInt(), d["blocks"][j]["minerId"].GetInt(), 
-                                         d["blocks"][j]["chunk"].GetInt(), d["blocks"][j]["parentBlockMinerId"].GetInt(), 
-                                         d["blocks"][j]["size"].GetInt(), d["blocks"][j]["timeCreated"].GetDouble(), 
-                                         Simulator::Now ().GetSeconds (), InetSocketAddress::ConvertFrom(from).GetIpv4 ())].push_back(d["chunks"][j]["requestChunks"][ii].GetInt());
+            {
+              BitcoinChunk newChunk (d["chunks"][j]["height"].GetInt(), d["chunks"][j]["minerId"].GetInt(), 
+                                     candidateChunks[randomIndex], d["chunks"][j]["parentBlockMinerId"].GetInt(), 
+                                     d["chunks"][j]["size"].GetInt(), d["chunks"][j]["timeCreated"].GetDouble(), 
+                                     Simulator::Now ().GetSeconds (), InetSocketAddress::ConvertFrom(from).GetIpv4 ());
+              chunkMessages[newChunk].push_back(d["chunks"][j]["requestChunks"][ii].GetInt());
+            }
           }
 					  
           timeout = Simulator::Schedule (Minutes(m_invTimeoutMinutes.GetMinutes() / ceil(d["chunks"][j]["size"].GetInt()/static_cast<double>(m_chunkSize))),
@@ -1649,19 +1704,22 @@ BitcoinNode::ReceivedChunkMessage(std::string &chunkInfo, Address &from)
                       << " will not request any chunks from this peer, because it has already all the available ones");
 								  
           for (int ii = 0; ii < d["chunks"][j]["requestChunks"].Size(); ii++)
-            chunkMessages[BitcoinChunk(d["blocks"][j]["height"].GetInt(), d["blocks"][j]["minerId"].GetInt(), 
-                                       -1, d["blocks"][j]["parentBlockMinerId"].GetInt(), 
-                                        d["blocks"][j]["size"].GetInt(), d["blocks"][j]["timeCreated"].GetDouble(), 
-                                        Simulator::Now ().GetSeconds (), InetSocketAddress::ConvertFrom(from).GetIpv4 ())].push_back(d["chunks"][j]["requestChunks"][ii].GetInt());
-        }
+          {
+            BitcoinChunk newChunk(d["chunks"][j]["height"].GetInt(), d["chunks"][j]["minerId"].GetInt(), 
+                                  -1, d["chunks"][j]["parentBlockMinerId"].GetInt(), //-1 if we are not going to request a chunk
+                                  d["chunks"][j]["size"].GetInt(), d["chunks"][j]["timeCreated"].GetDouble(), 
+                                  Simulator::Now ().GetSeconds (), InetSocketAddress::ConvertFrom(from).GetIpv4 ());
+            chunkMessages[newChunk].push_back(d["chunks"][j]["requestChunks"][ii].GetInt());
+          }
+		}
       }
     }
 				
-    PrintQueueChunks();
+/*     PrintQueueChunks();
     PrintChunkTimeouts();
     PrintQueueChunkPeers();
     PrintReceivedChunks();
-    PrintOnlyHeadersReceived();
+    PrintOnlyHeadersReceived(); */
   }
 			  
   if (!getDataMessages.empty())
@@ -1675,7 +1733,8 @@ BitcoinNode::ReceivedChunkMessage(std::string &chunkInfo, Address &from)
 				
     for (auto chunk_it = getDataMessages.begin(); chunk_it < getDataMessages.end(); chunk_it++) 
     {
-					
+      NS_LOG_INFO("In getDataMessages: " << *chunk_it);
+	  
       std::string            invDelimiter = "/";
       std::string            chunkHash = *chunk_it;
       std::string            chunkHashHelp = chunkHash.substr(0);
@@ -1686,7 +1745,7 @@ BitcoinNode::ReceivedChunkMessage(std::string &chunkInfo, Address &from)
       int height = atoi(chunkHashHelp.substr(0, invPos).c_str());
 				  
       chunkHashHelp.erase(0, invPos + invDelimiter.length());
-      invPos = chunkHash.find(invDelimiter);
+      invPos = chunkHashHelp.find(invDelimiter);
       int minerId = atoi(chunkHashHelp.substr(0, invPos).c_str());
 				  
       chunkHashHelp.erase(0, invPos + invDelimiter.length());
@@ -1715,7 +1774,139 @@ BitcoinNode::ReceivedChunkMessage(std::string &chunkInfo, Address &from)
     d.AddMember("chunks", chunkArray, d.GetAllocator());
 				
     SendMessage(CHUNK, EXT_GET_DATA, d, from);	
+  }
+
+  
+  
+  if (!chunkMessages.empty())
+  {
+    rapidjson::Value   value;
+    rapidjson::Value   chunkArray(rapidjson::kArrayType);
+    rapidjson::Value   chunkInfo(rapidjson::kObjectType);
+
+    d.RemoveMember("chunks");
 				
+    for (auto &chunk : chunkMessages) 
+    {
+      NS_LOG_INFO("In chunkMessages: " << chunk.first);
+
+      std::string            invDelimiter = "/";
+      std::string            chunkHash;
+      std::string            blockHash;
+      std::ostringstream     stringStream;				  
+
+      stringStream << chunk.first.GetBlockHeight() << "/" << chunk.first.GetMinerId();
+      blockHash = stringStream.str();
+      stringStream.clear();
+      stringStream << chunk.first.GetBlockHeight() << "/" << chunk.first.GetMinerId() << "/" << chunk.first.GetChunkId();
+      chunkHash = stringStream.str();
+
+      for (auto requestedChunk_it = chunk.second.begin(); requestedChunk_it != chunk.second.end(); requestedChunk_it++)
+      {
+        rapidjson::Value   requestChunks(rapidjson::kArrayType);
+        rapidjson::Value   availableChunks(rapidjson::kArrayType);
+
+        value = chunk.first.GetBlockHeight ();
+        chunkInfo.AddMember("height", value, d.GetAllocator ());
+  
+        value = chunk.first.GetMinerId ();
+        chunkInfo.AddMember("minerId", value, d.GetAllocator ());
+		
+        value = *requestedChunk_it;
+        chunkInfo.AddMember("chunk", value, d.GetAllocator ());
+				  
+        value = chunk.first.GetParentBlockMinerId ();
+        chunkInfo.AddMember("parentBlockMinerId", value, d.GetAllocator ());
+  
+        value = chunk.first.GetBlockSizeBytes ();
+        chunkInfo.AddMember("size", value, d.GetAllocator ());
+  
+        value = chunk.first.GetTimeCreated ();
+        chunkInfo.AddMember("timeCreated", value, d.GetAllocator ());
+  
+        value = chunk.first.GetTimeReceived ();							
+        chunkInfo.AddMember("timeReceived", value, d.GetAllocator ());
+
+        if (requestedChunk_it == chunk.second.begin() && chunk.first.GetChunkId () != -1) //Request it only once
+        {
+          value = chunk.first.GetChunkId ();
+          requestChunks.PushBack(value, d.GetAllocator());
+        }
+        chunkInfo.AddMember("requestChunks", requestChunks, d.GetAllocator ());
+		
+        if (m_blockchain.HasBlock(chunk.first.GetBlockHeight (), chunk.first.GetMinerId ()) 
+            || m_blockchain.IsOrphan(chunk.first.GetBlockHeight (), chunk.first.GetMinerId ())
+            || ReceivedButNotValidated(blockHash))
+        {
+          value = true;							
+          chunkInfo.AddMember("fullBlock", value, d.GetAllocator ());
+        }
+        else if (OnlyHeadersReceived(blockHash))
+        {
+          int noChunks = ceil(chunk.first.GetBlockSizeBytes () / static_cast<double>(m_chunkSize));
+					
+          if (m_receivedChunks[blockHash].size() == noChunks)
+          {
+            value = true;
+            chunkInfo.AddMember("fullBlock", value, d.GetAllocator ());
+          }
+          else
+          {
+            value = false;							
+            chunkInfo.AddMember("fullBlock", value, d.GetAllocator ());
+
+            for (auto &chunk : m_receivedChunks[blockHash])
+            {
+              value = chunk;
+              availableChunks.PushBack(value, d.GetAllocator());
+            }
+            chunkInfo.AddMember("availableChunks", availableChunks, d.GetAllocator ());
+          }
+        }
+		
+       chunkArray.PushBack(chunkInfo, d.GetAllocator());
+      }
+    }	  
+    d.AddMember("chunks", chunkArray, d.GetAllocator());
+			
+    for (int j = 0; j < d["chunks"].Size(); j++)
+    {
+      if (d["chunks"][j]["chunk"].GetInt() == ceil(d["chunks"][j]["size"].GetInt() / static_cast<double>(m_chunkSize) - 1))
+        totalChunkMessageSize += d["chunks"][j]["size"].GetInt() % (m_chunkSize);
+      else
+        totalChunkMessageSize += m_chunkSize;
+    }
+
+  double sendTime;
+			  
+/*   std::cout << "Node " << GetNode()->GetId() << "-" << InetSocketAddress::ConvertFrom(from).GetIpv4 () 
+            << " " << m_peersDownloadSpeeds[InetSocketAddress::ConvertFrom(from).GetIpv4 ()] << " Mbps , time = "
+            << Simulator::Now ().GetSeconds() << "s \n"; */
+                
+  if (m_sendBlockTimes.size() == 0 || Simulator::Now ().GetSeconds() >  m_sendBlockTimes.back())
+  {
+    sendTime = totalChunkMessageSize / m_uploadSpeed; 
+  }
+  else
+  {
+    //std::cout << "m_sendBlockTimes.back() = m_sendBlockTimes.back() = " << m_sendBlockTimes.back() << std::endl;
+    sendTime = totalChunkMessageSize / m_uploadSpeed + m_sendBlockTimes.back() - Simulator::Now ().GetSeconds(); 
+  }
+  m_sendBlockTimes.push_back(Simulator::Now ().GetSeconds() + sendTime);
+ 
+  //std::cout << sendTime << " " << eventTime << " " << m_sendBlockTimes.size() << std::endl;
+  NS_LOG_INFO("Node " << GetNode()->GetId() << " will send the chunk to " << InetSocketAddress::ConvertFrom(from).GetIpv4 () 
+              << " at " << Simulator::Now ().GetSeconds() + sendTime << "\n");
+							
+               
+  // Stringify the DOM
+  rapidjson::StringBuffer packetInfo;
+  rapidjson::Writer<rapidjson::StringBuffer> writer(packetInfo);
+  d.Accept(writer);
+  std::string packet = packetInfo.GetString();
+  NS_LOG_INFO ("DEBUG: " << packetInfo.GetString());
+				
+  Simulator::Schedule (Seconds(sendTime), &BitcoinNode::SendChunk, this, packet, from);  
   }
 }
 
@@ -1733,7 +1924,7 @@ BitcoinNode::ReceiveBlock(const Block &newBlock)
   stringStream << newBlock.GetBlockHeight() << "/" << newBlock.GetMinerId();
   blockHash = stringStream.str();
   
-  if (m_blockchain.HasBlock(newBlock) || ReceivedButNotValidated(blockHash))
+  if (m_blockchain.HasBlock(newBlock) || m_blockchain.IsOrphan(newBlock) || ReceivedButNotValidated(blockHash))
   {
     NS_LOG_INFO ("ReceiveBlock: Bitcoin node " << GetNode ()->GetId () << " has already added this block in the m_blockchain: " << newBlock);
     
@@ -1748,7 +1939,7 @@ BitcoinNode::ReceiveBlock(const Block &newBlock)
   {
     NS_LOG_INFO ("ReceiveBlock: Bitcoin node " << GetNode ()->GetId () << " has NOT added this block in the m_blockchain: " << newBlock);
 
-    m_receivedNotValidated.push_back(blockHash);
+    m_receivedNotValidated[blockHash] = newBlock;
 	//PrintQueueInv();
 	//PrintInvTimeouts();
 	
@@ -1777,7 +1968,7 @@ BitcoinNode::ReceivedLastChunk(const Block &newBlock)
   stringStream << newBlock.GetBlockHeight() << "/" << newBlock.GetMinerId();
   blockHash = stringStream.str();
   
-  if (m_blockchain.HasBlock(newBlock) || ReceivedButNotValidated(blockHash))
+  if (m_blockchain.HasBlock(newBlock) || m_blockchain.IsOrphan(newBlock) || ReceivedButNotValidated(blockHash))
   {
     NS_LOG_INFO ("ReceivedLastChunk: Bitcoin node " << GetNode ()->GetId () << " has already added this block in the m_blockchain: " << newBlock);
   }
@@ -1786,7 +1977,7 @@ BitcoinNode::ReceivedLastChunk(const Block &newBlock)
     NS_LOG_INFO ("ReceivedLastChunk: Bitcoin node " << GetNode ()->GetId () << " has NOT added this block in the m_blockchain: " << newBlock);
 
 	
-    m_receivedNotValidated.push_back(blockHash);
+    m_receivedNotValidated[blockHash] = newBlock;
 
     //PrintQueueInv();
 	//PrintInvTimeouts();
@@ -2401,7 +2592,7 @@ BitcoinNode::PrintQueueInv()
 {
   NS_LOG_FUNCTION (this);
 
-  std::cout << "The queueINV is:\n";
+  std::cout << "Node " <<  GetNode()->GetId() << ": The queueINV is:\n";
   
   for(auto &elem : m_queueInv)
   {
@@ -2423,7 +2614,7 @@ BitcoinNode::PrintInvTimeouts()
 {
   NS_LOG_FUNCTION (this);
 
-  std::cout << "The m_invTimeouts is:\n";
+  std::cout << "Node " <<  GetNode()->GetId() << ": The m_invTimeouts is:\n";
   
   for(auto &elem : m_invTimeouts)
   {
@@ -2438,7 +2629,7 @@ BitcoinNode::PrintChunkTimeouts()
 {
   NS_LOG_FUNCTION (this);
 
-  std::cout << "The m_chunkTimeouts is:\n";
+  std::cout << "Node " <<  GetNode()->GetId() << ": The m_chunkTimeouts is:\n";
   
   for(auto &elem : m_chunkTimeouts)
   {
@@ -2453,7 +2644,7 @@ BitcoinNode::PrintQueueChunks()
 {
   NS_LOG_FUNCTION (this);
 
-  std::cout << "The m_queueChunks is:\n";
+  std::cout << "Node " <<  GetNode()->GetId() << ": The m_queueChunks is:\n";
   
   for(auto &elem : m_queueChunks)
   {
@@ -2476,7 +2667,7 @@ BitcoinNode::PrintReceivedChunks()
 {
   NS_LOG_FUNCTION (this);
 
-  std::cout << "The m_receivedChunks is:\n";
+  std::cout << "Node " <<  GetNode()->GetId() << ": The m_receivedChunks is:\n";
   
   for(auto &elem : m_receivedChunks)
   {
@@ -2499,7 +2690,7 @@ BitcoinNode::PrintQueueChunkPeers()
 {
   NS_LOG_FUNCTION (this);
 
-  std::cout << "The m_queueChunkPeers is:\n";
+  std::cout << "Node " <<  GetNode()->GetId() << ": The m_queueChunkPeers is:\n";
   
   for(auto &elem : m_queueChunkPeers)
   {
@@ -2521,7 +2712,7 @@ BitcoinNode::PrintOnlyHeadersReceived()
 {
   NS_LOG_FUNCTION (this);
 
-  std::cout << "The m_onlyHeadersReceived is:\n";
+  std::cout << "Node " <<  GetNode()->GetId() << ": The m_onlyHeadersReceived is:\n";
   
   for(auto &elem : m_onlyHeadersReceived)
   {
@@ -2587,14 +2778,37 @@ BitcoinNode::ChunkTimeoutExpired(std::string chunk)
 {
   NS_LOG_FUNCTION (this);
 
-  NS_LOG_INFO ("Node " << GetNode ()->GetId () << ": At time "  << Simulator::Now ().GetSeconds ()
+  std::string            invDelimiter = "/";
+  std::string            chunkHashHelp = chunk.substr(0);
+  std::ostringstream     help;
+  std::string            blockHash;
+  size_t                 invPos = chunkHashHelp.find(invDelimiter);
+  
+  int height = atoi(chunkHashHelp.substr(0, invPos).c_str());
+				  
+  chunkHashHelp.erase(0, invPos + invDelimiter.length());
+  invPos = chunkHashHelp.find(invDelimiter);
+  int minerId = atoi(chunkHashHelp.substr(0, invPos).c_str());
+				  
+  chunkHashHelp.erase(0, invPos + invDelimiter.length());
+  int chunkId = atoi(chunkHashHelp.substr(0).c_str());
+  
+  help << height << "/" << minerId;
+  blockHash = help.str();
+  
+  NS_LOG_WARN ("Node " << GetNode ()->GetId () << ": At time "  << Simulator::Now ().GetSeconds ()
                 << " the timeout for chunk " << chunk << " expired");
 
-  PrintChunkTimeouts();
+/*   PrintChunkTimeouts();
+  PrintQueueChunks();
+  PrintQueueChunkPeers(); */
   
   m_chunkTimeouts.erase(chunk);
+  m_queueChunks[blockHash].push_back(chunkId);
   
-  PrintChunkTimeouts();
+/*   PrintChunkTimeouts();
+  PrintQueueChunks();
+  PrintQueueChunkPeers(); */
 }
 
 
@@ -2603,7 +2817,7 @@ BitcoinNode::ReceivedButNotValidated (std::string blockHash)
 {
   NS_LOG_FUNCTION (this);
   
-  if ( std::find(m_receivedNotValidated.begin(), m_receivedNotValidated.end(), blockHash) != m_receivedNotValidated.end() )
+  if ( m_receivedNotValidated.find(blockHash) != m_receivedNotValidated.end() )
     return true;
   else
     return false;
@@ -2615,11 +2829,10 @@ BitcoinNode::RemoveReceivedButNotValidated (std::string blockHash)
 {
   NS_LOG_FUNCTION (this);
   
-  auto it = std::find(m_receivedNotValidated.begin(), m_receivedNotValidated.end(), blockHash);
   
-  if ( it  != m_receivedNotValidated.end() )
+  if ( m_receivedNotValidated.find(blockHash) != m_receivedNotValidated.end() )
   {
-    m_receivedNotValidated.erase(it);
+    m_receivedNotValidated.erase(blockHash);
   }
   else
   {
