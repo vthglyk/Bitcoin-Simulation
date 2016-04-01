@@ -578,13 +578,33 @@ BitcoinMiner::MineBlock (void)
 	  
 	  if (m_protocolType == STANDARD_PROTOCOL)
 	  {
-	    value = INV;
-        inv.AddMember("message", value, inv.GetAllocator());
+        if (!m_blockTorrent)
+        {
+	      value = INV;
+          inv.AddMember("message", value, inv.GetAllocator());
+		  
+          value.SetString(blockHash.c_str(), blockHash.size(), inv.GetAllocator());
+          invArray.PushBack(value, inv.GetAllocator());
 		
-        value.SetString(blockHash.c_str(), blockHash.size(), inv.GetAllocator());
-        invArray.PushBack(value, inv.GetAllocator());
-		
-        inv.AddMember("inv", invArray, inv.GetAllocator()); 
+          inv.AddMember("inv", invArray, inv.GetAllocator()); 
+        }
+        else
+        {
+	      value = EXT_INV;
+          inv.AddMember("message", value, inv.GetAllocator());
+        
+          value.SetString(blockHash.c_str(), blockHash.size(), inv.GetAllocator());
+          blockInfo.AddMember("hash", value, inv.GetAllocator ());
+
+	      value = newBlock.GetBlockSizeBytes ();
+          blockInfo.AddMember("size", value, inv.GetAllocator ());
+		  
+	      value = true;
+          blockInfo.AddMember("fullBlock", value, inv.GetAllocator ());
+		  
+          invArray.PushBack(blockInfo, inv.GetAllocator());
+          inv.AddMember("inv", invArray, inv.GetAllocator()); 
+		}
       }
 	  else if (m_protocolType == SENDHEADERS)
 	  {
@@ -764,10 +784,10 @@ BitcoinMiner::MineBlock (void)
           m_peersSockets[*i]->Send (reinterpret_cast<const uint8_t*>(invInfo.GetString()), invInfo.GetSize(), 0);
 	      m_peersSockets[*i]->Send (delimiter, 1, 0);
 	  
-        if (m_protocolType == STANDARD_PROTOCOL)
-          m_nodeStats->invSentBytes += m_bitcoinMessageHeader + m_countBytes + inv["inv"].Size()*m_inventorySizeBytes;
-	    else if (m_protocolType == SENDHEADERS)
-          m_nodeStats->headersSentBytes += m_bitcoinMessageHeader + m_countBytes + inv["blocks"].Size()*m_headersSizeBytes;
+          if (m_protocolType == STANDARD_PROTOCOL)
+            m_nodeStats->invSentBytes += m_bitcoinMessageHeader + m_countBytes + inv["inv"].Size()*m_inventorySizeBytes;
+	      else if (m_protocolType == SENDHEADERS)
+            m_nodeStats->headersSentBytes += m_bitcoinMessageHeader + m_countBytes + inv["blocks"].Size()*m_headersSizeBytes;
 	  
           NS_LOG_INFO ("At time " << Simulator::Now ().GetSeconds ()
                        << "s bitcoin miner " << GetNode ()->GetId () 

@@ -52,6 +52,8 @@ main (int argc, char *argv[])
   bool dogecoin = false;
   bool sendheaders = false;
   bool blockTorrent = false;
+  int invTimeoutMins = -1;
+  int chunkSize = -1;
   enum Cryptocurrency  cryptocurrency = BITCOIN;
   double tStart = get_wall_time(), tStartSimulation, tFinish;
   const int secsPerMin = 60;
@@ -91,10 +93,10 @@ main (int argc, char *argv[])
                                                 NORTH_AMERICA, ASIA_PACIFIC, NORTH_AMERICA, ASIA_PACIFIC, NORTH_AMERICA, NORTH_AMERICA};
 #else
 	
-/*   double bitcoinMinersHash[] = {0.4, 0.3, 0.3};
-  enum BitcoinRegion bitcoinMinersRegions[] = {ASIA_PACIFIC, ASIA_PACIFIC, ASIA_PACIFIC}; */
-  double bitcoinMinersHash[] = {1};
-  enum BitcoinRegion bitcoinMinersRegions[] = {ASIA_PACIFIC};
+  double bitcoinMinersHash[] = {0.4, 0.3, 0.3};
+  enum BitcoinRegion bitcoinMinersRegions[] = {ASIA_PACIFIC, ASIA_PACIFIC, ASIA_PACIFIC};
+/*   double bitcoinMinersHash[] = {1};
+  enum BitcoinRegion bitcoinMinersRegions[] = {ASIA_PACIFIC}; */
   
   double litecoinMinersHash[] = {0.366, 0.314, 0.122, 0.072, 0.028, 0.024, 0.022, 0.018, 0.012, 0.01, 0.006, 0.006};
   enum BitcoinRegion litecoinMinersRegions[] = {ASIA_PACIFIC, ASIA_PACIFIC, ASIA_PACIFIC, NORTH_AMERICA, EUROPE, NORTH_AMERICA,
@@ -129,6 +131,8 @@ main (int argc, char *argv[])
   cmd.AddValue ("minConnections", "The minConnectionsPerNode of the grid", minConnectionsPerNode);
   cmd.AddValue ("maxConnections", "The maxConnectionsPerNode of the grid", maxConnectionsPerNode);
   cmd.AddValue ("blockIntervalMinutes", "The average block generation interval in minutes", averageBlockGenIntervalMinutes);
+  cmd.AddValue ("invTimeoutMins", "The inv block timeout", invTimeoutMins);
+  cmd.AddValue ("chunkSize", "The chunksize of the blockTorrent in Bytes", chunkSize);
   cmd.AddValue ("test", "Test the scalability of the simulation", testScalability);
   cmd.AddValue ("unsolicited", "Change the miners block broadcast type to UNSOLICITED", unsolicited);
   cmd.AddValue ("relayNetwork", "Change the miners block broadcast type to RELAY_NETWORK", relayNetwork);
@@ -265,7 +269,12 @@ main (int argc, char *argv[])
 	if (systemId == targetNode->GetSystemId())
 	{
       bitcoinMinerHelper.SetAttribute("HashRate", DoubleValue(minersHash[count]));
-      bitcoinMinerHelper.SetAttribute("InvTimeoutMinutes", TimeValue (Minutes (2*averageBlockGenIntervalMinutes)));
+	  
+      if (invTimeoutMins != -1)	 
+        bitcoinMinerHelper.SetAttribute("InvTimeoutMinutes", TimeValue (Minutes (invTimeoutMins)));
+      else 	  
+        bitcoinMinerHelper.SetAttribute("InvTimeoutMinutes", TimeValue (Minutes (2*averageBlockGenIntervalMinutes)));
+
       if (litecoin)	  
         bitcoinMinerHelper.SetAttribute("Cryptocurrency", UintegerValue (LITECOIN));	  
       else if (dogecoin)	  
@@ -273,9 +282,12 @@ main (int argc, char *argv[])
 
       if (sendheaders)	  
         bitcoinMinerHelper.SetProtocolType(SENDHEADERS);	  
-      if (blockTorrent)	  
+      if (blockTorrent)	
+      {		  
         bitcoinMinerHelper.SetAttribute("BlockTorrent", BooleanValue(true));
-	
+        if (chunkSize != -1)
+          bitcoinMinerHelper.SetAttribute("ChunkSize", UintegerValue(chunkSize));
+	  }
       bitcoinMinerHelper.SetPeersAddresses (nodesConnections[miner]);
 	  bitcoinMinerHelper.SetPeersDownloadSpeeds (peersDownloadSpeeds[miner]);
 	  bitcoinMinerHelper.SetNodeInternetSpeeds (nodesInternetSpeeds[miner]);
@@ -318,7 +330,10 @@ main (int argc, char *argv[])
   
       if ( std::find(miners.begin(), miners.end(), node.first) == miners.end() )
 	  {
-        bitcoinNodeHelper.SetAttribute("InvTimeoutMinutes", TimeValue (Minutes (2*averageBlockGenIntervalMinutes)));	  
+	    if (invTimeoutMins != -1)	 
+	      bitcoinNodeHelper.SetAttribute("InvTimeoutMinutes", TimeValue (Minutes (invTimeoutMins)));
+	    else 	  
+          bitcoinNodeHelper.SetAttribute("InvTimeoutMinutes", TimeValue (Minutes (2*averageBlockGenIntervalMinutes)));
 	    bitcoinNodeHelper.SetPeersAddresses (node.second);
 	    bitcoinNodeHelper.SetPeersDownloadSpeeds (peersDownloadSpeeds[node.first]);
 	    bitcoinNodeHelper.SetNodeInternetSpeeds (nodesInternetSpeeds[node.first]);
@@ -327,8 +342,11 @@ main (int argc, char *argv[])
         if (sendheaders)	  
           bitcoinNodeHelper.SetProtocolType(SENDHEADERS);	
         if (blockTorrent)	  
+        {
           bitcoinNodeHelper.SetAttribute("BlockTorrent", BooleanValue(true));
-	  
+          if (chunkSize != -1)
+            bitcoinNodeHelper.SetAttribute("ChunkSize", UintegerValue(chunkSize));
+		}
 	    bitcoinNodes.Add(bitcoinNodeHelper.Install (targetNode));
 /*         std::cout << "SystemId " << systemId << ": Node " << node.first << " with systemId = " << targetNode->GetSystemId() 
 		          << " was installed in node " << targetNode->GetId () <<  std::endl; */
