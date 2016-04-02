@@ -569,6 +569,7 @@ BitcoinMiner::MineBlock (void)
     {
       rapidjson::Value value;
       rapidjson::Value headersInfo(rapidjson::kObjectType);
+	  rapidjson::Value chunkInfo(rapidjson::kObjectType);
 	  rapidjson::Value blockInfo(rapidjson::kObjectType);
       rapidjson::Value invArray(rapidjson::kArrayType);
       rapidjson::Value blockArray(rapidjson::kArrayType);
@@ -594,15 +595,15 @@ BitcoinMiner::MineBlock (void)
           inv.AddMember("message", value, inv.GetAllocator());
         
           value.SetString(blockHash.c_str(), blockHash.size(), inv.GetAllocator());
-          blockInfo.AddMember("hash", value, inv.GetAllocator ());
+          chunkInfo.AddMember("hash", value, inv.GetAllocator ());
 
 	      value = newBlock.GetBlockSizeBytes ();
-          blockInfo.AddMember("size", value, inv.GetAllocator ());
+          chunkInfo.AddMember("size", value, inv.GetAllocator ());
 		  
 	      value = true;
-          blockInfo.AddMember("fullBlock", value, inv.GetAllocator ());
+          chunkInfo.AddMember("fullBlock", value, inv.GetAllocator ());
 		  
-          invArray.PushBack(blockInfo, inv.GetAllocator());
+          invArray.PushBack(chunkInfo, inv.GetAllocator());
           inv.AddMember("inv", invArray, inv.GetAllocator()); 
 		}
       }

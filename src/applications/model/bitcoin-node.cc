@@ -1399,6 +1399,8 @@ BitcoinNode::HandleRead (Ptr<Socket> socket)
               }
               m_receiveBlockTimes.push_back(Simulator::Now ().GetSeconds() + receiveTime);
 			  
+              NS_LOG_INFO("BLOCK:  Node " << GetNode()->GetId() << " will receive the full block message at " << Simulator::Now ().GetSeconds() + receiveTime);
+
               Simulator::Schedule (Seconds(receiveTime), &BitcoinNode::ReceivedBlockMessage, this, help, from);
               break;
             }
