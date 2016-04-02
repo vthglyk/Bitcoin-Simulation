@@ -2149,14 +2149,14 @@ BitcoinNode::AdvertiseNewBlock (const Block &newBlock)
   std::string blockHash = stringStream.str();
   d.SetObject();
   
+  value.SetString("block");
+  d.AddMember("type", value, d.GetAllocator());
+  
   if (m_protocolType == STANDARD_PROTOCOL)
   {
     value = INV;
     d.AddMember("message", value, d.GetAllocator());
-  
-    value.SetString("block");
-    d.AddMember("type", value, d.GetAllocator());
-  
+
     stringStream << newBlock.GetBlockHeight () << "/" << newBlock.GetMinerId ();
     blockHash = stringStream.str();
     value.SetString(blockHash.c_str(), blockHash.size(), d.GetAllocator());
@@ -2169,7 +2169,7 @@ BitcoinNode::AdvertiseNewBlock (const Block &newBlock)
 
     value = HEADERS;
     d.AddMember("message", value, d.GetAllocator());
-
+	
     value = newBlock.GetBlockHeight ();
     blockInfo.AddMember("height", value, d.GetAllocator ());
 
