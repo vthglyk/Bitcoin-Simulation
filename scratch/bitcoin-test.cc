@@ -260,8 +260,11 @@ main (int argc, char *argv[])
   ApplicationContainer bitcoinMiners;
   int count = 0;
   if (testScalability == true)
+  {
     bitcoinMinerHelper.SetAttribute("FixedBlockIntervalGeneration", DoubleValue(averageBlockGenIntervalSeconds));
-
+    bitcoinMinerHelper.SetAttribute("FixedBlockSize", UintegerValue(blockSize));
+  }
+  
   for(auto &miner : miners)
   {
 	Ptr<Node> targetNode = bitcoinTopologyHelper.GetNode (miner);
@@ -297,7 +300,6 @@ main (int argc, char *argv[])
 	    bitcoinMinerHelper.SetBlockBroadcastType (UNSOLICITED);
 	  if(relayNetwork)
 	    bitcoinMinerHelper.SetBlockBroadcastType (RELAY_NETWORK);
-	  bitcoinMinerHelper.SetAttribute("FixedBlockSize", UintegerValue(blockSize));
 
 	  bitcoinMiners.Add(bitcoinMinerHelper.Install (targetNode));
 /*       std::cout << "SystemId " << systemId << ": Miner " << miner << " with hash power = " << minersHash[count] 
@@ -309,8 +311,10 @@ main (int argc, char *argv[])
 	}				
 	count++;
 	if (testScalability == true)
+	{
 	  bitcoinMinerHelper.SetAttribute("FixedBlockIntervalGeneration", DoubleValue(3*averageBlockGenIntervalSeconds));
-
+	  bitcoinMinerHelper.SetAttribute("FixedBlockSize", UintegerValue(blockSize));
+	}
   }
   bitcoinMiners.Start (Seconds (start));
   bitcoinMiners.Stop (Minutes (stop));
