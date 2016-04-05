@@ -464,6 +464,9 @@ BitcoinMiner::MineBlock (void)
     }
   }
 
+  if (m_nextBlockSize < m_averageTransactionSize)
+    m_nextBlockSize = m_averageTransactionSize + m_headersSizeBytes;
+
   Block newBlock (height, minerId, parentBlockMinerId, m_nextBlockSize,
                   currentTime, currentTime, Ipv4Address("127.0.0.1"));
 	  
