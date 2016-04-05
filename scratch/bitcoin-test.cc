@@ -52,6 +52,7 @@ main (int argc, char *argv[])
   bool dogecoin = false;
   bool sendheaders = false;
   bool blockTorrent = false;
+  bool spv = false;
   int invTimeoutMins = -1;
   int chunkSize = -1;
   enum Cryptocurrency  cryptocurrency = BITCOIN;
@@ -93,10 +94,10 @@ main (int argc, char *argv[])
                                                 NORTH_AMERICA, ASIA_PACIFIC, NORTH_AMERICA, ASIA_PACIFIC, NORTH_AMERICA, NORTH_AMERICA};
 #else
 	
-  double bitcoinMinersHash[] = {0.4, 0.3, 0.3};
-  enum BitcoinRegion bitcoinMinersRegions[] = {ASIA_PACIFIC, ASIA_PACIFIC, ASIA_PACIFIC};
-/*   double bitcoinMinersHash[] = {1};
-  enum BitcoinRegion bitcoinMinersRegions[] = {ASIA_PACIFIC}; */
+/*   double bitcoinMinersHash[] = {0.4, 0.3, 0.3};
+  enum BitcoinRegion bitcoinMinersRegions[] = {ASIA_PACIFIC, ASIA_PACIFIC, ASIA_PACIFIC}; */
+  double bitcoinMinersHash[] = {1};
+  enum BitcoinRegion bitcoinMinersRegions[] = {ASIA_PACIFIC};
   
   double litecoinMinersHash[] = {0.366, 0.314, 0.122, 0.072, 0.028, 0.024, 0.022, 0.018, 0.012, 0.01, 0.006, 0.006};
   enum BitcoinRegion litecoinMinersRegions[] = {ASIA_PACIFIC, ASIA_PACIFIC, ASIA_PACIFIC, NORTH_AMERICA, EUROPE, NORTH_AMERICA,
@@ -140,6 +141,7 @@ main (int argc, char *argv[])
   cmd.AddValue ("litecoin", "Imitate the litecoin network behaviour", litecoin);
   cmd.AddValue ("dogecoin", "Imitate the litecoin network behaviour", dogecoin);
   cmd.AddValue ("blockTorrent", "Enable the BlockTorrent protocol", blockTorrent);
+  cmd.AddValue ("spv", "Enable the spv mechanism", spv);
 
   cmd.Parse(argc, argv);
   
@@ -290,6 +292,8 @@ main (int argc, char *argv[])
         bitcoinMinerHelper.SetAttribute("BlockTorrent", BooleanValue(true));
         if (chunkSize != -1)
           bitcoinMinerHelper.SetAttribute("ChunkSize", UintegerValue(chunkSize));
+        if (spv)
+          bitcoinMinerHelper.SetAttribute("SPV", BooleanValue(true));
 	  }
       bitcoinMinerHelper.SetPeersAddresses (nodesConnections[miner]);
 	  bitcoinMinerHelper.SetPeersDownloadSpeeds (peersDownloadSpeeds[miner]);
@@ -350,6 +354,8 @@ main (int argc, char *argv[])
           bitcoinNodeHelper.SetAttribute("BlockTorrent", BooleanValue(true));
           if (chunkSize != -1)
             bitcoinNodeHelper.SetAttribute("ChunkSize", UintegerValue(chunkSize));
+          if (spv)
+            bitcoinNodeHelper.SetAttribute("SPV", BooleanValue(true));
 		}
 	    bitcoinNodes.Add(bitcoinNodeHelper.Install (targetNode));
 /*         std::cout << "SystemId " << systemId << ": Node " << node.first << " with systemId = " << targetNode->GetSystemId() 
@@ -377,10 +383,12 @@ main (int argc, char *argv[])
 
 #ifdef MPI_TEST
 
-  int            blocklen[25] = {1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
-                                 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1}; 
-  MPI_Aint       disp[25]; 
-  MPI_Datatype   dtypes[25] = {MPI_INT, MPI_DOUBLE, MPI_DOUBLE, MPI_DOUBLE, MPI_INT, MPI_INT, MPI_INT, MPI_INT, MPI_DOUBLE, MPI_DOUBLE, MPI_DOUBLE, MPI_INT,
+  int            blocklen[35] = {1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+                                 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+                                 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1}; 
+  MPI_Aint       disp[35]; 
+  MPI_Datatype   dtypes[35] = {MPI_INT, MPI_DOUBLE, MPI_DOUBLE, MPI_DOUBLE, MPI_INT, MPI_INT, MPI_INT, MPI_INT, MPI_DOUBLE, MPI_DOUBLE, MPI_DOUBLE, MPI_INT,
+                               MPI_LONG, MPI_LONG, MPI_LONG, MPI_LONG, MPI_LONG, MPI_LONG, MPI_LONG, MPI_LONG, MPI_LONG, MPI_LONG,
                                MPI_LONG, MPI_LONG, MPI_LONG, MPI_LONG, MPI_LONG, MPI_LONG, MPI_LONG, MPI_LONG, MPI_LONG, MPI_LONG, MPI_INT, MPI_INT, MPI_INT}; 
   MPI_Datatype   mpi_nodeStatisticsType;
 
@@ -406,11 +414,21 @@ main (int argc, char *argv[])
   disp[19] = offsetof(nodeStatistics, getDataSentBytes);
   disp[20] = offsetof(nodeStatistics, blockReceivedBytes);
   disp[21] = offsetof(nodeStatistics, blockSentBytes);
-  disp[22] = offsetof(nodeStatistics, longestFork);
-  disp[23] = offsetof(nodeStatistics, blocksInForks);
-  disp[24] = offsetof(nodeStatistics, connections);
+  disp[22] = offsetof(nodeStatistics, extInvReceivedBytes);
+  disp[23] = offsetof(nodeStatistics, extInvSentBytes);
+  disp[24] = offsetof(nodeStatistics, extGetHeadersReceivedBytes);
+  disp[25] = offsetof(nodeStatistics, extGetHeadersSentBytes);
+  disp[26] = offsetof(nodeStatistics, extHeadersReceivedBytes);
+  disp[27] = offsetof(nodeStatistics, extHeadersSentBytes);
+  disp[28] = offsetof(nodeStatistics, extGetDataReceivedBytes);
+  disp[29] = offsetof(nodeStatistics, extGetDataSentBytes);
+  disp[30] = offsetof(nodeStatistics, chunkReceivedBytes);
+  disp[31] = offsetof(nodeStatistics, chunkSentBytes);
+  disp[32] = offsetof(nodeStatistics, longestFork);
+  disp[33] = offsetof(nodeStatistics, blocksInForks);
+  disp[34] = offsetof(nodeStatistics, connections);
 
-  MPI_Type_create_struct (25, blocklen, disp, dtypes, &mpi_nodeStatisticsType);
+  MPI_Type_create_struct (35, blocklen, disp, dtypes, &mpi_nodeStatisticsType);
   MPI_Type_commit (&mpi_nodeStatisticsType);
 
   if (systemId != 0 && systemCount > 1)
@@ -560,7 +578,16 @@ void PrintStatsForEachNode (nodeStatistics *stats, int totalNodes)
     std::cout << "The total sent HEADERS messages were " << stats[it].headersSentBytes << " Bytes\n";
     std::cout << "The total sent GET_DATA messages were " << stats[it].getDataSentBytes << " Bytes\n";
     std::cout << "The total sent BLOCK messages were " << stats[it].blockSentBytes << " Bytes\n";
-
+    std::cout << "The total received EXT_INV messages were " << stats[it].extInvReceivedBytes << " Bytes\n";
+    std::cout << "The total received EXT_GET_HEADERS messages were " << stats[it].extGetHeadersReceivedBytes << " Bytes\n";
+    std::cout << "The total received EXT_HEADERS messages were " << stats[it].extHeadersReceivedBytes << " Bytes\n";
+    std::cout << "The total received EXT_GET_DATA messages were " << stats[it].extGetDataReceivedBytes << " Bytes\n";
+    std::cout << "The total received CHUNK messages were " << stats[it].chunkReceivedBytes << " Bytes\n";
+    std::cout << "The total sent EXT_INV messages were " << stats[it].extInvSentBytes << " Bytes\n";
+    std::cout << "The total sent EXT_GET_HEADERS messages were " << stats[it].extGetHeadersSentBytes << " Bytes\n";
+    std::cout << "The total sent EXT_HEADERS messages were " << stats[it].extHeadersSentBytes << " Bytes\n";
+    std::cout << "The total sent EXT_GET_DATA messages were " << stats[it].extGetDataSentBytes << " Bytes\n";
+    std::cout << "The total sent CHUNK messages were " << stats[it].chunkSentBytes << " Bytes\n";
 
     if ( stats[it].miner == 1)
     {
@@ -594,6 +621,16 @@ void PrintTotalStats (nodeStatistics *stats, int totalNodes, double start, doubl
   double     getDataSentBytes = 0;
   double     blockReceivedBytes = 0;
   double     blockSentBytes = 0;
+  double     extInvReceivedBytes = 0;
+  double     extInvSentBytes = 0;
+  double     extGetHeadersReceivedBytes = 0;
+  double     extGetHeadersSentBytes = 0;
+  double     extHeadersReceivedBytes = 0;
+  double     extHeadersSentBytes = 0;
+  double     extGetDataReceivedBytes = 0;
+  double     extGetDataSentBytes = 0;
+  double     chunkReceivedBytes = 0;
+  double     chunkSentBytes = 0;
   double     longestFork = 0;
   double     blocksInForks = 0;
   double     averageBandwidthPerNode = 0;
@@ -630,15 +667,29 @@ void PrintTotalStats (nodeStatistics *stats, int totalNodes, double start, doubl
     getDataSentBytes = getDataSentBytes*it/static_cast<double>(it + 1) + stats[it].getDataSentBytes/static_cast<double>(it + 1);
     blockReceivedBytes = blockReceivedBytes*it/static_cast<double>(it + 1) + stats[it].blockReceivedBytes/static_cast<double>(it + 1);
     blockSentBytes = blockSentBytes*it/static_cast<double>(it + 1) + stats[it].blockSentBytes/static_cast<double>(it + 1);
+	extInvReceivedBytes = extInvReceivedBytes*it/static_cast<double>(it + 1) + stats[it].extInvReceivedBytes/static_cast<double>(it + 1);
+    extInvSentBytes = extInvSentBytes*it/static_cast<double>(it + 1) + stats[it].extInvSentBytes/static_cast<double>(it + 1);
+    extGetHeadersReceivedBytes = extGetHeadersReceivedBytes*it/static_cast<double>(it + 1) + stats[it].extGetHeadersReceivedBytes/static_cast<double>(it + 1);
+    extGetHeadersSentBytes = extGetHeadersSentBytes*it/static_cast<double>(it + 1) + stats[it].extGetHeadersSentBytes/static_cast<double>(it + 1);
+    extHeadersReceivedBytes = extHeadersReceivedBytes*it/static_cast<double>(it + 1) + stats[it].extHeadersReceivedBytes/static_cast<double>(it + 1);
+    extHeadersSentBytes = extHeadersSentBytes*it/static_cast<double>(it + 1) + stats[it].extHeadersSentBytes/static_cast<double>(it + 1);
+    extGetDataReceivedBytes = extGetDataReceivedBytes*it/static_cast<double>(it + 1) + stats[it].extGetDataReceivedBytes/static_cast<double>(it + 1);
+    extGetDataSentBytes = extGetDataSentBytes*it/static_cast<double>(it + 1) + stats[it].extGetDataSentBytes/static_cast<double>(it + 1);
+    chunkReceivedBytes = chunkReceivedBytes*it/static_cast<double>(it + 1) + stats[it].chunkReceivedBytes/static_cast<double>(it + 1);
+    chunkSentBytes = chunkSentBytes*it/static_cast<double>(it + 1) + stats[it].chunkSentBytes/static_cast<double>(it + 1);
     longestFork = longestFork*it/static_cast<double>(it + 1) + stats[it].longestFork/static_cast<double>(it + 1);
     blocksInForks = blocksInForks*it/static_cast<double>(it + 1) + stats[it].blocksInForks/static_cast<double>(it + 1);
 	
 	propagationTimes.push_back(stats[it].meanBlockPropagationTime);
 
-    download = stats[it].invReceivedBytes + stats[it].getHeadersReceivedBytes + stats[it].headersReceivedBytes +
-             + stats[it].getDataReceivedBytes + stats[it].blockReceivedBytes;
+    download = stats[it].invReceivedBytes + stats[it].getHeadersReceivedBytes + stats[it].headersReceivedBytes
+             + stats[it].getDataReceivedBytes + stats[it].blockReceivedBytes
+             + stats[it].extInvReceivedBytes + stats[it].extGetHeadersReceivedBytes + stats[it].extHeadersReceivedBytes
+             + stats[it].extGetDataReceivedBytes + stats[it].chunkReceivedBytes;
     upload = stats[it].invSentBytes + stats[it].getHeadersSentBytes + stats[it].headersSentBytes
-           + stats[it].getDataSentBytes + stats[it].blockSentBytes;
+           + stats[it].getDataSentBytes + stats[it].blockSentBytes
+           + stats[it].extInvSentBytes + stats[it].extGetHeadersSentBytes + stats[it].extHeadersSentBytes
+           + stats[it].extGetDataSentBytes + stats[it].chunkSentBytes;;
     download = download / (1000 *(stats[it].totalBlocks - 1) * averageBlockGenIntervalMinutes * secPerMin) * 8;
     upload = upload / (1000 *(stats[it].totalBlocks - 1) * averageBlockGenIntervalMinutes * secPerMin) * 8;
     downloadBandwidths.push_back(download);  
@@ -661,7 +712,9 @@ void PrintTotalStats (nodeStatistics *stats, int totalNodes, double start, doubl
   }
   
   averageBandwidthPerNode = invReceivedBytes + invSentBytes + getHeadersReceivedBytes + getHeadersSentBytes + headersReceivedBytes
-                          + headersSentBytes + getDataReceivedBytes + getDataSentBytes + blockReceivedBytes + blockSentBytes;
+                          + headersSentBytes + getDataReceivedBytes + getDataSentBytes + blockReceivedBytes + blockSentBytes 
+                          + extInvReceivedBytes + extInvSentBytes + extGetHeadersReceivedBytes + extGetHeadersSentBytes + extHeadersReceivedBytes
+                          + extHeadersSentBytes + extGetDataReceivedBytes + extGetDataSentBytes + chunkReceivedBytes + chunkSentBytes ;
 				   
   totalBlocks /= totalNodes;
   staleBlocks /= totalNodes;
@@ -669,6 +722,7 @@ void PrintTotalStats (nodeStatistics *stats, int totalNodes, double start, doubl
   sort(minersPropagationTimes.begin(), minersPropagationTimes.end());
 
   double median = *(propagationTimes.begin()+propagationTimes.size()/2);
+  double p_10 = *(propagationTimes.begin()+int(propagationTimes.size()*.1));
   double p_25 = *(propagationTimes.begin()+int(propagationTimes.size()*.25));
   double p_75 = *(propagationTimes.begin()+int(propagationTimes.size()*.75));
   double p_90 = *(propagationTimes.begin()+int(propagationTimes.size()*.90));
@@ -682,6 +736,7 @@ void PrintTotalStats (nodeStatistics *stats, int totalNodes, double start, doubl
 	        << meanBlockReceiveTime - static_cast<int>(meanBlockReceiveTime) / secPerMin * secPerMin << "s\n";
   std::cout << "Mean Block Propagation Time = " << meanBlockPropagationTime << "s\n";
   std::cout << "Median Block Propagation Time = " << median << "s\n";
+  std::cout << "10% percentile of Block Propagation Time = " << p_10 << "s\n";
   std::cout << "25% percentile of Block Propagation Time = " << p_25 << "s\n";
   std::cout << "75% percentile of Block Propagation Time = " << p_75 << "s\n";
   std::cout << "90% percentile of Block Propagation Time = " << p_90 << "s\n";
@@ -713,6 +768,26 @@ void PrintTotalStats (nodeStatistics *stats, int totalNodes, double start, doubl
             << 100. * getDataSentBytes / averageBandwidthPerNode << "%)\n";
   std::cout << "The average sent BLOCK messages were " << blockSentBytes << " Bytes (" 
             << 100. * blockSentBytes / averageBandwidthPerNode << "%)\n";
+  std::cout << "The average received EXT_INV messages were " << extInvReceivedBytes << " Bytes (" 
+            << 100. * extInvReceivedBytes / averageBandwidthPerNode << "%)\n";
+  std::cout << "The average received EXT_GET_HEADERS messages were " << extGetHeadersReceivedBytes << " Bytes (" 
+            << 100. * extGetHeadersReceivedBytes / averageBandwidthPerNode << "%)\n";
+  std::cout << "The average received EXT_HEADERS messages were " << extHeadersReceivedBytes << " Bytes (" 
+            << 100. * extHeadersReceivedBytes / averageBandwidthPerNode << "%)\n";
+  std::cout << "The average received EXT_GET_DATA messages were " << extGetDataReceivedBytes << " Bytes (" 
+            << 100. * extGetDataReceivedBytes / averageBandwidthPerNode << "%)\n";
+  std::cout << "The average received CHUNK messages were " << chunkReceivedBytes << " Bytes (" 
+            << 100. * chunkReceivedBytes / averageBandwidthPerNode << "%)\n";
+  std::cout << "The average sent EXT_INV messages were " << extInvSentBytes << " Bytes (" 
+            << 100. * extInvSentBytes / averageBandwidthPerNode << "%)\n";
+  std::cout << "The average sent EXT_GET_HEADERS messages were " << extGetHeadersSentBytes << " Bytes (" 
+            << 100. * extGetHeadersSentBytes / averageBandwidthPerNode << "%)\n";
+  std::cout << "The average sent EXT_HEADERS messages were " << extHeadersSentBytes << " Bytes (" 
+            << 100. * extHeadersSentBytes / averageBandwidthPerNode << "%)\n";
+  std::cout << "The average sent EXT_GET_DATA messages were " << extGetDataSentBytes << " Bytes (" 
+            << 100. * extGetDataSentBytes / averageBandwidthPerNode << "%)\n";
+  std::cout << "The average sent CHUNK messages were " << chunkSentBytes << " Bytes (" 
+            << 100. * chunkSentBytes / averageBandwidthPerNode << "%)\n";
   std::cout << "Total average traffic due to INV messages = " << invReceivedBytes +  invSentBytes << " Bytes(" 
             << 100. * (invReceivedBytes +  invSentBytes) / averageBandwidthPerNode << "%)\n";	
   std::cout << "Total average traffic due to GET_HEADERS messages = " << getHeadersReceivedBytes +  getHeadersSentBytes << " Bytes(" 
@@ -723,11 +798,41 @@ void PrintTotalStats (nodeStatistics *stats, int totalNodes, double start, doubl
             << 100. * (getDataReceivedBytes +  getDataSentBytes) / averageBandwidthPerNode << "%)\n";
   std::cout << "Total average traffic due to BLOCK messages = " << blockReceivedBytes +  blockSentBytes << " Bytes(" 
             << 100. * (blockReceivedBytes +  blockSentBytes) / averageBandwidthPerNode << "%)\n";
+  std::cout << "Total average traffic due to EXT_INV messages = " << extInvReceivedBytes +  extInvSentBytes << " Bytes(" 
+            << 100. * (extInvReceivedBytes +  extInvSentBytes) / averageBandwidthPerNode << "%)\n";	
+  std::cout << "Total average traffic due to EXT_GET_HEADERS messages = " << extGetHeadersReceivedBytes +  extGetHeadersSentBytes << " Bytes(" 
+            << 100. * (extGetHeadersReceivedBytes +  extGetHeadersSentBytes) / averageBandwidthPerNode << "%)\n";
+  std::cout << "Total average traffic due to EXT_HEADERS messages = " << extHeadersReceivedBytes +  extHeadersSentBytes << " Bytes(" 
+            << 100. * (extHeadersReceivedBytes +  extHeadersSentBytes) / averageBandwidthPerNode << "%)\n";
+  std::cout << "Total average traffic due to EXT_GET_DATA messages = " << extGetDataReceivedBytes +  extGetDataSentBytes << " Bytes(" 
+            << 100. * (extGetDataReceivedBytes +  extGetDataSentBytes) / averageBandwidthPerNode << "%)\n";
+  std::cout << "Total average traffic due to CHUNK messages = " << chunkReceivedBytes +  chunkSentBytes << " Bytes(" 
+            << 100. * (chunkReceivedBytes +  chunkSentBytes) / averageBandwidthPerNode << "%)\n";
   std::cout << "Total average traffic/node = " << averageBandwidthPerNode << " Bytes (" 
             << averageBandwidthPerNode / (1000 *(totalBlocks - 1) * averageBlockGenIntervalMinutes * secPerMin) * 8
             << " Kbps and " << averageBandwidthPerNode / (1000 * (totalBlocks - 1)) << " KB/block)\n";
   std::cout << (finish - start)/ (totalBlocks - 1)<< "s per generated block\n";
   
+
+  std::cout << "\nBlock Propagation Times = [";
+  for(auto it = propagationTimes.begin(); it != propagationTimes.end(); it++)
+  {
+    if (it == propagationTimes.begin())
+      std::cout << *it;
+    else
+      std::cout << ", " << *it ;
+  }
+  std::cout << "]\n" ;
+  
+  std::cout << "\nMiners Block Propagation Times = [";
+  for(auto it = minersPropagationTimes.begin(); it != minersPropagationTimes.end(); it++)
+  {
+    if (it == minersPropagationTimes.begin())
+      std::cout << *it;
+    else
+      std::cout << ", " << *it ;
+  }
+  std::cout << "]\n" ;
   
   std::cout << "\nDownload Bandwidths = [";
   double average = 0;

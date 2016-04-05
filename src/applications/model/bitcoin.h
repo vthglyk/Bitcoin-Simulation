@@ -87,6 +87,16 @@ typedef struct {
   long     getDataSentBytes;
   long     blockReceivedBytes;
   long     blockSentBytes;
+  long     extInvReceivedBytes;
+  long     extInvSentBytes;
+  long     extGetHeadersReceivedBytes;
+  long     extGetHeadersSentBytes;
+  long     extHeadersReceivedBytes;
+  long     extHeadersSentBytes;
+  long     extGetDataReceivedBytes;
+  long     extGetDataSentBytes;
+  long     chunkReceivedBytes;
+  long     chunkSentBytes;
   int      longestFork;
   int      blocksInForks;
   int      connections;

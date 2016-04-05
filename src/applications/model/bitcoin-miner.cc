@@ -53,6 +53,11 @@ BitcoinMiner::GetTypeId (void)
                    BooleanValue (false),
                    MakeBooleanAccessor (&BitcoinMiner::m_blockTorrent),
                    MakeBooleanChecker ())
+    .AddAttribute ("SPV",
+                   "Enable SPV Mechanism",
+                   BooleanValue (false),
+                   MakeBooleanAccessor (&BitcoinMiner::m_spv),
+                   MakeBooleanChecker ())
     .AddAttribute ("NumberOfMiners", 
 				   "The number of miners",
                    UintegerValue (16),
@@ -505,8 +510,6 @@ BitcoinMiner::MineBlock (void)
 	  }
 	  else if (m_protocolType == SENDHEADERS)
 	  {
-        value = HEADERS;
-        inv.AddMember("message", value, inv.GetAllocator());
 
         value = newBlock.GetBlockHeight ();
         blockInfo.AddMember("height", value, inv.GetAllocator ());
@@ -526,6 +529,20 @@ BitcoinMiner::MineBlock (void)
         value = newBlock.GetTimeReceived ();							
         blockInfo.AddMember("timeReceived", value, inv.GetAllocator ());
 
+        if (!m_blockTorrent)
+        {
+          value = HEADERS;
+          inv.AddMember("message", value, inv.GetAllocator()); 
+        }
+        else
+        {
+          value = EXT_HEADERS;
+          inv.AddMember("message", value, inv.GetAllocator());
+		  
+	      value = true;
+          blockInfo.AddMember("fullBlock", value, inv.GetAllocator ());
+		}
+		
         array.PushBack(blockInfo, inv.GetAllocator());
         inv.AddMember("blocks", array, inv.GetAllocator());      
       }	
@@ -609,8 +626,6 @@ BitcoinMiner::MineBlock (void)
       }
 	  else if (m_protocolType == SENDHEADERS)
 	  {
-        value = HEADERS;
-        inv.AddMember("message", value, inv.GetAllocator());
 
         value = newBlock.GetBlockHeight ();
         headersInfo.AddMember("height", value, inv.GetAllocator ());
@@ -629,7 +644,21 @@ BitcoinMiner::MineBlock (void)
 
         value = newBlock.GetTimeReceived ();							
         headersInfo.AddMember("timeReceived", value, inv.GetAllocator ());
-
+		
+        if (!m_blockTorrent)
+        {
+          value = HEADERS;
+          inv.AddMember("message", value, inv.GetAllocator()); 
+        }
+        else
+        {
+          value = EXT_HEADERS;
+          inv.AddMember("message", value, inv.GetAllocator());
+		  
+	      value = true;
+          headersInfo.AddMember("fullBlock", value, inv.GetAllocator ());
+		}
+		
         invArray.PushBack(headersInfo, inv.GetAllocator());
         inv.AddMember("blocks", invArray, inv.GetAllocator());      
       }	
@@ -693,7 +722,7 @@ BitcoinMiner::MineBlock (void)
   block.Accept(blockWriter);
   
   int count = 0;
-		
+
   for (std::vector<Ipv4Address>::const_iterator i = m_peersAddresses.begin(); i != m_peersAddresses.end(); ++i, ++count)
   {
     
@@ -706,11 +735,29 @@ BitcoinMiner::MineBlock (void)
         m_peersSockets[*i]->Send (reinterpret_cast<const uint8_t*>(invInfo.GetString()), invInfo.GetSize(), 0);
 	    m_peersSockets[*i]->Send (delimiter, 1, 0);
 		
-        if (m_protocolType == STANDARD_PROTOCOL)
+        if (m_protocolType == STANDARD_PROTOCOL && !m_blockTorrent)
           m_nodeStats->invSentBytes += m_bitcoinMessageHeader + m_countBytes + inv["inv"].Size()*m_inventorySizeBytes;
-	    else if (m_protocolType == SENDHEADERS)
+	    else if (m_protocolType == SENDHEADERS && !m_blockTorrent)
           m_nodeStats->headersSentBytes += m_bitcoinMessageHeader + m_countBytes + inv["blocks"].Size()*m_headersSizeBytes;
-	  
+        else if (m_protocolType == STANDARD_PROTOCOL && m_blockTorrent)
+        {
+          m_nodeStats->extInvSentBytes += m_bitcoinMessageHeader + m_countBytes + inv["inv"].Size()*m_extInventorySizeBytes;
+          for (int j=0; j<inv["inv"].Size(); j++)
+          {
+            if (!inv["inv"][j]["fullBlock"].GetBool())
+              m_nodeStats->extInvSentBytes += inv["inv"][j]["chunks"].Size()*1;
+          }
+        }
+        else if (m_protocolType == SENDHEADERS && m_blockTorrent)
+        {
+          m_nodeStats->extHeadersSentBytes += m_bitcoinMessageHeader + m_countBytes + inv["blocks"].Size()*m_headersSizeBytes + 1;//fullBlock
+          for (int j=0; j<inv["blocks"].Size(); j++)
+          {
+            if (!inv["inv"][j]["fullBlock"].GetBool())
+              m_nodeStats->extHeadersSentBytes += inv["inv"][j]["availableChunks"].Size()*1;
+          }	
+        }
+		
         NS_LOG_INFO ("At time " << Simulator::Now ().GetSeconds ()
                      << "s bitcoin miner " << GetNode ()->GetId () 
                      << " sent a packet " << invInfo.GetString() 
@@ -785,10 +832,28 @@ BitcoinMiner::MineBlock (void)
           m_peersSockets[*i]->Send (reinterpret_cast<const uint8_t*>(invInfo.GetString()), invInfo.GetSize(), 0);
 	      m_peersSockets[*i]->Send (delimiter, 1, 0);
 	  
-          if (m_protocolType == STANDARD_PROTOCOL)
+          if (m_protocolType == STANDARD_PROTOCOL && !m_blockTorrent)
             m_nodeStats->invSentBytes += m_bitcoinMessageHeader + m_countBytes + inv["inv"].Size()*m_inventorySizeBytes;
-	      else if (m_protocolType == SENDHEADERS)
+	      else if (m_protocolType == SENDHEADERS && !m_blockTorrent)
             m_nodeStats->headersSentBytes += m_bitcoinMessageHeader + m_countBytes + inv["blocks"].Size()*m_headersSizeBytes;
+          else if (m_protocolType == STANDARD_PROTOCOL && m_blockTorrent)
+          {
+            m_nodeStats->extInvSentBytes += m_bitcoinMessageHeader + m_countBytes + inv["inv"].Size()*m_extInventorySizeBytes;
+            for (int j=0; j<inv["inv"].Size(); j++)
+            {
+              if (!inv["inv"][j]["fullBlock"].GetBool())
+                m_nodeStats->extInvSentBytes += inv["inv"][j]["chunks"].Size()*1;
+            }
+          }
+          else if (m_protocolType == SENDHEADERS && m_blockTorrent)
+          {
+            m_nodeStats->extHeadersSentBytes += m_bitcoinMessageHeader + m_countBytes + inv["blocks"].Size()*m_headersSizeBytes + 1;//fullBlock
+            for (int j=0; j<inv["blocks"].Size(); j++)
+            {
+              if (!inv["inv"][j]["fullBlock"].GetBool())
+                m_nodeStats->extHeadersSentBytes += inv["inv"][j]["availableChunks"].Size()*1;
+            }	
+          }
 	  
           NS_LOG_INFO ("At time " << Simulator::Now ().GetSeconds ()
                        << "s bitcoin miner " << GetNode ()->GetId () 
@@ -810,7 +875,7 @@ BitcoinMiner::MineBlock (void)
 	
 
   }
-
+  
   m_minerAverageBlockGenInterval = m_minerGeneratedBlocks/static_cast<double>(m_minerGeneratedBlocks+1)*m_minerAverageBlockGenInterval 
                              + (Simulator::Now ().GetSeconds () - m_previousBlockGenerationTime)/(m_minerGeneratedBlocks+1);
   m_minerAverageBlockSize = m_minerGeneratedBlocks/static_cast<double>(m_minerGeneratedBlocks+1)*m_minerAverageBlockSize 
