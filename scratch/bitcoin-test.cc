@@ -222,8 +222,8 @@ main (int argc, char *argv[])
   uint32_t systemCount = 1;
 #endif
 
-  //LogComponentEnable("BitcoinNode", LOG_LEVEL_INFO);
-  //LogComponentEnable("BitcoinMiner", LOG_LEVEL_WARN);
+  //LogComponentEnable("BitcoinNode", LOG_LEVEL_FUNCTION);
+  //LogComponentEnable("BitcoinMiner", LOG_LEVEL_FUNCTION);
   //LogComponentEnable("Ipv4AddressGenerator", LOG_LEVEL_FUNCTION);
   //LogComponentEnable("OnOffApplication", LOG_LEVEL_DEBUG);
   //LogComponentEnable("OnOffApplication", LOG_LEVEL_WARN);
@@ -482,6 +482,16 @@ main (int argc, char *argv[])
       stats[recv.nodeId].getDataSentBytes = recv.getDataSentBytes;
       stats[recv.nodeId].blockReceivedBytes = recv.blockReceivedBytes;
       stats[recv.nodeId].blockSentBytes = recv.blockSentBytes;
+      stats[recv.nodeId].extInvReceivedBytes = recv.extInvReceivedBytes;
+      stats[recv.nodeId].extInvSentBytes = recv.extInvSentBytes;
+      stats[recv.nodeId].extGetHeadersReceivedBytes = recv.extGetHeadersReceivedBytes;
+      stats[recv.nodeId].extGetHeadersSentBytes = recv.extGetHeadersSentBytes;
+      stats[recv.nodeId].extHeadersReceivedBytes = recv.extHeadersReceivedBytes;
+      stats[recv.nodeId].extHeadersSentBytes = recv.extHeadersSentBytes;
+      stats[recv.nodeId].extGetDataReceivedBytes = recv.extGetDataReceivedBytes;
+      stats[recv.nodeId].extGetDataSentBytes = recv.extGetDataSentBytes;
+      stats[recv.nodeId].chunkReceivedBytes = recv.chunkReceivedBytes;
+      stats[recv.nodeId].chunkSentBytes = recv.chunkSentBytes;
       stats[recv.nodeId].longestFork = recv.longestFork;
       stats[recv.nodeId].blocksInForks = recv.blocksInForks;
       stats[recv.nodeId].connections = recv.connections;

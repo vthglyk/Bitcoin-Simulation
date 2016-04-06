@@ -69,7 +69,7 @@ BitcoinNode::GetTypeId (void)
 
 BitcoinNode::BitcoinNode (void) : m_bitcoinPort (8333), m_secondsPerMin(60), m_isMiner (false), m_countBytes (4), m_bitcoinMessageHeader (90),
                                   m_inventorySizeBytes (36), m_getHeadersSizeBytes (72), m_headersSizeBytes (81), m_blockHeadersSizeBytes (81),
-                                  m_averageTransactionSize (522.4), m_transactionIndexSize (2), m_extInventorySizeBytes (41)
+                                  m_averageTransactionSize (522.4), m_transactionIndexSize (2)
 {
   NS_LOG_FUNCTION (this);
   m_socket = 0;
@@ -454,7 +454,7 @@ BitcoinNode::HandleRead (Ptr<Socket> socket)
 
               std::vector<std::string>::iterator  block_it;
 			  
-              m_nodeStats->extInvReceivedBytes += m_bitcoinMessageHeader + m_countBytes + d["inv"].Size()*m_extInventorySizeBytes;
+              m_nodeStats->extInvReceivedBytes += m_bitcoinMessageHeader + m_countBytes + d["inv"].Size()*m_inventorySizeBytes;
 			  
               for (j=0; j<d["inv"].Size(); j++)
               {  
@@ -467,8 +467,9 @@ BitcoinNode::HandleRead (Ptr<Socket> socket)
                 int height = atoi(blockHash.substr(0, invPos).c_str());
                 int minerId = atoi(blockHash.substr(invPos+1, blockHash.size()).c_str());
 
+                m_nodeStats->extInvReceivedBytes += 5;
                 if (!d["inv"][j]["fullBlock"].GetBool())
-                  m_nodeStats->extInvReceivedBytes += d["inv"][j]["chunks"].Size();
+                  m_nodeStats->extInvReceivedBytes += d["inv"][j]["availableChunks"].Size();
 			  
                 if (m_blockchain.HasBlock(height, minerId) || m_blockchain.IsOrphan(height, minerId) || ReceivedButNotValidated(blockHash))
                 {
@@ -514,11 +515,11 @@ BitcoinNode::HandleRead (Ptr<Socket> socket)
                     }
                     else
                     {
-                      for (int k = 0; k < d["inv"][j]["chunks"].Size(); k++)
+                      for (int k = 0; k < d["inv"][j]["availableChunks"].Size(); k++)
                       {
                         //FIX ME: if (!fullBlock)
-                        if (std::find(m_queueChunks[blockHash].begin(), m_queueChunks[blockHash].end(), d["inv"][j]["chunks"][k].GetInt()) != m_queueChunks[blockHash].end())
-                          candidateChunks.push_back(d["inv"][j]["chunks"][k].GetInt());
+                        if (std::find(m_queueChunks[blockHash].begin(), m_queueChunks[blockHash].end(), d["inv"][j]["availableChunks"][k].GetInt()) != m_queueChunks[blockHash].end())
+                          candidateChunks.push_back(d["inv"][j]["availableChunks"][k].GetInt());
                       }
                     }
 					
@@ -833,7 +834,7 @@ BitcoinNode::HandleRead (Ptr<Socket> socket)
                         value = chunk;
                         chunkArray.PushBack(value, d.GetAllocator());
                       }
-                      chunkInfo.AddMember("chunks", chunkArray, d.GetAllocator ());
+                      chunkInfo.AddMember("availableChunks", chunkArray, d.GetAllocator ());
                     }
 				  }
 				  
@@ -961,7 +962,7 @@ BitcoinNode::HandleRead (Ptr<Socket> socket)
               std::map<std::string, int>            requestedChunks;
               std::vector<std::string>::iterator    chunk_it;
               
-              m_nodeStats->extGetDataReceivedBytes += m_bitcoinMessageHeader + m_countBytes + d["chunks"].Size()*m_extInventorySizeBytes + 1;//the requested chunk + the fullBlock
+              m_nodeStats->extGetDataReceivedBytes += m_bitcoinMessageHeader + m_countBytes + d["chunks"].Size()*m_inventorySizeBytes;
 
               for (j=0; j<d["chunks"].Size(); j++)
               {  
@@ -984,7 +985,8 @@ BitcoinNode::HandleRead (Ptr<Socket> socket)
                 int chunkId = atoi(chunkHashHelp.substr(0).c_str());
                 help << height << "/" << minerId;
                 blockHash = help.str();
-
+				
+                m_nodeStats->extGetDataReceivedBytes += 6; //1Byte(fullBlock) + 4Bytes(numberOfChunks) + 1Byte(requested chunk)
                 if (!d["chunks"][j]["fullBlock"].GetBool())
                   m_nodeStats->extGetDataReceivedBytes += d["chunks"][j]["availableChunks"].Size();
 				
@@ -1384,7 +1386,7 @@ BitcoinNode::HandleRead (Ptr<Socket> socket)
               std::vector<std::string>::iterator    block_it;
               int j;
 
-              m_nodeStats->extHeadersReceivedBytes += m_bitcoinMessageHeader + m_countBytes + d["blocks"].Size()*m_headersSizeBytes + 1;//fullBlock
+              m_nodeStats->extHeadersReceivedBytes += m_bitcoinMessageHeader + m_countBytes + d["blocks"].Size()*m_headersSizeBytes;
 
               
               for (j=0; j<d["blocks"].Size(); j++)
@@ -1401,6 +1403,7 @@ BitcoinNode::HandleRead (Ptr<Socket> socket)
                 std::string          blockHash;
                 std::string          parentBlockHash ;
 
+                m_nodeStats->extHeadersReceivedBytes += 1;//fullBlock
                 if (!d["blocks"][j]["fullBlock"].GetBool())
                   m_nodeStats->extHeadersReceivedBytes += d["blocks"][j]["availableChunks"].Size();
 			  
@@ -2604,20 +2607,22 @@ BitcoinNode::AdvertiseFullBlock (const Block &newBlock)
 	  
     if (m_protocolType == STANDARD_PROTOCOL)
     {
-      m_nodeStats->extInvSentBytes += m_bitcoinMessageHeader + m_countBytes + d["inv"].Size()*m_extInventorySizeBytes;
+      m_nodeStats->extInvSentBytes += m_bitcoinMessageHeader + m_countBytes + d["inv"].Size()*m_inventorySizeBytes;
       for (int j=0; j<d["inv"].Size(); j++)
       {
+        m_nodeStats->extInvSentBytes += 5; //1Byte(fullBlock) + 4Bytes(numberOfChunks)
         if (!d["inv"][j]["fullBlock"].GetBool())
-          m_nodeStats->extInvSentBytes += d["inv"][j]["chunks"].Size();
+          m_nodeStats->extInvSentBytes += d["inv"][j]["availableChunks"].Size();
       }
     }
 	else if (m_protocolType == SENDHEADERS)
 	{
-      m_nodeStats->extHeadersSentBytes += m_bitcoinMessageHeader + m_countBytes + d["blocks"].Size()*m_headersSizeBytes + 1;//fullBlock
+      m_nodeStats->extHeadersSentBytes += m_bitcoinMessageHeader + m_countBytes + d["blocks"].Size()*m_headersSizeBytes;
       for (int j=0; j<d["blocks"].Size(); j++)
       {
-        if (!d["inv"][j]["fullBlock"].GetBool())
-          m_nodeStats->extHeadersSentBytes += d["inv"][j]["availableChunks"].Size()*1;
+        m_nodeStats->extHeadersSentBytes += 1;//fullBlock
+        if (!d["blocks"][j]["fullBlock"].GetBool())
+          m_nodeStats->extHeadersSentBytes += d["blocks"][j]["availableChunks"].Size()*1;
       }	
     }
 	
@@ -2676,7 +2681,7 @@ BitcoinNode::AdvertiseFirstChunk (const Block &newBlock)
         value = chunk;
         chunkArray.PushBack(value, d.GetAllocator());
       }
-      blockInfo.AddMember("chunks", chunkArray, d.GetAllocator ());
+      blockInfo.AddMember("availableChunks", chunkArray, d.GetAllocator ());
     }
 		  
     array.PushBack(blockInfo, d.GetAllocator());
@@ -2756,20 +2761,22 @@ BitcoinNode::AdvertiseFirstChunk (const Block &newBlock)
 	  
     if (m_protocolType == STANDARD_PROTOCOL)
     {
-      m_nodeStats->extInvSentBytes += m_bitcoinMessageHeader + m_countBytes + d["inv"].Size()*m_extInventorySizeBytes;
+      m_nodeStats->extInvSentBytes += m_bitcoinMessageHeader + m_countBytes + d["inv"].Size()*m_inventorySizeBytes;
       for (int j=0; j<d["inv"].Size(); j++)
       {
+        m_nodeStats->extInvSentBytes += 5; //1Byte(fullBlock) + 4Bytes(numberOfChunks)
         if (!d["inv"][j]["fullBlock"].GetBool())
-          m_nodeStats->extInvSentBytes += d["inv"][j]["chunks"].Size();
+          m_nodeStats->extInvSentBytes += d["inv"][j]["availableChunks"].Size();
       }
     }
 	else if (m_protocolType == SENDHEADERS)
 	{
-      m_nodeStats->extHeadersSentBytes += m_bitcoinMessageHeader + m_countBytes + d["blocks"].Size()*m_headersSizeBytes + 1;//fullBlock
+      m_nodeStats->extHeadersSentBytes += m_bitcoinMessageHeader + m_countBytes + d["blocks"].Size()*m_headersSizeBytes;
       for (int j=0; j<d["blocks"].Size(); j++)
       {
-        if (!d["inv"][j]["fullBlock"].GetBool())
-          m_nodeStats->extHeadersSentBytes += d["inv"][j]["availableChunks"].Size()*1;
+        m_nodeStats->extHeadersSentBytes += 1;//fullBlock
+        if (!d["blocks"][j]["fullBlock"].GetBool())
+          m_nodeStats->extHeadersSentBytes += d["blocks"][j]["availableChunks"].Size()*1;
       }	
     } 
 	
@@ -2809,11 +2816,12 @@ BitcoinNode::SendMessage(enum Messages receivedMessage,  enum Messages responseM
     }
     case EXT_INV:
     {
-      m_nodeStats->extInvSentBytes += m_bitcoinMessageHeader + m_countBytes + d["inv"].Size()*m_extInventorySizeBytes;
+      m_nodeStats->extInvSentBytes += m_bitcoinMessageHeader + m_countBytes + d["inv"].Size()*m_inventorySizeBytes;
       for (int j=0; j<d["inv"].Size(); j++)
       {
+        m_nodeStats->extInvSentBytes += 5; //1Byte(fullBlock) + 4Bytes(numberOfChunks)
         if (!d["inv"][j]["fullBlock"].GetBool())
-          m_nodeStats->extInvSentBytes += d["inv"][j]["chunks"].Size();
+          m_nodeStats->extInvSentBytes += d["inv"][j]["availableChunks"].Size();
       }
       break;
     }
@@ -2834,9 +2842,10 @@ BitcoinNode::SendMessage(enum Messages receivedMessage,  enum Messages responseM
     }
     case EXT_HEADERS:
     {
-      m_nodeStats->extHeadersSentBytes += m_bitcoinMessageHeader + m_countBytes + d["blocks"].Size()*m_headersSizeBytes + 1;//fullBlock
+      m_nodeStats->extHeadersSentBytes += m_bitcoinMessageHeader + m_countBytes + d["blocks"].Size()*m_headersSizeBytes;
       for (int j=0; j<d["blocks"].Size(); j++)
       {
+        m_nodeStats->extHeadersSentBytes += 1;//fullBlock
         if (!d["blocks"][j]["fullBlock"].GetBool())
           m_nodeStats->extHeadersSentBytes += d["blocks"][j]["availableChunks"].Size()*1;
       }
@@ -2875,9 +2884,10 @@ BitcoinNode::SendMessage(enum Messages receivedMessage,  enum Messages responseM
     }
     case EXT_GET_DATA:
     {
-      m_nodeStats->extGetDataSentBytes += m_bitcoinMessageHeader + m_countBytes + d["chunks"].Size()*m_extInventorySizeBytes + 1;//the requested chunk
+      m_nodeStats->extGetDataSentBytes += m_bitcoinMessageHeader + m_countBytes + d["chunks"].Size()*m_inventorySizeBytes;
       for (int j=0; j<d["chunks"].Size(); j++)
       {
+        m_nodeStats->extGetDataSentBytes += 6; //1Byte(fullBlock) + 4Bytes(numberOfChunks) + 1Byte(requested chunk)
         if (!d["chunks"][j]["fullBlock"].GetBool())
           m_nodeStats->extGetDataSentBytes += d["chunks"][j]["availableChunks"].Size();
       }
@@ -2924,11 +2934,12 @@ BitcoinNode::SendMessage(enum Messages receivedMessage,  enum Messages responseM
     }
     case EXT_INV:
     {
-      m_nodeStats->extInvSentBytes += m_bitcoinMessageHeader + m_countBytes + d["inv"].Size()*m_extInventorySizeBytes;
+      m_nodeStats->extInvSentBytes += m_bitcoinMessageHeader + m_countBytes + d["inv"].Size()*m_inventorySizeBytes;
       for (int j=0; j<d["inv"].Size(); j++)
       {
+        m_nodeStats->extInvSentBytes += 5; //1Byte(fullBlock) + 4Bytes(numberOfChunks)
         if (!d["inv"][j]["fullBlock"].GetBool())
-          m_nodeStats->extInvSentBytes += d["inv"][j]["chunks"].Size();
+          m_nodeStats->extInvSentBytes += d["inv"][j]["availableChunks"].Size();
       }
       break;
     }
@@ -2949,9 +2960,10 @@ BitcoinNode::SendMessage(enum Messages receivedMessage,  enum Messages responseM
     }
     case EXT_HEADERS:
     {
-      m_nodeStats->extHeadersSentBytes += m_bitcoinMessageHeader + m_countBytes + d["blocks"].Size()*m_headersSizeBytes + 1;//fullBlock
+      m_nodeStats->extHeadersSentBytes += m_bitcoinMessageHeader + m_countBytes + d["blocks"].Size()*m_headersSizeBytes;
       for (int j=0; j<d["blocks"].Size(); j++)
       {
+        m_nodeStats->extHeadersSentBytes += 1;//fullBlock
         if (!d["blocks"][j]["fullBlock"].GetBool())
           m_nodeStats->extHeadersSentBytes += d["blocks"][j]["availableChunks"].Size()*1;
       }
@@ -2990,9 +3002,10 @@ BitcoinNode::SendMessage(enum Messages receivedMessage,  enum Messages responseM
     }
     case EXT_GET_DATA:
     {
-      m_nodeStats->extGetDataSentBytes += m_bitcoinMessageHeader + m_countBytes + d["chunks"].Size()*m_extInventorySizeBytes + 1;//the requested chunk
+      m_nodeStats->extGetDataSentBytes += m_bitcoinMessageHeader + m_countBytes + d["chunks"].Size()*m_inventorySizeBytes;
       for (int j=0; j<d["chunks"].Size(); j++)
       {
+        m_nodeStats->extGetDataSentBytes += 6; //1Byte(fullBlock) + 4Bytes(numberOfChunks) + 1Byte(requested chunk)
         if (!d["chunks"][j]["fullBlock"].GetBool())
           m_nodeStats->extGetDataSentBytes += d["chunks"][j]["availableChunks"].Size();
       }
@@ -3043,11 +3056,12 @@ BitcoinNode::SendMessage(enum Messages receivedMessage,  enum Messages responseM
     }
     case EXT_INV:
     {
-      m_nodeStats->extInvSentBytes += m_bitcoinMessageHeader + m_countBytes + d["inv"].Size()*m_extInventorySizeBytes;
+      m_nodeStats->extInvSentBytes += m_bitcoinMessageHeader + m_countBytes + d["inv"].Size()*m_inventorySizeBytes;
       for (int j=0; j<d["inv"].Size(); j++)
       {
+        m_nodeStats->extInvSentBytes += 5; //1Byte(fullBlock) + 4Bytes(numberOfChunks)
         if (!d["inv"][j]["fullBlock"].GetBool())
-          m_nodeStats->extInvSentBytes += d["inv"][j]["chunks"].Size();
+          m_nodeStats->extInvSentBytes += d["inv"][j]["availableChunks"].Size();
       }
       break;
     }
@@ -3068,9 +3082,10 @@ BitcoinNode::SendMessage(enum Messages receivedMessage,  enum Messages responseM
     }
     case EXT_HEADERS:
     {
-      m_nodeStats->extHeadersSentBytes += m_bitcoinMessageHeader + m_countBytes + d["blocks"].Size()*m_headersSizeBytes + 1;//fullBlock
+      m_nodeStats->extHeadersSentBytes += m_bitcoinMessageHeader + m_countBytes + d["blocks"].Size()*m_headersSizeBytes;
       for (int j=0; j<d["blocks"].Size(); j++)
       {
+        m_nodeStats->extHeadersSentBytes += 1;//fullBlock
         if (!d["blocks"][j]["fullBlock"].GetBool())
           m_nodeStats->extHeadersSentBytes += d["blocks"][j]["availableChunks"].Size()*1;
       }
@@ -3109,9 +3124,10 @@ BitcoinNode::SendMessage(enum Messages receivedMessage,  enum Messages responseM
     }
     case EXT_GET_DATA:
     {
-      m_nodeStats->extGetDataSentBytes += m_bitcoinMessageHeader + m_countBytes + d["chunks"].Size()*m_extInventorySizeBytes + 1;//the requested chunk
+      m_nodeStats->extGetDataSentBytes += m_bitcoinMessageHeader + m_countBytes + d["chunks"].Size()*m_inventorySizeBytes;
       for (int j=0; j<d["chunks"].Size(); j++)
       {
+        m_nodeStats->extGetDataSentBytes += 6; //1Byte(fullBlock) + 4Bytes(numberOfChunks) + 1Byte(requested chunk)
         if (!d["chunks"][j]["fullBlock"].GetBool())
           m_nodeStats->extGetDataSentBytes += d["chunks"][j]["availableChunks"].Size();
       }

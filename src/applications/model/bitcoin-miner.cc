@@ -744,20 +744,22 @@ BitcoinMiner::MineBlock (void)
           m_nodeStats->headersSentBytes += m_bitcoinMessageHeader + m_countBytes + inv["blocks"].Size()*m_headersSizeBytes;
         else if (m_protocolType == STANDARD_PROTOCOL && m_blockTorrent)
         {
-          m_nodeStats->extInvSentBytes += m_bitcoinMessageHeader + m_countBytes + inv["inv"].Size()*m_extInventorySizeBytes;
+          m_nodeStats->extInvSentBytes += m_bitcoinMessageHeader + m_countBytes + inv["inv"].Size()*m_inventorySizeBytes;
           for (int j=0; j<inv["inv"].Size(); j++)
           {
+            m_nodeStats->extInvSentBytes += 5; //1Byte(fullBlock) + 4Bytes(numberOfChunks)
             if (!inv["inv"][j]["fullBlock"].GetBool())
-              m_nodeStats->extInvSentBytes += inv["inv"][j]["chunks"].Size()*1;
+              m_nodeStats->extInvSentBytes += inv["inv"][j]["availableChunks"].Size()*1;
           }
         }
         else if (m_protocolType == SENDHEADERS && m_blockTorrent)
         {
-          m_nodeStats->extHeadersSentBytes += m_bitcoinMessageHeader + m_countBytes + inv["blocks"].Size()*m_headersSizeBytes + 1;//fullBlock
+          m_nodeStats->extHeadersSentBytes += m_bitcoinMessageHeader + m_countBytes + inv["blocks"].Size()*m_headersSizeBytes;
           for (int j=0; j<inv["blocks"].Size(); j++)
           {
-            if (!inv["inv"][j]["fullBlock"].GetBool())
-              m_nodeStats->extHeadersSentBytes += inv["inv"][j]["availableChunks"].Size()*1;
+            m_nodeStats->extHeadersSentBytes += 1;//fullBlock
+            if (!inv["blocks"][j]["fullBlock"].GetBool())
+              m_nodeStats->extHeadersSentBytes += inv["inv"][j]["availableChunks"].Size();
           }	
         }
 		
@@ -841,20 +843,22 @@ BitcoinMiner::MineBlock (void)
             m_nodeStats->headersSentBytes += m_bitcoinMessageHeader + m_countBytes + inv["blocks"].Size()*m_headersSizeBytes;
           else if (m_protocolType == STANDARD_PROTOCOL && m_blockTorrent)
           {
-            m_nodeStats->extInvSentBytes += m_bitcoinMessageHeader + m_countBytes + inv["inv"].Size()*m_extInventorySizeBytes;
+            m_nodeStats->extInvSentBytes += m_bitcoinMessageHeader + m_countBytes + inv["inv"].Size()*m_inventorySizeBytes;
             for (int j=0; j<inv["inv"].Size(); j++)
             {
+              m_nodeStats->extInvSentBytes += 5; //1Byte(fullBlock) + 4Bytes(numberOfChunks)
               if (!inv["inv"][j]["fullBlock"].GetBool())
-                m_nodeStats->extInvSentBytes += inv["inv"][j]["chunks"].Size()*1;
+                m_nodeStats->extInvSentBytes += inv["inv"][j]["availableChunks"].Size()*1;
             }
           }
           else if (m_protocolType == SENDHEADERS && m_blockTorrent)
           {
-            m_nodeStats->extHeadersSentBytes += m_bitcoinMessageHeader + m_countBytes + inv["blocks"].Size()*m_headersSizeBytes + 1;//fullBlock
+            m_nodeStats->extHeadersSentBytes += m_bitcoinMessageHeader + m_countBytes + inv["blocks"].Size()*m_headersSizeBytes;
             for (int j=0; j<inv["blocks"].Size(); j++)
             {
-              if (!inv["inv"][j]["fullBlock"].GetBool())
-                m_nodeStats->extHeadersSentBytes += inv["inv"][j]["availableChunks"].Size()*1;
+            m_nodeStats->extHeadersSentBytes += 1;//fullBlock
+            if (!inv["blocks"][j]["fullBlock"].GetBool())
+                m_nodeStats->extHeadersSentBytes += inv["blocks"][j]["availableChunks"].Size()*1;
             }	
           }
 	  

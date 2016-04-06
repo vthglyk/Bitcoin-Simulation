@@ -183,7 +183,6 @@ protected:
   const int       m_countBytes;    //!< The size of count variable in messages, 4 Bytes
   const int       m_bitcoinMessageHeader; //!< The size of the bitcoin Message Header, 90 Bytes, including both the bitcoinMessageHeaders and the other protocol headers (TCP, IP, Ethernet)
   const int       m_inventorySizeBytes; //!< The size of inventories in INV messages, 36 Bytes
-  const int       m_extInventorySizeBytes; //!< The size of inventories in EXT_INV messages, 36 Bytes + 1Byte(fullBlock) + 4Bytes(noChunks)
   const int       m_getHeadersSizeBytes; //!< The size of the GET_HEADERS message, 72 Bytes
   const int       m_headersSizeBytes; //!< 81 Bytes
   const int       m_blockHeadersSizeBytes; //!< 81 Bytes
