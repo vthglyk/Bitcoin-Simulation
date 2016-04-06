@@ -53,6 +53,7 @@ main (int argc, char *argv[])
   bool sendheaders = false;
   bool blockTorrent = false;
   bool spv = false;
+  long blockSize = -1;
   int invTimeoutMins = -1;
   int chunkSize = -1;
   enum Cryptocurrency  cryptocurrency = BITCOIN;
@@ -110,8 +111,6 @@ main (int argc, char *argv[])
 
   double averageBlockGenIntervalMinutes = averageBlockGenIntervalSeconds/secsPerMin;
   double stop;
-  long blockSize = 450000*averageBlockGenIntervalMinutes/realAverageBlockGenIntervalMinutes;
-
 
   Ipv4InterfaceContainer                               ipv4InterfaceContainer;
   std::map<uint32_t, std::vector<Ipv4Address>>         nodesConnections;
@@ -200,7 +199,6 @@ main (int argc, char *argv[])
   stop = targetNumberOfBlocks * averageBlockGenIntervalMinutes; //seconds
   nodeStatistics *stats = new nodeStatistics[totalNoNodes];
   averageBlockGenIntervalMinutes = averageBlockGenIntervalSeconds/secsPerMin;
-  blockSize = blockSize*averageBlockGenIntervalMinutes/realAverageBlockGenIntervalMinutes;
 
   #ifdef MPI_TEST
   // Distributed simulation setup; by default use granted time window algorithm.
@@ -264,7 +262,6 @@ main (int argc, char *argv[])
   if (testScalability == true)
   {
     bitcoinMinerHelper.SetAttribute("FixedBlockIntervalGeneration", DoubleValue(averageBlockGenIntervalSeconds));
-    bitcoinMinerHelper.SetAttribute("FixedBlockSize", UintegerValue(blockSize));
   }
   
   for(auto &miner : miners)
@@ -284,6 +281,9 @@ main (int argc, char *argv[])
         bitcoinMinerHelper.SetAttribute("Cryptocurrency", UintegerValue (LITECOIN));	  
       else if (dogecoin)	  
         bitcoinMinerHelper.SetAttribute("Cryptocurrency", UintegerValue (DOGECOIN));
+	
+      if (blockSize != -1)	  
+        bitcoinMinerHelper.SetAttribute("FixedBlockSize", UintegerValue(blockSize));
 
       if (sendheaders)	  
         bitcoinMinerHelper.SetProtocolType(SENDHEADERS);	  
@@ -317,7 +317,6 @@ main (int argc, char *argv[])
 	if (testScalability == true)
 	{
 	  bitcoinMinerHelper.SetAttribute("FixedBlockIntervalGeneration", DoubleValue(3*averageBlockGenIntervalSeconds));
-	  bitcoinMinerHelper.SetAttribute("FixedBlockSize", UintegerValue(blockSize));
 	}
   }
   bitcoinMiners.Start (Seconds (start));
