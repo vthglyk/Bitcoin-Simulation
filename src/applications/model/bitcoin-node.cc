@@ -1708,7 +1708,7 @@ BitcoinNode::HandleRead (Ptr<Socket> socket)
               for (int j=0; j<d["chunks"].Size(); j++)
               {  
                 int noChunks = ceil(d["chunks"][j]["size"].GetInt() / static_cast<double>(m_chunkSize));
-                if (d["chunks"][j]["chunk"] == noChunks -1)
+                if (d["chunks"][j]["chunk"] == noChunks -1 && d["chunks"][j]["size"].GetInt() % m_chunkSize > 0)
                   chunkMessageSize += d["chunks"][j]["size"].GetInt() % m_chunkSize;
                 else
                   chunkMessageSize += m_chunkSize;
@@ -1741,7 +1741,6 @@ BitcoinNode::HandleRead (Ptr<Socket> socket)
               m_receiveBlockTimes.push_back(Simulator::Now ().GetSeconds() + receiveTime);
 			  
               NS_LOG_INFO("CHUNK:  Node " << GetNode()->GetId() << " will receive the full chunk message at " << Simulator::Now ().GetSeconds() + receiveTime);
-						  
               Simulator::Schedule (Seconds(receiveTime), &BitcoinNode::ReceivedChunkMessage, this, help, from);
 
               break;
@@ -2863,7 +2862,7 @@ BitcoinNode::SendMessage(enum Messages receivedMessage,  enum Messages responseM
 	  for(int k = 0; k < d["chunks"].Size(); k++)
 	  {
         int noChunks = ceil(d["chunks"][k]["size"].GetInt() / static_cast<double>(m_chunkSize));
-        if (d["chunks"][k]["chunk"] == noChunks -1)
+        if (d["chunks"][k]["chunk"] == noChunks -1 && d["chunks"][k]["size"].GetInt() % m_chunkSize > 0)
           m_nodeStats->chunkSentBytes += d["chunks"][k]["size"].GetInt() % m_chunkSize;
         else
           m_nodeStats->chunkSentBytes += m_chunkSize;
@@ -2872,7 +2871,7 @@ BitcoinNode::SendMessage(enum Messages receivedMessage,  enum Messages responseM
         if (!d["chunks"][k]["fullBlock"].GetBool())
           m_nodeStats->chunkSentBytes += d["chunks"][k]["availableChunks"].Size();
         if (d["chunks"][k]["requestChunks"].Size() > 0)
-          m_nodeStats->chunkReceivedBytes += d["chunks"][k]["requestChunks"].Size() - 1;	  
+          m_nodeStats->chunkSentBytes += d["chunks"][k]["requestChunks"].Size() - 1;	  
       }
       m_nodeStats->chunkSentBytes += m_bitcoinMessageHeader;
       break;
@@ -2981,7 +2980,7 @@ BitcoinNode::SendMessage(enum Messages receivedMessage,  enum Messages responseM
 	  for(int k = 0; k < d["chunks"].Size(); k++)
 	  {
         int noChunks = ceil(d["chunks"][k]["size"].GetInt() / static_cast<double>(m_chunkSize));
-        if (d["chunks"][k]["chunk"] == noChunks -1)
+        if (d["chunks"][k]["chunk"] == noChunks -1 && d["chunks"][k]["size"].GetInt() % m_chunkSize > 0)
           m_nodeStats->chunkSentBytes += d["chunks"][k]["size"].GetInt() % m_chunkSize;
         else
           m_nodeStats->chunkSentBytes += m_chunkSize;
@@ -2990,7 +2989,7 @@ BitcoinNode::SendMessage(enum Messages receivedMessage,  enum Messages responseM
         if (!d["chunks"][k]["fullBlock"].GetBool())
           m_nodeStats->chunkSentBytes += d["chunks"][k]["availableChunks"].Size();
         if (d["chunks"][k]["requestChunks"].Size() > 0)
-          m_nodeStats->chunkReceivedBytes += d["chunks"][k]["requestChunks"].Size() - 1;
+          m_nodeStats->chunkSentBytes += d["chunks"][k]["requestChunks"].Size() - 1;
 	  }
       m_nodeStats->chunkSentBytes += m_bitcoinMessageHeader;
       break;
@@ -3103,7 +3102,7 @@ BitcoinNode::SendMessage(enum Messages receivedMessage,  enum Messages responseM
 	  for(int k = 0; k < d["chunks"].Size(); k++)
 	  {
         int noChunks = ceil(d["chunks"][k]["size"].GetInt() / static_cast<double>(m_chunkSize));
-        if (d["chunks"][k]["chunk"] == noChunks -1)
+        if (d["chunks"][k]["chunk"] == noChunks -1 && d["chunks"][k]["size"].GetInt() % m_chunkSize > 0)
           m_nodeStats->chunkSentBytes += d["chunks"][k]["size"].GetInt() % m_chunkSize;
         else
           m_nodeStats->chunkSentBytes += m_chunkSize;
@@ -3112,7 +3111,7 @@ BitcoinNode::SendMessage(enum Messages receivedMessage,  enum Messages responseM
         if (!d["chunks"][k]["fullBlock"].GetBool())
           m_nodeStats->chunkSentBytes += d["chunks"][k]["availableChunks"].Size();
         if (d["chunks"][k]["requestChunks"].Size() > 0)
-          m_nodeStats->chunkReceivedBytes += d["chunks"][k]["requestChunks"].Size() - 1;
+          m_nodeStats->chunkSentBytes += d["chunks"][k]["requestChunks"].Size() - 1;
 	  }
       m_nodeStats->chunkSentBytes += m_bitcoinMessageHeader;
       break;
