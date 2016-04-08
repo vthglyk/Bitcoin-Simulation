@@ -308,10 +308,13 @@ Blockchain::ReturnBlock(int height, int minerId)
 {
   std::vector<Block>::iterator  block_it;
 
-  for (block_it = m_blocks[height].begin();  block_it < m_blocks[height].end(); block_it++)
+  if (height <= GetBlockchainHeight())
   {
-    if (block_it->GetBlockHeight() == height && block_it->GetMinerId() == minerId)
-	  return *block_it;
+    for (block_it = m_blocks[height].begin();  block_it < m_blocks[height].end(); block_it++)
+    {
+      if (block_it->GetBlockHeight() == height && block_it->GetMinerId() == minerId)
+	    return *block_it;
+    }
   }
   
   for (block_it = m_orphans.begin();  block_it < m_orphans.end(); block_it++)
