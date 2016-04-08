@@ -1156,8 +1156,9 @@ BitcoinNode::HandleRead (Ptr<Socket> socket)
                   chunkInfo.AddMember("parentBlockMinerId", value, d.GetAllocator ());
   
                   value = newBlock.GetBlockSizeBytes ();
-                  if (chunkId == ceil(newBlock.GetBlockSizeBytes () / static_cast<double>(m_chunkSize) - 1))
-                    totalChunkMessageSize += newBlock.GetBlockSizeBytes () % (m_chunkSize);
+                  if (chunkId == ceil(newBlock.GetBlockSizeBytes () / static_cast<double>(m_chunkSize) - 1) && 
+                      newBlock.GetBlockSizeBytes () % m_chunkSize > 0)
+                    totalChunkMessageSize += newBlock.GetBlockSizeBytes () % m_chunkSize;
                   else
                     totalChunkMessageSize += m_chunkSize;
 
@@ -2173,8 +2174,9 @@ BitcoinNode::ReceivedChunkMessage(std::string &chunkInfo, Address &from)
 			
     for (int j = 0; j < d["chunks"].Size(); j++)
     {
-      if (d["chunks"][j]["chunk"].GetInt() == ceil(d["chunks"][j]["size"].GetInt() / static_cast<double>(m_chunkSize) - 1))
-        totalChunkMessageSize += d["chunks"][j]["size"].GetInt() % (m_chunkSize);
+      if (d["chunks"][j]["chunk"].GetInt() == ceil(d["chunks"][j]["size"].GetInt() / static_cast<double>(m_chunkSize) - 1) && 
+          d["chunks"][j]["size"].GetInt() % m_chunkSize > 0)
+        totalChunkMessageSize += d["chunks"][j]["size"].GetInt() % m_chunkSize;
       else
         totalChunkMessageSize += m_chunkSize;
     }
