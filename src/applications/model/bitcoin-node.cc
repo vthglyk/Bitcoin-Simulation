@@ -1005,6 +1005,21 @@ BitcoinNode::HandleRead (Ptr<Socket> socket)
                   if (HasChunk(blockHash, chunkId))
                     requestedChunks[chunkHash] = -1;
                   blockSize = m_onlyHeadersReceived[blockHash].GetBlockSizeBytes();
+				  
+                  if (d["chunks"][j]["fullBlock"].GetBool())
+                  {
+                    for (auto &chunk : m_queueChunks[blockHash])
+                      candidateChunks.push_back(chunk);
+                  }
+                  else
+                  {
+                    for (int k = 0; k < d["chunks"][j]["availableChunks"].Size(); k++)
+                    {
+                      //FIX ME: if (!fullBlock)
+                      if (std::find(m_queueChunks[blockHash].begin(), m_queueChunks[blockHash].end(), d["chunks"][j]["availableChunks"][k].GetInt()) != m_queueChunks[blockHash].end())
+                        candidateChunks.push_back(d["chunks"][j]["availableChunks"][k].GetInt());
+                    }
+                  }
                 }
                 else
                 {
@@ -1013,20 +1028,6 @@ BitcoinNode::HandleRead (Ptr<Socket> socket)
                   << height << " and minerId = " << minerId);                
                 }
 
-                if (d["chunks"][j]["fullBlock"].GetBool())
-                {
-                  for (auto &chunk : m_queueChunks[blockHash])
-                    candidateChunks.push_back(chunk);
-                }
-                else
-                {
-                  for (int k = 0; k < d["chunks"][j]["availableChunks"].Size(); k++)
-                  {
-                    //FIX ME: if (!fullBlock)
-                    if (std::find(m_queueChunks[blockHash].begin(), m_queueChunks[blockHash].end(), d["chunks"][j]["availableChunks"][k].GetInt()) != m_queueChunks[blockHash].end())
-                      candidateChunks.push_back(d["chunks"][j]["availableChunks"][k].GetInt());
-                  }
-                }
 
 /*                     std::cout << "candidateChunks = ";
                     for (auto chunk : candidateChunks)
@@ -1047,6 +1048,7 @@ BitcoinNode::HandleRead (Ptr<Socket> socket)
                   std::ostringstream chunk;
                   chunk << blockHash << "/" << candidateChunks[randomIndex];
                   requestedChunks[chunkHash] = candidateChunks[randomIndex];
+
 
                   if (blockSize == -1)
                     NS_FATAL_ERROR ("blockSize == -1");
@@ -1115,7 +1117,7 @@ BitcoinNode::HandleRead (Ptr<Socket> socket)
                   }
                   else if (OnlyHeadersReceived(blockHash))	
                   {
-                    newBlock = m_onlyHeadersReceived.find(blockHash)->second;
+                    newBlock = m_onlyHeadersReceived[blockHash];
                     blockSize = newBlock.GetBlockSizeBytes ();
                     int noChunks = ceil(blockSize/static_cast<double>(m_chunkSize));
 					
