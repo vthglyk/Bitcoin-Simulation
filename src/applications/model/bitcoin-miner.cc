@@ -698,6 +698,73 @@ BitcoinMiner::MineBlock (void)
       
       break;
     }
+    case UNSOLICITED_RELAY_NETWORK:
+    {
+      rapidjson::Value value;
+	  rapidjson::Value blockNodesInfo(rapidjson::kObjectType);
+	  rapidjson::Value blockInfo(rapidjson::kObjectType);
+      rapidjson::Value invArray(rapidjson::kArrayType);
+      rapidjson::Value blockArray(rapidjson::kArrayType);
+	  
+	  //Unsolicited for nodes
+      value = BLOCK;
+      inv.AddMember("message", value, inv.GetAllocator());
+
+      value.SetString("block"); //Remove
+      inv.AddMember("type", value, inv.GetAllocator());
+
+      value = newBlock.GetBlockHeight ();
+      blockNodesInfo.AddMember("height", value, inv.GetAllocator ());
+
+      value = newBlock.GetMinerId ();
+      blockNodesInfo.AddMember("minerId", value, inv.GetAllocator ());
+
+      value = newBlock.GetParentBlockMinerId ();
+      blockNodesInfo.AddMember("parentBlockMinerId", value, inv.GetAllocator ());
+
+      value = newBlock.GetBlockSizeBytes ();
+      blockNodesInfo.AddMember("size", value, inv.GetAllocator ());
+
+      value = newBlock.GetTimeCreated ();
+      blockNodesInfo.AddMember("timeCreated", value, inv.GetAllocator ());
+
+      value = newBlock.GetTimeReceived ();							
+      blockNodesInfo.AddMember("timeReceived", value, inv.GetAllocator ());
+
+      invArray.PushBack(blockNodesInfo, inv.GetAllocator());
+      inv.AddMember("blocks", invArray, inv.GetAllocator());
+	  
+	  
+	  //Unsolicited for miners
+      value = BLOCK;
+      block.AddMember("message", value, block.GetAllocator());
+
+      value.SetString("compressed-block"); //Remove
+      block.AddMember("type", value, block.GetAllocator());
+
+      value = newBlock.GetBlockHeight ();
+      blockInfo.AddMember("height", value, block.GetAllocator ());
+
+      value = newBlock.GetMinerId ();
+      blockInfo.AddMember("minerId", value, block.GetAllocator ());
+
+      value = newBlock.GetParentBlockMinerId ();
+      blockInfo.AddMember("parentBlockMinerId", value, block.GetAllocator ());
+
+      value = newBlock.GetBlockSizeBytes ();
+      blockInfo.AddMember("size", value, block.GetAllocator ());
+
+      value = newBlock.GetTimeCreated ();
+      blockInfo.AddMember("timeCreated", value, block.GetAllocator ());
+
+      value = newBlock.GetTimeReceived ();							
+      blockInfo.AddMember("timeReceived", value, block.GetAllocator ());
+
+      blockArray.PushBack(blockInfo, block.GetAllocator());
+      block.AddMember("blocks", blockArray, block.GetAllocator());
+      
+      break;
+    }
   }
   
   
@@ -801,7 +868,6 @@ BitcoinMiner::MineBlock (void)
       }
       case RELAY_NETWORK:
       {
-
         if(count < m_noMiners - 1)
         {
           double sendTime;
@@ -813,24 +879,25 @@ BitcoinMiner::MineBlock (void)
 				            << " " << m_peersDownloadSpeeds[*i] << " Mbps , time = "
 							<< Simulator::Now ().GetSeconds() << "s \n"; */
                 
-          if (m_sendBlockTimes.size() == 0 || Simulator::Now ().GetSeconds() >  m_sendBlockTimes.back())
+/*           if (m_sendBlockTimes.size() == 0 || Simulator::Now ().GetSeconds() >  m_sendBlockTimes.back())
           {
             sendTime = blockSize / m_uploadSpeed; //FIX ME: constant MB/s
           }
           else
           {
-		    /* std::cout << "m_sendBlockTimes.back() = m_sendBlockTimes.back() = " << m_sendBlockTimes.back() << std::endl; */
+		    // std::cout << "m_sendBlockTimes.back() = m_sendBlockTimes.back() = " << m_sendBlockTimes.back() << std::endl; 
             sendTime = blockSize / m_uploadSpeed + m_sendBlockTimes.back() - Simulator::Now ().GetSeconds(); //FIX ME: constant MB/s
           }
-          m_sendBlockTimes.push_back(Simulator::Now ().GetSeconds() + sendTime);
- 
-          /* std::cout << sendTime << " " << eventTime << " " << m_sendBlockTimes.size() << std::endl; */
+          m_sendBlockTimes.push_back(Simulator::Now ().GetSeconds() + sendTime); */
+
+          sendTime = blockSize / m_uploadSpeed * count;		  
+          //std::cout << sendTime << std::endl;
+		  
           NS_LOG_INFO("Node " << GetNode()->GetId() << " will send the block to " << *i 
-                      << " at " << Simulator::Now ().GetSeconds() + sendTime << "\n");
+                      << " at " << Simulator::Now ().GetSeconds() + sendTime << ", sendTime = " << sendTime  << "\n");
 
           std::string packet = blockInfo.GetString();
           Simulator::Schedule (Seconds(sendTime), &BitcoinMiner::SendBlock, this, packet, m_peersSockets[*i]);
-          break;
         }
         else
         {	    
@@ -866,8 +933,50 @@ BitcoinMiner::MineBlock (void)
                        << "s bitcoin miner " << GetNode ()->GetId () 
                        << " sent a packet " << invInfo.GetString() 
 			           << " to " << *i);
-          break;
         }
+        break;
+	  }
+      case UNSOLICITED_RELAY_NETWORK:
+      {
+        double sendTime;
+        std::string packet;
+			  
+/* 				std::cout << "Node " << GetNode()->GetId() << "-" << *i 
+				            << " " << m_peersDownloadSpeeds[*i] << " Mbps , time = "
+							<< Simulator::Now ().GetSeconds() << "s \n"; */
+							
+        if(count < m_noMiners - 1)
+        {
+		  int    noTransactions = static_cast<int>((m_nextBlockSize - m_blockHeadersSizeBytes)/m_averageTransactionSize);
+          long   blockSize = m_blockHeadersSizeBytes + m_transactionIndexSize*noTransactions;
+          m_nodeStats->blockSentBytes += m_bitcoinMessageHeader + blockSize;
+          sendTime = blockSize / m_uploadSpeed * count;
+          packet = blockInfo.GetString();
+        }
+        else
+        {
+          m_nodeStats->blockSentBytes += m_bitcoinMessageHeader + m_nextBlockSize;
+          if (m_sendBlockTimes.size() == 0 || Simulator::Now ().GetSeconds() >  m_sendBlockTimes.back())
+          {
+            sendTime = m_nextBlockSize / m_uploadSpeed; //FIX ME: constant MB/s
+          }
+          else
+          {
+		    // std::cout << "m_sendBlockTimes.back() = m_sendBlockTimes.back() = " << m_sendBlockTimes.back() << std::endl; 
+            sendTime = m_nextBlockSize / m_uploadSpeed + m_sendBlockTimes.back() - Simulator::Now ().GetSeconds(); //FIX ME: constant MB/s
+          }
+          m_sendBlockTimes.push_back(Simulator::Now ().GetSeconds() + sendTime);
+          packet = invInfo.GetString();
+
+        }
+		
+        /* std::cout << sendTime << " " << eventTime << " " << m_sendBlockTimes.size() << std::endl; */
+        NS_LOG_INFO("Node " << GetNode()->GetId() << " will send the block to " << *i 
+                    << " at " << Simulator::Now ().GetSeconds() + sendTime << ", sendTime = " << sendTime  << "\n");
+
+        Simulator::Schedule (Seconds(sendTime), &BitcoinMiner::SendBlock, this, packet, m_peersSockets[*i]);
+
+        break;
       }
     }
 	
@@ -920,7 +1029,8 @@ BitcoinMiner::SendBlock(std::string packetInfo, Ptr<Socket> to)
   d.Parse(packetInfo.c_str());  
   d.Accept(writer);
   
-  m_sendBlockTimes.erase(m_sendBlockTimes.begin());				
+  if (d["type"] != "compressed-block")
+    m_sendBlockTimes.erase(m_sendBlockTimes.begin());				
   SendMessage(NO_MESSAGE, BLOCK, d, to);
   m_nodeStats->blockSentBytes -= m_bitcoinMessageHeader + d["blocks"][0]["size"].GetInt();
 }

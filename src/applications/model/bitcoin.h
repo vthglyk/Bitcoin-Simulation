@@ -37,7 +37,8 @@ enum BlockBroadcastType
 {
   STANDARD,
   UNSOLICITED,
-  RELAY_NETWORK
+  RELAY_NETWORK,
+  UNSOLICITED_RELAY_NETWORK
 };
 
 enum ProtocolType

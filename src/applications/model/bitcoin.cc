@@ -719,6 +719,7 @@ const char* getBlockBroadcastType(enum BlockBroadcastType m)
     case STANDARD: return "STANDARD";
     case UNSOLICITED: return "UNSOLICITED";
     case RELAY_NETWORK: return "RELAY_NETWORK";
+    case UNSOLICITED_RELAY_NETWORK: return "UNSOLICITED_RELAY_NETWORK";
   }
 }
 

@@ -48,6 +48,7 @@ main (int argc, char *argv[])
   bool testScalability = false;
   bool unsolicited = false;
   bool relayNetwork = false;
+  bool unsolicitedRelayNetwork = false;
   bool litecoin = false;
   bool dogecoin = false;
   bool sendheaders = false;
@@ -95,10 +96,13 @@ main (int argc, char *argv[])
                                                 NORTH_AMERICA, ASIA_PACIFIC, NORTH_AMERICA, ASIA_PACIFIC, NORTH_AMERICA, NORTH_AMERICA};
 #else
 	
+
+/*   double bitcoinMinersHash[] = {1};
+  enum BitcoinRegion bitcoinMinersRegions[] = {ASIA_PACIFIC}; */
+   double bitcoinMinersHash[] = {0.5, 0.5};
+  enum BitcoinRegion bitcoinMinersRegions[] = {ASIA_PACIFIC, ASIA_PACIFIC};
 /*   double bitcoinMinersHash[] = {0.4, 0.3, 0.3};
   enum BitcoinRegion bitcoinMinersRegions[] = {ASIA_PACIFIC, ASIA_PACIFIC, ASIA_PACIFIC}; */
-  double bitcoinMinersHash[] = {1};
-  enum BitcoinRegion bitcoinMinersRegions[] = {ASIA_PACIFIC};
   
   double litecoinMinersHash[] = {0.366, 0.314, 0.122, 0.072, 0.028, 0.024, 0.022, 0.018, 0.012, 0.01, 0.006, 0.006};
   enum BitcoinRegion litecoinMinersRegions[] = {ASIA_PACIFIC, ASIA_PACIFIC, ASIA_PACIFIC, NORTH_AMERICA, EUROPE, NORTH_AMERICA,
@@ -136,6 +140,7 @@ main (int argc, char *argv[])
   cmd.AddValue ("test", "Test the scalability of the simulation", testScalability);
   cmd.AddValue ("unsolicited", "Change the miners block broadcast type to UNSOLICITED", unsolicited);
   cmd.AddValue ("relayNetwork", "Change the miners block broadcast type to RELAY_NETWORK", relayNetwork);
+  cmd.AddValue ("unsolicitedRelayNetwork", "Change the miners block broadcast type to UNSOLICITED_RELAY_NETWORK", unsolicitedRelayNetwork);
   cmd.AddValue ("sendheaders", "Change the protocol to sendheaders", sendheaders);
   cmd.AddValue ("litecoin", "Imitate the litecoin network behaviour", litecoin);
   cmd.AddValue ("dogecoin", "Imitate the litecoin network behaviour", dogecoin);
@@ -222,16 +227,16 @@ main (int argc, char *argv[])
   uint32_t systemCount = 1;
 #endif
 
-  //LogComponentEnable("BitcoinNode", LOG_LEVEL_FUNCTION);
-  //LogComponentEnable("BitcoinMiner", LOG_LEVEL_FUNCTION);
+  //LogComponentEnable("BitcoinNode", LOG_LEVEL_INFO);
+  //LogComponentEnable("BitcoinMiner", LOG_LEVEL_INFO);
   //LogComponentEnable("Ipv4AddressGenerator", LOG_LEVEL_FUNCTION);
   //LogComponentEnable("OnOffApplication", LOG_LEVEL_DEBUG);
   //LogComponentEnable("OnOffApplication", LOG_LEVEL_WARN);
 
   
-  if (unsolicited && relayNetwork)
+  if (unsolicited && relayNetwork && unsolicitedRelayNetwork)
   {
-    std::cout << "You have set both the unsolicited and the relayNetwork flag\n";
+    std::cout << "You have set both the unsolicited/relayNetwork/unsolicitedRelayNetwork flag\n";
     return 0;
   }
   
@@ -304,7 +309,9 @@ main (int argc, char *argv[])
 	    bitcoinMinerHelper.SetBlockBroadcastType (UNSOLICITED);
 	  if(relayNetwork)
 	    bitcoinMinerHelper.SetBlockBroadcastType (RELAY_NETWORK);
-
+	  if(unsolicitedRelayNetwork)
+	    bitcoinMinerHelper.SetBlockBroadcastType (UNSOLICITED_RELAY_NETWORK);
+	
 	  bitcoinMiners.Add(bitcoinMinerHelper.Install (targetNode));
 /*       std::cout << "SystemId " << systemId << ": Miner " << miner << " with hash power = " << minersHash[count] 
 	            << " and systemId = " << targetNode->GetSystemId() << " was installed in node " 

@@ -1805,8 +1805,15 @@ BitcoinNode::ReceivedBlockMessage(std::string &blockInfo, Address &from)
     stringStream << height << "/" << minerId;
     blockHash = stringStream.str();
 
-    m_onlyHeadersReceived.erase(blockHash);
-				
+    if (m_onlyHeadersReceived.find(blockHash) != m_onlyHeadersReceived.end())
+      m_onlyHeadersReceived.erase(blockHash);
+    if (m_queueChunkPeers.find(blockHash) != m_queueChunkPeers.end())
+      m_queueChunkPeers.erase (blockHash);	 
+    if (m_queueChunks.find(blockHash) != m_queueChunks.end())
+      m_queueChunks.erase (blockHash);
+    if (m_receivedChunks.find(blockHash) != m_receivedChunks.end())
+      m_receivedChunks.erase (blockHash);
+	  
     stringStream.clear();
     stringStream.str("");
 				
@@ -1897,115 +1904,45 @@ BitcoinNode::ReceivedChunkMessage(std::string &chunkInfo, Address &from)
       m_chunkTimeouts.erase(chunkHash);
     }
 
-    auto it = std::find(m_queueChunkPeers[blockHash].begin(), m_queueChunkPeers[blockHash].end(), from);
-    if(it !=  m_queueChunkPeers[blockHash].end())
-      m_queueChunkPeers[blockHash].erase(it);
-				
-    if(std::find(m_receivedChunks[blockHash].begin(), m_receivedChunks[blockHash].end(), chunkId) == m_receivedChunks[blockHash].end())
+	
+    if (!m_blockchain.HasBlock(height, minerId) && !m_blockchain.IsOrphan(height, minerId) && !ReceivedButNotValidated(blockHash))
     {
-      m_receivedChunks[blockHash].push_back(chunkId);
-				  
-      //FIX ME: When to advertise?
-      if (m_receivedChunks[blockHash].size() == 1 && m_spv)
-        AdvertiseFirstChunk (Block (d["chunks"][j]["height"].GetInt(), d["chunks"][j]["minerId"].GetInt(), d["chunks"][j]["parentBlockMinerId"].GetInt(), 
-                                    d["chunks"][j]["size"].GetInt(), d["chunks"][j]["timeCreated"].GetDouble(), 
-                                    Simulator::Now ().GetSeconds (), InetSocketAddress::ConvertFrom(from).GetIpv4 ()));
+      auto it = std::find(m_queueChunkPeers[blockHash].begin(), m_queueChunkPeers[blockHash].end(), from);
+      if(it !=  m_queueChunkPeers[blockHash].end())
+        m_queueChunkPeers[blockHash].erase(it);
 				
-      if (m_receivedChunks[blockHash].size() == ceil(d["chunks"][j]["size"].GetInt()/static_cast<double>(m_chunkSize)))
+      if(std::find(m_receivedChunks[blockHash].begin(), m_receivedChunks[blockHash].end(), chunkId) == m_receivedChunks[blockHash].end())
       {
-        if (!m_blockchain.HasBlock(parentHeight, parentMinerId) && !m_blockchain.IsOrphan(parentHeight, parentMinerId)
-            && !ReceivedButNotValidated(parentBlockHash) && !OnlyHeadersReceived(parentBlockHash))
-        {				  
-          NS_LOG_INFO("The Block with height = " << d["chunks"][j]["height"].GetInt() 
-                      << " and minerId = " << d["chunks"][j]["minerId"].GetInt() 
-                      << " is an orphan, so it will be discarded\n");
-        }
-        else
+        m_receivedChunks[blockHash].push_back(chunkId);
+				  
+        //FIX ME: When to advertise?
+        if (m_receivedChunks[blockHash].size() == 1 && m_spv)
+          AdvertiseFirstChunk (Block (d["chunks"][j]["height"].GetInt(), d["chunks"][j]["minerId"].GetInt(), d["chunks"][j]["parentBlockMinerId"].GetInt(), 
+                                      d["chunks"][j]["size"].GetInt(), d["chunks"][j]["timeCreated"].GetDouble(), 
+                                      Simulator::Now ().GetSeconds (), InetSocketAddress::ConvertFrom(from).GetIpv4 ()));
+				
+        if (m_receivedChunks[blockHash].size() == ceil(d["chunks"][j]["size"].GetInt()/static_cast<double>(m_chunkSize)))
         {
-          NS_LOG_INFO("The Block with height = " << d["chunks"][j]["height"].GetInt() 
-                      << " and minerId = " << d["chunks"][j]["minerId"].GetInt() 
-                      << " is a new valid block\n");
-								   
-          Block newBlock (d["chunks"][j]["height"].GetInt(), d["chunks"][j]["minerId"].GetInt(), d["chunks"][j]["parentBlockMinerId"].GetInt(), 
-                          d["chunks"][j]["size"].GetInt(), d["chunks"][j]["timeCreated"].GetDouble(), 
-                          Simulator::Now ().GetSeconds (), InetSocketAddress::ConvertFrom(from).GetIpv4 ());
-
-          ReceivedLastChunk (newBlock);
-        }
-		
-        for (int ii = 0; ii < d["chunks"][j]["requestChunks"].Size(); ii++)
-        {
-          BitcoinChunk newChunk(d["chunks"][j]["height"].GetInt(), d["chunks"][j]["minerId"].GetInt(), 
-                                -1, d["chunks"][j]["parentBlockMinerId"].GetInt(), //-1 if we are not going to request a chunk
-                                d["chunks"][j]["size"].GetInt(), d["chunks"][j]["timeCreated"].GetDouble(), 
-                                Simulator::Now ().GetSeconds (), InetSocketAddress::ConvertFrom(from).GetIpv4 ());
-          chunkMessages[newChunk].push_back(d["chunks"][j]["requestChunks"][ii].GetInt());
-        }
-		
-        m_onlyHeadersReceived.erase(blockHash);              
-        m_queueChunkPeers.erase (blockHash);	 
-        m_queueChunks.erase (blockHash);
-        m_receivedChunks.erase (blockHash);
-      }
-      else
-      {
-        if (d["chunks"][j]["fullBlock"].GetBool())
-        {
-          for (auto &chunk : m_queueChunks[blockHash])
-            candidateChunks.push_back(chunk);
-        }
-        else
-        {
-          for (int k = 0; k < d["chunks"][j]["availableChunks"].Size(); k++)
-          {
-            //FIX ME: if (!fullBlock)
-            if (std::find(m_queueChunks[blockHash].begin(), m_queueChunks[blockHash].end(), d["chunks"][j]["availableChunks"][k].GetInt()) != m_queueChunks[blockHash].end())
-              candidateChunks.push_back(d["chunks"][j]["availableChunks"][k].GetInt());
+          if (!m_blockchain.HasBlock(parentHeight, parentMinerId) && !m_blockchain.IsOrphan(parentHeight, parentMinerId)
+              && !ReceivedButNotValidated(parentBlockHash) && !OnlyHeadersReceived(parentBlockHash))
+          {				  
+            NS_LOG_INFO("The Block with height = " << d["chunks"][j]["height"].GetInt() 
+                        << " and minerId = " << d["chunks"][j]["minerId"].GetInt() 
+                        << " is an orphan, so it will be discarded\n");
           }
-        }
-
-/*         std::cout << "candidateChunks = ";
-        for (auto chunk : candidateChunks)
-          std::cout << chunk << ", ";
-        std::cout << "\n"; */
-
-        if (candidateChunks.size() > 0)
-        {
-          int randomIndex = rand() % candidateChunks.size();
-          NS_LOG_INFO("ReceivedChunkMessage: Bitcoin node " << GetNode ()->GetId ()
-                      << " will request the chunk with index = " << randomIndex << " and value = " << candidateChunks[randomIndex]);	
-          m_queueChunks[blockHash].erase(std::remove(m_queueChunks[blockHash].begin(),
-                                                     m_queueChunks[blockHash].end(), candidateChunks[randomIndex]),
-					                                 m_queueChunks[blockHash].end());
-																		  
-          std::ostringstream chunk;
-          chunk << blockHash << "/" << candidateChunks[randomIndex];
-
-          if (d["chunks"][j]["requestChunks"].Size() == 0)
-            getDataMessages.push_back(chunk.str());
           else
           {
-            for (int ii = 0; ii < d["chunks"][j]["requestChunks"].Size(); ii++)
-            {
-              BitcoinChunk newChunk (d["chunks"][j]["height"].GetInt(), d["chunks"][j]["minerId"].GetInt(), 
-                                     candidateChunks[randomIndex], d["chunks"][j]["parentBlockMinerId"].GetInt(), 
-                                     d["chunks"][j]["size"].GetInt(), d["chunks"][j]["timeCreated"].GetDouble(), 
-                                     Simulator::Now ().GetSeconds (), InetSocketAddress::ConvertFrom(from).GetIpv4 ());
-              chunkMessages[newChunk].push_back(d["chunks"][j]["requestChunks"][ii].GetInt());
-            }
+            NS_LOG_INFO("The Block with height = " << d["chunks"][j]["height"].GetInt() 
+                        << " and minerId = " << d["chunks"][j]["minerId"].GetInt() 
+                        << " is a new valid block\n");
+								   
+            Block newBlock (d["chunks"][j]["height"].GetInt(), d["chunks"][j]["minerId"].GetInt(), d["chunks"][j]["parentBlockMinerId"].GetInt(), 
+                            d["chunks"][j]["size"].GetInt(), d["chunks"][j]["timeCreated"].GetDouble(), 
+                            Simulator::Now ().GetSeconds (), InetSocketAddress::ConvertFrom(from).GetIpv4 ());
+
+            ReceivedLastChunk (newBlock);
           }
-					  
-          timeout = Simulator::Schedule (Minutes(m_invTimeoutMinutes.GetMinutes() / ceil(d["chunks"][j]["size"].GetInt()/static_cast<double>(m_chunkSize))),
-                                                 &BitcoinNode::ChunkTimeoutExpired, this, chunk.str());//FIX ME: the timeout
-													 
-          m_chunkTimeouts[chunk.str()] = timeout;
-          m_queueChunkPeers[blockHash].push_back(from);
-        }
-        else
-        {
-          NS_LOG_INFO("ReceivedChunkMessage: Bitcoin node " << GetNode ()->GetId ()
-                      << " will not request any chunks from this peer, because it has already all the available ones");
-								  
+		
           for (int ii = 0; ii < d["chunks"][j]["requestChunks"].Size(); ii++)
           {
             BitcoinChunk newChunk(d["chunks"][j]["height"].GetInt(), d["chunks"][j]["minerId"].GetInt(), 
@@ -2014,10 +1951,97 @@ BitcoinNode::ReceivedChunkMessage(std::string &chunkInfo, Address &from)
                                   Simulator::Now ().GetSeconds (), InetSocketAddress::ConvertFrom(from).GetIpv4 ());
             chunkMessages[newChunk].push_back(d["chunks"][j]["requestChunks"][ii].GetInt());
           }
+		
+          m_onlyHeadersReceived.erase(blockHash);              
+          m_queueChunkPeers.erase (blockHash);	 
+          m_queueChunks.erase (blockHash);
+          m_receivedChunks.erase (blockHash);
+        }
+        else
+        {
+          if (d["chunks"][j]["fullBlock"].GetBool())
+          {
+            for (auto &chunk : m_queueChunks[blockHash])
+              candidateChunks.push_back(chunk);
+          }
+          else
+          {
+            for (int k = 0; k < d["chunks"][j]["availableChunks"].Size(); k++)
+            {
+              //FIX ME: if (!fullBlock)
+              if (std::find(m_queueChunks[blockHash].begin(), m_queueChunks[blockHash].end(), d["chunks"][j]["availableChunks"][k].GetInt()) != m_queueChunks[blockHash].end())
+                candidateChunks.push_back(d["chunks"][j]["availableChunks"][k].GetInt());
+            }
+          }
+
+/*           std::cout << "candidateChunks = ";
+          for (auto chunk : candidateChunks)
+            std::cout << chunk << ", ";
+          std::cout << "\n"; */
+
+          if (candidateChunks.size() > 0)
+          {
+            int randomIndex = rand() % candidateChunks.size();
+            NS_LOG_INFO("ReceivedChunkMessage: Bitcoin node " << GetNode ()->GetId ()
+                        << " will request the chunk with index = " << randomIndex << " and value = " << candidateChunks[randomIndex]);	
+            m_queueChunks[blockHash].erase(std::remove(m_queueChunks[blockHash].begin(),
+                                                       m_queueChunks[blockHash].end(), candidateChunks[randomIndex]),
+                                                       m_queueChunks[blockHash].end());
+																		  
+            std::ostringstream chunk;
+            chunk << blockHash << "/" << candidateChunks[randomIndex];
+
+            if (d["chunks"][j]["requestChunks"].Size() == 0)
+              getDataMessages.push_back(chunk.str());
+            else
+            {
+              for (int ii = 0; ii < d["chunks"][j]["requestChunks"].Size(); ii++)
+              {
+                BitcoinChunk newChunk (d["chunks"][j]["height"].GetInt(), d["chunks"][j]["minerId"].GetInt(), 
+                                       candidateChunks[randomIndex], d["chunks"][j]["parentBlockMinerId"].GetInt(), 
+                                       d["chunks"][j]["size"].GetInt(), d["chunks"][j]["timeCreated"].GetDouble(), 
+                                       Simulator::Now ().GetSeconds (), InetSocketAddress::ConvertFrom(from).GetIpv4 ());
+                chunkMessages[newChunk].push_back(d["chunks"][j]["requestChunks"][ii].GetInt());
+              }
+            }
+					  
+            timeout = Simulator::Schedule (Minutes(m_invTimeoutMinutes.GetMinutes() / ceil(d["chunks"][j]["size"].GetInt()/static_cast<double>(m_chunkSize))),
+                                                   &BitcoinNode::ChunkTimeoutExpired, this, chunk.str());//FIX ME: the timeout
+													 
+            m_chunkTimeouts[chunk.str()] = timeout;
+            m_queueChunkPeers[blockHash].push_back(from);
+          }
+          else
+          {
+            NS_LOG_INFO("ReceivedChunkMessage: Bitcoin node " << GetNode ()->GetId ()
+                        << " will not request any chunks from this peer, because it has already all the available ones");
+								  
+            for (int ii = 0; ii < d["chunks"][j]["requestChunks"].Size(); ii++)
+            {
+              BitcoinChunk newChunk(d["chunks"][j]["height"].GetInt(), d["chunks"][j]["minerId"].GetInt(), 
+                                    -1, d["chunks"][j]["parentBlockMinerId"].GetInt(), //-1 if we are not going to request a chunk
+                                    d["chunks"][j]["size"].GetInt(), d["chunks"][j]["timeCreated"].GetDouble(), 
+                                    Simulator::Now ().GetSeconds (), InetSocketAddress::ConvertFrom(from).GetIpv4 ());
+              chunkMessages[newChunk].push_back(d["chunks"][j]["requestChunks"][ii].GetInt());
+            }
+          }
         }
       }
     }
-				
+    else
+    {
+      NS_LOG_INFO("ReceivedChunkMessage: Bitcoin node " << GetNode ()->GetId ()
+                  << " has already received this block");
+								  
+      for (int ii = 0; ii < d["chunks"][j]["requestChunks"].Size(); ii++)
+      {
+        BitcoinChunk newChunk(d["chunks"][j]["height"].GetInt(), d["chunks"][j]["minerId"].GetInt(), 
+                              -1, d["chunks"][j]["parentBlockMinerId"].GetInt(), //-1 if we are not going to request a chunk
+                              d["chunks"][j]["size"].GetInt(), d["chunks"][j]["timeCreated"].GetDouble(), 
+                              Simulator::Now ().GetSeconds (), InetSocketAddress::ConvertFrom(from).GetIpv4 ());
+        chunkMessages[newChunk].push_back(d["chunks"][j]["requestChunks"][ii].GetInt());
+      }
+	}
 /*     PrintQueueChunks();
     PrintChunkTimeouts();
     PrintQueueChunkPeers();
