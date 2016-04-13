@@ -1910,7 +1910,11 @@ BitcoinNode::ReceivedChunkMessage(std::string &chunkInfo, Address &from)
       auto it = std::find(m_queueChunkPeers[blockHash].begin(), m_queueChunkPeers[blockHash].end(), from);
       if(it !=  m_queueChunkPeers[blockHash].end())
         m_queueChunkPeers[blockHash].erase(it);
-				
+		
+      auto it2 = std::find(m_queueChunks[blockHash].begin(), m_queueChunks[blockHash].end(), chunkId);
+      if(it2 !=  m_queueChunks[blockHash].end())
+        m_queueChunks[blockHash].erase(it2);
+	
       if(std::find(m_receivedChunks[blockHash].begin(), m_receivedChunks[blockHash].end(), chunkId) == m_receivedChunks[blockHash].end())
       {
         m_receivedChunks[blockHash].push_back(chunkId);

@@ -24,7 +24,7 @@
 #include "ns3/applications-module.h"
 #include "ns3/point-to-point-layout-module.h"
 #include "ns3/mpi-interface.h"
-#define MPI_TEST
+//#define MPI_TEST
 
 #ifdef NS3_MPI
 #include <mpi.h>
@@ -97,10 +97,10 @@ main (int argc, char *argv[])
 #else
 	
 
-/*   double bitcoinMinersHash[] = {1};
-  enum BitcoinRegion bitcoinMinersRegions[] = {ASIA_PACIFIC}; */
-   double bitcoinMinersHash[] = {0.5, 0.5};
-  enum BitcoinRegion bitcoinMinersRegions[] = {ASIA_PACIFIC, ASIA_PACIFIC};
+  double bitcoinMinersHash[] = {1};
+  enum BitcoinRegion bitcoinMinersRegions[] = {ASIA_PACIFIC};
+/*    double bitcoinMinersHash[] = {0.5, 0.5};
+  enum BitcoinRegion bitcoinMinersRegions[] = {ASIA_PACIFIC, ASIA_PACIFIC}; */
 /*   double bitcoinMinersHash[] = {0.4, 0.3, 0.3};
   enum BitcoinRegion bitcoinMinersRegions[] = {ASIA_PACIFIC, ASIA_PACIFIC, ASIA_PACIFIC}; */
   
@@ -227,7 +227,7 @@ main (int argc, char *argv[])
   uint32_t systemCount = 1;
 #endif
 
-  //LogComponentEnable("BitcoinNode", LOG_LEVEL_INFO);
+  LogComponentEnable("BitcoinNode", LOG_LEVEL_INFO);
   //LogComponentEnable("BitcoinMiner", LOG_LEVEL_INFO);
   //LogComponentEnable("Ipv4AddressGenerator", LOG_LEVEL_FUNCTION);
   //LogComponentEnable("OnOffApplication", LOG_LEVEL_DEBUG);
@@ -519,6 +519,8 @@ main (int argc, char *argv[])
       std::cout << "The broadcast type was UNSOLICITED.\n";
     else if(relayNetwork)
       std::cout << "The broadcast type was RELAY_NETWORK.\n";
+    else if(unsolicitedRelayNetwork)
+      std::cout << "The broadcast type was UNSOLICITED_RELAY_NETWORK.\n";
     else
       std::cout << "The broadcast type was STANDARD.\n";
 
