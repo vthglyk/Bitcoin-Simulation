@@ -1271,7 +1271,8 @@ BitcoinTopologyHelper::AssignIpv4Addresses (Ipv4AddressHelperCustom ip)
 	
 	m_peersDownloadSpeeds[node1][interfaceAddress2] = m_nodesInternetSpeeds[node2].downloadSpeed;
 	m_peersDownloadSpeeds[node2][interfaceAddress1] = m_nodesInternetSpeeds[node1].downloadSpeed;
-
+	m_peersUploadSpeeds[node1][interfaceAddress2] = m_nodesInternetSpeeds[node2].uploadSpeed;
+	m_peersUploadSpeeds[node2][interfaceAddress1] = m_nodesInternetSpeeds[node1].uploadSpeed;
   }
 
   
@@ -1433,6 +1434,13 @@ std::map<uint32_t, std::map<Ipv4Address, double>>
 BitcoinTopologyHelper::GetPeersDownloadSpeeds (void) const
 {
   return m_peersDownloadSpeeds;
+}
+
+
+std::map<uint32_t, std::map<Ipv4Address, double>> 
+BitcoinTopologyHelper::GetPeersUploadSpeeds (void) const
+{
+  return m_peersUploadSpeeds;
 }
 
 

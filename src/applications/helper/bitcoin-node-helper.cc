@@ -92,6 +92,7 @@ BitcoinNodeHelper::InstallPriv (Ptr<Node> node)
   Ptr<BitcoinNode> app = m_factory.Create<BitcoinNode> ();
   app->SetPeersAddresses(m_peersAddresses);
   app->SetPeersDownloadSpeeds(m_peersDownloadSpeeds);
+  app->SetPeersUploadSpeeds(m_peersUploadSpeeds);
   app->SetNodeInternetSpeeds(m_internetSpeeds);
   app->SetNodeStats(m_nodeStats);
   app->SetProtocolType(m_protocolType);
@@ -112,6 +113,13 @@ BitcoinNodeHelper::SetPeersDownloadSpeeds (std::map<Ipv4Address, double> &peersD
 {
   m_peersDownloadSpeeds = peersDownloadSpeeds;
 }
+
+void 
+BitcoinNodeHelper::SetPeersUploadSpeeds (std::map<Ipv4Address, double> &peersUploadSpeeds)
+{
+  m_peersUploadSpeeds = peersUploadSpeeds;
+}
+
 
 void 
 BitcoinNodeHelper::SetNodeInternetSpeeds (nodeInternetSpeeds &internetSpeeds)

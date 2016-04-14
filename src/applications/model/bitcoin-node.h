@@ -56,6 +56,11 @@ public:
    * set the peersDownloadSpeeds of peers
    */
   void SetPeersDownloadSpeeds (const std::map<Ipv4Address, double> &peersDownloadSpeeds);
+
+  /**
+   * set the peersUploadSpeeds of peers
+   */
+  void SetPeersUploadSpeeds (const std::map<Ipv4Address, double> &peersUploadSpeeds);
   
   /**
    * set the internet speeds of the node
@@ -139,7 +144,10 @@ protected:
 
   bool OnlyHeadersReceived (std::string blockHash);
   bool HasChunk (std::string blockHash, int chunk);
-  
+
+  void RemoveSendTime ();
+  void RemoveReceiveTime ();
+
   // In the case of TCP, each socket accept returns a new socket, so the 
   // listening socket is stored separately from the accepted sockets
   Ptr<Socket>     m_socket;       //!< Listening socket
@@ -163,6 +171,7 @@ protected:
   
   std::vector<Ipv4Address>		                      m_peersAddresses;                 //!< The addresses of peers
   std::map<Ipv4Address, double>                       m_peersDownloadSpeeds;            //!< The peersDownloadSpeeds of channels
+  std::map<Ipv4Address, double>                       m_peersUploadSpeeds;              //!< The peersUploadSpeeds of channels
   std::map<Ipv4Address, Ptr<Socket>>                  m_peersSockets;                   //!< The sockets of peers
   std::map<std::string, std::vector<Address>>         m_queueInv;                       //!< map holding the addresses of nodes which sent an INV for a particular block
   std::map<std::string, std::vector<Address>>         m_queueChunkPeers;                //!< map holding the addresses of nodes from which we are waiting for a CHUNK, key = block_hash

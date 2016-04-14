@@ -60,6 +60,7 @@ BitcoinMinerHelper::InstallPriv (Ptr<Node> node) //FIX ME
         Ptr<BitcoinMiner> app = m_factory.Create<BitcoinMiner> ();
         app->SetPeersAddresses(m_peersAddresses);
 		app->SetPeersDownloadSpeeds(m_peersDownloadSpeeds);
+		app->SetPeersUploadSpeeds(m_peersUploadSpeeds);
 		app->SetNodeInternetSpeeds(m_internetSpeeds);
         app->SetNodeStats(m_nodeStats);
         app->SetBlockBroadcastType(m_blockBroadcastType);
@@ -73,6 +74,7 @@ BitcoinMinerHelper::InstallPriv (Ptr<Node> node) //FIX ME
         Ptr<BitcoinSimpleAttacker> app = m_factory.Create<BitcoinSimpleAttacker> ();
         app->SetPeersAddresses(m_peersAddresses);
 		app->SetPeersDownloadSpeeds(m_peersDownloadSpeeds);
+		app->SetPeersUploadSpeeds(m_peersUploadSpeeds);
 		app->SetNodeInternetSpeeds(m_internetSpeeds);
         app->SetNodeStats(m_nodeStats);
         app->SetBlockBroadcastType(m_blockBroadcastType);
@@ -86,6 +88,7 @@ BitcoinMinerHelper::InstallPriv (Ptr<Node> node) //FIX ME
         Ptr<BitcoinSelfishMiner> app = m_factory.Create<BitcoinSelfishMiner> ();
         app->SetPeersAddresses(m_peersAddresses);
 		app->SetPeersDownloadSpeeds(m_peersDownloadSpeeds);
+		app->SetPeersUploadSpeeds(m_peersUploadSpeeds);
 		app->SetNodeInternetSpeeds(m_internetSpeeds);
         app->SetNodeStats(m_nodeStats);
         app->SetBlockBroadcastType(m_blockBroadcastType);
@@ -99,6 +102,7 @@ BitcoinMinerHelper::InstallPriv (Ptr<Node> node) //FIX ME
         Ptr<BitcoinSelfishMinerTrials> app = m_factory.Create<BitcoinSelfishMinerTrials> ();
         app->SetPeersAddresses(m_peersAddresses);
 		app->SetPeersDownloadSpeeds(m_peersDownloadSpeeds);
+		app->SetPeersUploadSpeeds(m_peersUploadSpeeds);
 		app->SetNodeInternetSpeeds(m_internetSpeeds);
         app->SetNodeStats(m_nodeStats);
         app->SetBlockBroadcastType(m_blockBroadcastType);

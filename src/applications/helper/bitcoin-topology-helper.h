@@ -131,6 +131,7 @@ public:
    uint32_t* GetBitcoinNodesRegions (void);
    
    std::map<uint32_t, std::map<Ipv4Address, double>> GetPeersDownloadSpeeds(void) const;
+   std::map<uint32_t, std::map<Ipv4Address, double>> GetPeersUploadSpeeds(void) const;
 
    std::map<uint32_t, nodeInternetSpeeds> GetNodesInternetSpeeds (void) const;
 
@@ -169,6 +170,7 @@ private:
   
 
   std::map<uint32_t, std::map<Ipv4Address, double>>    m_peersDownloadSpeeds;     //!< key1 = nodeId, key2 = Ipv4Address of peer
+  std::map<uint32_t, std::map<Ipv4Address, double>>    m_peersUploadSpeeds;       //!< key1 = nodeId, key2 = Ipv4Address of peer
   std::map<uint32_t, nodeInternetSpeeds>               m_nodesInternetSpeeds;     //!< key = nodeId
   std::map<uint32_t, int>                              m_minConnections;          //!< key = nodeId
   std::map<uint32_t, int>                              m_maxConnections;          //!< key = nodeId

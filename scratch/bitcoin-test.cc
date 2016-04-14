@@ -24,7 +24,7 @@
 #include "ns3/applications-module.h"
 #include "ns3/point-to-point-layout-module.h"
 #include "ns3/mpi-interface.h"
-#define MPI_TEST
+//#define MPI_TEST
 
 #ifdef NS3_MPI
 #include <mpi.h>
@@ -97,10 +97,10 @@ main (int argc, char *argv[])
 #else
 	
 
-  double bitcoinMinersHash[] = {1};
-  enum BitcoinRegion bitcoinMinersRegions[] = {ASIA_PACIFIC};
-/*    double bitcoinMinersHash[] = {0.5, 0.5};
-  enum BitcoinRegion bitcoinMinersRegions[] = {ASIA_PACIFIC, ASIA_PACIFIC}; */
+/*   double bitcoinMinersHash[] = {1};
+  enum BitcoinRegion bitcoinMinersRegions[] = {ASIA_PACIFIC}; */
+  double bitcoinMinersHash[] = {0.5, 0.5};
+  enum BitcoinRegion bitcoinMinersRegions[] = {ASIA_PACIFIC, ASIA_PACIFIC};
 /*   double bitcoinMinersHash[] = {0.4, 0.3, 0.3};
   enum BitcoinRegion bitcoinMinersRegions[] = {ASIA_PACIFIC, ASIA_PACIFIC, ASIA_PACIFIC}; */
   
@@ -119,6 +119,7 @@ main (int argc, char *argv[])
   Ipv4InterfaceContainer                               ipv4InterfaceContainer;
   std::map<uint32_t, std::vector<Ipv4Address>>         nodesConnections;
   std::map<uint32_t, std::map<Ipv4Address, double>>    peersDownloadSpeeds;
+  std::map<uint32_t, std::map<Ipv4Address, double>>    peersUploadSpeeds;
   std::map<uint32_t, nodeInternetSpeeds>               nodesInternetSpeeds;
   std::vector<uint32_t>                                miners;
   int                                                  nodesInSystemId0 = 0;
@@ -227,8 +228,8 @@ main (int argc, char *argv[])
   uint32_t systemCount = 1;
 #endif
 
-  //LogComponentEnable("BitcoinNode", LOG_LEVEL_INFO);
-  //LogComponentEnable("BitcoinMiner", LOG_LEVEL_INFO);
+  LogComponentEnable("BitcoinNode", LOG_LEVEL_INFO);
+  LogComponentEnable("BitcoinMiner", LOG_LEVEL_INFO);
   //LogComponentEnable("Ipv4AddressGenerator", LOG_LEVEL_FUNCTION);
   //LogComponentEnable("OnOffApplication", LOG_LEVEL_DEBUG);
   //LogComponentEnable("OnOffApplication", LOG_LEVEL_WARN);
@@ -254,6 +255,7 @@ main (int argc, char *argv[])
   nodesConnections = bitcoinTopologyHelper.GetNodesConnectionsIps();
   miners = bitcoinTopologyHelper.GetMiners();
   peersDownloadSpeeds = bitcoinTopologyHelper.GetPeersDownloadSpeeds();
+  peersUploadSpeeds = bitcoinTopologyHelper.GetPeersUploadSpeeds();
   nodesInternetSpeeds = bitcoinTopologyHelper.GetNodesInternetSpeeds();
   if (systemId == 0)
     PrintBitcoinRegionStats(bitcoinTopologyHelper.GetBitcoinNodesRegions(), totalNoNodes);
@@ -302,6 +304,7 @@ main (int argc, char *argv[])
 	  }
       bitcoinMinerHelper.SetPeersAddresses (nodesConnections[miner]);
 	  bitcoinMinerHelper.SetPeersDownloadSpeeds (peersDownloadSpeeds[miner]);
+	  bitcoinMinerHelper.SetPeersUploadSpeeds (peersUploadSpeeds[miner]);
 	  bitcoinMinerHelper.SetNodeInternetSpeeds (nodesInternetSpeeds[miner]);
 	  bitcoinMinerHelper.SetNodeStats (&stats[miner]);
       
@@ -350,6 +353,7 @@ main (int argc, char *argv[])
           bitcoinNodeHelper.SetAttribute("InvTimeoutMinutes", TimeValue (Minutes (2*averageBlockGenIntervalMinutes)));
 	    bitcoinNodeHelper.SetPeersAddresses (node.second);
 	    bitcoinNodeHelper.SetPeersDownloadSpeeds (peersDownloadSpeeds[node.first]);
+	    bitcoinNodeHelper.SetPeersUploadSpeeds (peersUploadSpeeds[node.first]);
 	    bitcoinNodeHelper.SetNodeInternetSpeeds (nodesInternetSpeeds[node.first]);
 		bitcoinNodeHelper.SetNodeStats (&stats[node.first]);
 		

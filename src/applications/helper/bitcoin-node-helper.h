@@ -99,7 +99,8 @@ public:
   void SetPeersAddresses (std::vector<Ipv4Address> &peersAddresses);
   
   void SetPeersDownloadSpeeds (std::map<Ipv4Address, double> &peersDownloadSpeeds);
-
+  void SetPeersUploadSpeeds (std::map<Ipv4Address, double> &peersUploadSpeeds);
+  
   void SetNodeInternetSpeeds (nodeInternetSpeeds &internetSpeeds);
 
   void SetNodeStats (nodeStatistics *nodeStats);
@@ -121,6 +122,7 @@ protected:
   Address                                             m_address;
   std::vector<Ipv4Address>		                      m_peersAddresses; //!< The addresses of peers
   std::map<Ipv4Address, double>                       m_peersDownloadSpeeds;
+  std::map<Ipv4Address, double>                       m_peersUploadSpeeds;
   nodeInternetSpeeds                                  m_internetSpeeds;
   nodeStatistics                                      *m_nodeStats;
   enum ProtocolType									  m_protocolType;
