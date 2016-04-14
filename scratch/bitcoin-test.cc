@@ -24,7 +24,7 @@
 #include "ns3/applications-module.h"
 #include "ns3/point-to-point-layout-module.h"
 #include "ns3/mpi-interface.h"
-//#define MPI_TEST
+#define MPI_TEST
 
 #ifdef NS3_MPI
 #include <mpi.h>
@@ -228,8 +228,8 @@ main (int argc, char *argv[])
   uint32_t systemCount = 1;
 #endif
 
-  LogComponentEnable("BitcoinNode", LOG_LEVEL_INFO);
-  LogComponentEnable("BitcoinMiner", LOG_LEVEL_INFO);
+  //LogComponentEnable("BitcoinNode", LOG_LEVEL_INFO);
+  //LogComponentEnable("BitcoinMiner", LOG_LEVEL_INFO);
   //LogComponentEnable("Ipv4AddressGenerator", LOG_LEVEL_FUNCTION);
   //LogComponentEnable("OnOffApplication", LOG_LEVEL_DEBUG);
   //LogComponentEnable("OnOffApplication", LOG_LEVEL_WARN);
