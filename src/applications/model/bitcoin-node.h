@@ -146,7 +146,10 @@ protected:
   bool HasChunk (std::string blockHash, int chunk);
 
   void RemoveSendTime ();
+  void RemoveCompressedBlockSendTime ();
+
   void RemoveReceiveTime ();
+  void RemoveCompressedBlockReceiveTime ();
 
   // In the case of TCP, each socket accept returns a new socket, so the 
   // listening socket is stored separately from the accepted sockets
@@ -184,7 +187,9 @@ protected:
   std::map<std::string, Block>                        m_onlyHeadersReceived;            //!< vector holding the blocks that we know but not received
   nodeStatistics                                     *m_nodeStats;                      //!< struct holding the node stats
   std::vector<double>                                 m_sendBlockTimes;                 //!< contains the times of the next sendBlock events
+  std::vector<double>                                 m_sendCompressedBlockTimes;       //!< contains the times of the next sendBlock events
   std::vector<double>                                 m_receiveBlockTimes;              //!< contains the times of the next sendBlock events
+  std::vector<double>                                 m_receiveCompressedBlockTimes;    //!< contains the times of the next sendBlock events
   enum ProtocolType                                   m_protocolType;                   //!< protocol type
 
   const int		  m_bitcoinPort;   //!< 8333

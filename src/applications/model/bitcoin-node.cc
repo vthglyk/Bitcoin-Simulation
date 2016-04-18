@@ -1700,22 +1700,45 @@ BitcoinNode::HandleRead (Ptr<Socket> socket)
               NS_LOG_INFO(m_downloadSpeed << " " << m_peersUploadSpeeds[InetSocketAddress::ConvertFrom(from).GetIpv4 ()] * 1000000 / 8 << " " << minSpeed);
 			  
               std::string help = blockInfo.GetString();
-              if (m_receiveBlockTimes.size() == 0 || Simulator::Now ().GetSeconds() >  m_receiveBlockTimes.back())
+			  
+              if (blockType == "block")
               {
-                receiveTime = blockMessageSize / m_downloadSpeed; //FIX ME: constant MB/s
-                eventTime = blockMessageSize / minSpeed;
+                if (m_receiveBlockTimes.size() == 0 || Simulator::Now ().GetSeconds() >  m_receiveBlockTimes.back())
+                {
+                  receiveTime = blockMessageSize / m_downloadSpeed; //FIX ME: constant MB/s
+                  eventTime = blockMessageSize / minSpeed;
+                }
+                else
+                {
+                  receiveTime = blockMessageSize / m_downloadSpeed + m_receiveBlockTimes.back() - Simulator::Now ().GetSeconds(); //FIX ME: constant MB/s
+                  eventTime = blockMessageSize / minSpeed + m_receiveBlockTimes.back() - Simulator::Now ().GetSeconds(); //FIX ME: constant MB/s
+                }
+                m_receiveBlockTimes.push_back(Simulator::Now ().GetSeconds() + receiveTime);
+			  
+
+                Simulator::Schedule (Seconds(eventTime), &BitcoinNode::ReceivedBlockMessage, this, help, from);
+                Simulator::Schedule (Seconds(receiveTime), &BitcoinNode::RemoveReceiveTime, this);
               }
-              else
+              else if (blockType == "compressed-block")
               {
-                receiveTime = blockMessageSize / m_downloadSpeed + m_receiveBlockTimes.back() - Simulator::Now ().GetSeconds(); //FIX ME: constant MB/s
-                eventTime = blockMessageSize / minSpeed + m_receiveBlockTimes.back() - Simulator::Now ().GetSeconds(); //FIX ME: constant MB/s
+                if (m_receiveCompressedBlockTimes.size() == 0 || Simulator::Now ().GetSeconds() >  m_receiveCompressedBlockTimes.back())
+                {
+                  receiveTime = blockMessageSize / m_downloadSpeed; //FIX ME: constant MB/s
+                  eventTime = blockMessageSize / minSpeed;
+                }
+                else
+                {
+                  receiveTime = blockMessageSize / m_downloadSpeed + m_receiveCompressedBlockTimes.back() - Simulator::Now ().GetSeconds(); //FIX ME: constant MB/s
+                  eventTime = blockMessageSize / minSpeed + m_receiveCompressedBlockTimes.back() - Simulator::Now ().GetSeconds(); //FIX ME: constant MB/s
+                }
+                m_receiveCompressedBlockTimes.push_back(Simulator::Now ().GetSeconds() + receiveTime);
+			  
+
+                Simulator::Schedule (Seconds(eventTime), &BitcoinNode::ReceivedBlockMessage, this, help, from);
+                Simulator::Schedule (Seconds(receiveTime), &BitcoinNode::RemoveCompressedBlockReceiveTime, this);
               }
-              m_receiveBlockTimes.push_back(Simulator::Now ().GetSeconds() + receiveTime);
 			  
               NS_LOG_INFO("BLOCK:  Node " << GetNode()->GetId() << " will receive the full block message at " << Simulator::Now ().GetSeconds() + eventTime);
-
-              Simulator::Schedule (Seconds(eventTime), &BitcoinNode::ReceivedBlockMessage, this, help, from);
-              Simulator::Schedule (Seconds(receiveTime), &BitcoinNode::RemoveReceiveTime, this);
 
               break;
             }
@@ -3483,12 +3506,32 @@ BitcoinNode::RemoveSendTime ()
 
 
 void 
+BitcoinNode::RemoveCompressedBlockSendTime ()
+{
+  NS_LOG_FUNCTION (this);
+
+  NS_LOG_INFO ("RemoveCompressedBlockSendTime: At Time " << Simulator::Now ().GetSeconds () << " " << m_sendCompressedBlockTimes.front() << " was removed");
+  m_sendCompressedBlockTimes.erase(m_sendCompressedBlockTimes.begin());
+}
+
+
+void 
 BitcoinNode::RemoveReceiveTime ()
 {
   NS_LOG_FUNCTION (this);
 
   NS_LOG_INFO ("RemoveReceiveTime: At Time " << Simulator::Now ().GetSeconds () << " " << m_receiveBlockTimes.front() << " was removed");
   m_receiveBlockTimes.erase(m_receiveBlockTimes.begin());
+}
+
+
+void 
+BitcoinNode::RemoveCompressedBlockReceiveTime ()
+{
+  NS_LOG_FUNCTION (this);
+
+  NS_LOG_INFO ("RemoveCompressedBlockReceiveTime: At Time " << Simulator::Now ().GetSeconds () << " " << m_receiveCompressedBlockTimes.front() << " was removed");
+  m_receiveCompressedBlockTimes.erase(m_receiveCompressedBlockTimes.begin());
 }
 
 
