@@ -1,3 +1,7 @@
+/**
+ * This file contains the definitions of the functions declared in bitcoin-node.h
+ */
+
 #include "ns3/address.h"
 #include "ns3/address-utils.h"
 #include "ns3/log.h"
@@ -1197,7 +1201,7 @@ BitcoinNode::HandleRead (Ptr<Socket> socket)
                 d.AddMember("chunks", chunkArray, d.GetAllocator());
 				
                 double sendTime = totalChunkMessageSize / m_uploadSpeed;
-	            double eventTime;
+                double eventTime;
 				
 /*                 std::cout << "Node " << GetNode()->GetId() << "-" << InetSocketAddress::ConvertFrom(from).GetIpv4 () 
 		  		          << " " << m_peersDownloadSpeeds[InetSocketAddress::ConvertFrom(from).GetIpv4 ()] << " Mbps , time = "
@@ -1258,9 +1262,9 @@ BitcoinNode::HandleRead (Ptr<Socket> socket)
 
                 stringStream << height << "/" << minerId;
                 blockHash = stringStream.str();
-				Block newBlockHeaders(d["blocks"][j]["height"].GetInt(), d["blocks"][j]["minerId"].GetInt(), d["blocks"][j]["parentBlockMinerId"].GetInt(), 
-                                                         d["blocks"][j]["size"].GetInt(), d["blocks"][j]["timeCreated"].GetDouble(), 
-                                                         Simulator::Now ().GetSeconds (), InetSocketAddress::ConvertFrom(from).GetIpv4 ());
+                Block newBlockHeaders(d["blocks"][j]["height"].GetInt(), d["blocks"][j]["minerId"].GetInt(), d["blocks"][j]["parentBlockMinerId"].GetInt(), 
+                                      d["blocks"][j]["size"].GetInt(), d["blocks"][j]["timeCreated"].GetDouble(), 
+                                      Simulator::Now ().GetSeconds (), InetSocketAddress::ConvertFrom(from).GetIpv4 ());
                 m_onlyHeadersReceived[blockHash] = Block (d["blocks"][j]["height"].GetInt(), d["blocks"][j]["minerId"].GetInt(), d["blocks"][j]["parentBlockMinerId"].GetInt(), 
                                                           d["blocks"][j]["size"].GetInt(), d["blocks"][j]["timeCreated"].GetDouble(), 
                                                           Simulator::Now ().GetSeconds (), InetSocketAddress::ConvertFrom(from).GetIpv4 ());
@@ -1535,8 +1539,8 @@ BitcoinNode::HandleRead (Ptr<Socket> socket)
                 else
                 {
                   /**
-	               * Block is not orphan, so we can go on validating
-	               */
+                   * Block is not orphan, so we can go on validating
+                   */
                   NS_LOG_INFO("The Block with height = " << d["blocks"][j]["height"].GetInt() 
                               << " and minerId = " << d["blocks"][j]["minerId"].GetInt() 
                               << " has already been received\n");			   
@@ -2091,7 +2095,7 @@ BitcoinNode::ReceivedChunkMessage(std::string &chunkInfo, Address &from)
                               Simulator::Now ().GetSeconds (), InetSocketAddress::ConvertFrom(from).GetIpv4 ());
         chunkMessages[newChunk].push_back(d["chunks"][j]["requestChunks"][ii].GetInt());
       }
-	}
+    }
 /*     PrintQueueChunks();
     PrintChunkTimeouts();
     PrintQueueChunkPeers();
@@ -2309,7 +2313,7 @@ BitcoinNode::ReceiveBlock(const Block &newBlock)
   {
     NS_LOG_INFO ("ReceiveBlock: Bitcoin node " << GetNode ()->GetId () << " has already added this block in the m_blockchain: " << newBlock);
     
-	if (m_invTimeouts.find(blockHash) != m_invTimeouts.end())
+    if (m_invTimeouts.find(blockHash) != m_invTimeouts.end())
     {
       m_queueInv.erase(blockHash);
       Simulator::Cancel (m_invTimeouts[blockHash]);
@@ -2421,17 +2425,17 @@ BitcoinNode::ValidateBlock(const Block &newBlock)
   {
     NS_LOG_INFO("ValidateBlock: Block's " << newBlock << " parent is " << *parent << "\n");
 
-	/**
-	 * Block is not orphan, so we can go on validating
-	 */	
+    /**
+     * Block is not orphan, so we can go on validating
+     */	
 	 
-	const int averageBlockSizeBytes = 458263;
-	const double averageValidationTimeSeconds = 0.174;
-	double validationTime = averageValidationTimeSeconds * newBlock.GetBlockSizeBytes() / averageBlockSizeBytes;		
+    const int averageBlockSizeBytes = 458263;
+    const double averageValidationTimeSeconds = 0.174;
+    double validationTime = averageValidationTimeSeconds * newBlock.GetBlockSizeBytes() / averageBlockSizeBytes;		
 	
     Simulator::Schedule (Seconds(validationTime), &BitcoinNode::AfterBlockValidation, this, newBlock);
     NS_LOG_INFO ("ValidateBlock: The Block " << newBlock << " will be validated in " 
-	              << validationTime << "s");
+                 << validationTime << "s");
   }  
 
 }
@@ -2453,7 +2457,7 @@ BitcoinNode::AfterBlockValidation(const Block &newBlock)
   
   NS_LOG_INFO ("AfterBlockValidation: At time " << Simulator::Now ().GetSeconds ()
                << "s bitcoin node " << GetNode ()->GetId () 
-			   << " validated block " <<  newBlock);
+               << " validated block " <<  newBlock);
 			   
   if (newBlock.GetBlockHeight() > m_blockchain.GetBlockchainHeight())
     ReceivedHigherBlock(newBlock);
@@ -2510,7 +2514,7 @@ BitcoinNode::ValidateOrphanChildren(const Block &newBlock)
 	for (block_it = children.begin();  block_it < children.end(); block_it++)
     {
        NS_LOG_INFO ("\t" << **block_it);
-	   ValidateBlock (**block_it);
+       ValidateBlock (**block_it);
     }
   }
 }
@@ -2580,17 +2584,17 @@ BitcoinNode::AdvertiseNewBlock (const Block &newBlock)
   {
     if ( *i != newBlock.GetReceivedFromIpv4 () )
     {
-	  const uint8_t delimiter[] = "#";
+      const uint8_t delimiter[] = "#";
 
       m_peersSockets[*i]->Send (reinterpret_cast<const uint8_t*>(packetInfo.GetString()), packetInfo.GetSize(), 0);
 	  m_peersSockets[*i]->Send (delimiter, 1, 0);
 	  
       if (m_protocolType == STANDARD_PROTOCOL)
         m_nodeStats->invSentBytes += m_bitcoinMessageHeader + m_countBytes + d["inv"].Size()*m_inventorySizeBytes;
-	  else if (m_protocolType == SENDHEADERS)
+      else if (m_protocolType == SENDHEADERS)
         m_nodeStats->headersSentBytes += m_bitcoinMessageHeader + m_countBytes + d["blocks"].Size()*m_headersSizeBytes;      
 	
-	  NS_LOG_INFO ("AdvertiseNewBlock: At time " << Simulator::Now ().GetSeconds ()
+      NS_LOG_INFO ("AdvertiseNewBlock: At time " << Simulator::Now ().GetSeconds ()
                    << "s bitcoin node " << GetNode ()->GetId () << " advertised a new Block: " 
                    << newBlock << " to " << *i);
     }
@@ -2624,10 +2628,10 @@ BitcoinNode::AdvertiseFullBlock (const Block &newBlock)
     value.SetString(blockHash.c_str(), blockHash.size(), d.GetAllocator());
     blockInfo.AddMember("hash", value, d.GetAllocator ());
 
-	value = newBlock.GetBlockSizeBytes ();
+    value = newBlock.GetBlockSizeBytes ();
     blockInfo.AddMember("size", value, d.GetAllocator ());
 		  
-	value = true;
+    value = true;
     blockInfo.AddMember("fullBlock", value, d.GetAllocator ());
 	
     array.PushBack(blockInfo, d.GetAllocator());
@@ -2680,10 +2684,10 @@ BitcoinNode::AdvertiseFullBlock (const Block &newBlock)
   
   for (std::vector<Ipv4Address>::const_iterator i = m_peersAddresses.begin(); i != m_peersAddresses.end(); ++i)
   {
-	const uint8_t delimiter[] = "#";
+    const uint8_t delimiter[] = "#";
 
     m_peersSockets[*i]->Send (reinterpret_cast<const uint8_t*>(packetInfo.GetString()), packetInfo.GetSize(), 0);
-	m_peersSockets[*i]->Send (delimiter, 1, 0);
+    m_peersSockets[*i]->Send (delimiter, 1, 0);
 	  
     if (m_protocolType == STANDARD_PROTOCOL)
     {
@@ -2695,8 +2699,8 @@ BitcoinNode::AdvertiseFullBlock (const Block &newBlock)
           m_nodeStats->extInvSentBytes += d["inv"][j]["availableChunks"].Size();
       }
     }
-	else if (m_protocolType == SENDHEADERS)
-	{
+    else if (m_protocolType == SENDHEADERS)
+    {
       m_nodeStats->extHeadersSentBytes += m_bitcoinMessageHeader + m_countBytes + d["blocks"].Size()*m_headersSizeBytes;
       for (int j=0; j<d["blocks"].Size(); j++)
       {
@@ -2706,7 +2710,7 @@ BitcoinNode::AdvertiseFullBlock (const Block &newBlock)
       }	
     }
 	
-	NS_LOG_INFO ("AdvertiseFullBlock: At time " << Simulator::Now ().GetSeconds ()
+    NS_LOG_INFO ("AdvertiseFullBlock: At time " << Simulator::Now ().GetSeconds ()
                  << "s bitcoin node " << GetNode ()->GetId () << " advertised a new Block: " 
                  << newBlock << " to " << *i);
   }
@@ -2834,37 +2838,38 @@ BitcoinNode::AdvertiseFirstChunk (const Block &newBlock)
   {
     if ( *i != newBlock.GetReceivedFromIpv4 () )
     {
-	  const uint8_t delimiter[] = "#";
+      const uint8_t delimiter[] = "#";
 
       m_peersSockets[*i]->Send (reinterpret_cast<const uint8_t*>(packetInfo.GetString()), packetInfo.GetSize(), 0);
-	  m_peersSockets[*i]->Send (delimiter, 1, 0);
+      m_peersSockets[*i]->Send (delimiter, 1, 0);
 	  
-    if (m_protocolType == STANDARD_PROTOCOL)
-    {
-      m_nodeStats->extInvSentBytes += m_bitcoinMessageHeader + m_countBytes + d["inv"].Size()*m_inventorySizeBytes;
-      for (int j=0; j<d["inv"].Size(); j++)
+      if (m_protocolType == STANDARD_PROTOCOL)
       {
-        m_nodeStats->extInvSentBytes += 5; //1Byte(fullBlock) + 4Bytes(numberOfChunks)
-        if (!d["inv"][j]["fullBlock"].GetBool())
-          m_nodeStats->extInvSentBytes += d["inv"][j]["availableChunks"].Size();
+        m_nodeStats->extInvSentBytes += m_bitcoinMessageHeader + m_countBytes + d["inv"].Size()*m_inventorySizeBytes;
+        for (int j=0; j<d["inv"].Size(); j++)
+        {
+          m_nodeStats->extInvSentBytes += 5; //1Byte(fullBlock) + 4Bytes(numberOfChunks)
+          if (!d["inv"][j]["fullBlock"].GetBool())
+            m_nodeStats->extInvSentBytes += d["inv"][j]["availableChunks"].Size();
+        }
       }
-    }
-	else if (m_protocolType == SENDHEADERS)
-	{
-      m_nodeStats->extHeadersSentBytes += m_bitcoinMessageHeader + m_countBytes + d["blocks"].Size()*m_headersSizeBytes;
-      for (int j=0; j<d["blocks"].Size(); j++)
+      else if (m_protocolType == SENDHEADERS)
       {
-        m_nodeStats->extHeadersSentBytes += 1;//fullBlock
-        if (!d["blocks"][j]["fullBlock"].GetBool())
-          m_nodeStats->extHeadersSentBytes += d["blocks"][j]["availableChunks"].Size()*1;
-      }	
-    } 
+        m_nodeStats->extHeadersSentBytes += m_bitcoinMessageHeader + m_countBytes + d["blocks"].Size()*m_headersSizeBytes;
+        for (int j=0; j<d["blocks"].Size(); j++)
+        {
+          m_nodeStats->extHeadersSentBytes += 1;//fullBlock
+          if (!d["blocks"][j]["fullBlock"].GetBool())
+            m_nodeStats->extHeadersSentBytes += d["blocks"][j]["availableChunks"].Size()*1;
+        }	
+      } 
 	
-	  NS_LOG_INFO ("AdvertiseFirstChunk: At time " << Simulator::Now ().GetSeconds ()
+      NS_LOG_INFO ("AdvertiseFirstChunk: At time " << Simulator::Now ().GetSeconds ()
                    << "s bitcoin node " << GetNode ()->GetId () << " advertised a new chunk: " 
                    << newBlock << " to " << *i);
     }
-  }}
+  }
+}
 
 
 void
@@ -2882,7 +2887,7 @@ BitcoinNode::SendMessage(enum Messages receivedMessage,  enum Messages responseM
   NS_LOG_INFO ("Node " << GetNode ()->GetId () << " got a " 
                << getMessageName(receivedMessage) << " message" 
                << " and sent a " << getMessageName(responseMessage) 
-			   << " message: " << buffer.GetString());
+               << " message: " << buffer.GetString());
 
   outgoingSocket->Send (reinterpret_cast<const uint8_t*>(buffer.GetString()), buffer.GetSize(), 0);
   outgoingSocket->Send (delimiter, 1, 0);	
@@ -2940,8 +2945,8 @@ BitcoinNode::SendMessage(enum Messages receivedMessage,  enum Messages responseM
     }
     case CHUNK:
     {
-	  for(int k = 0; k < d["chunks"].Size(); k++)
-	  {
+      for(int k = 0; k < d["chunks"].Size(); k++)
+      {
         int noChunks = ceil(d["chunks"][k]["size"].GetInt() / static_cast<double>(m_chunkSize));
         if (d["chunks"][k]["chunk"] == noChunks -1 && d["chunks"][k]["size"].GetInt() % m_chunkSize > 0)
           m_nodeStats->chunkSentBytes += d["chunks"][k]["size"].GetInt() % m_chunkSize;
@@ -2991,7 +2996,7 @@ BitcoinNode::SendMessage(enum Messages receivedMessage,  enum Messages responseM
   NS_LOG_INFO ("Node " << GetNode ()->GetId () << " got a " 
                << getMessageName(receivedMessage) << " message" 
                << " and sent a " << getMessageName(responseMessage) 
-			   << " message: " << buffer.GetString());
+               << " message: " << buffer.GetString());
 			
   Ipv4Address outgoingIpv4Address = InetSocketAddress::ConvertFrom(outgoingAddress).GetIpv4 ();
   std::map<Ipv4Address, Ptr<Socket>>::iterator it = m_peersSockets.find(outgoingIpv4Address);
@@ -3058,8 +3063,8 @@ BitcoinNode::SendMessage(enum Messages receivedMessage,  enum Messages responseM
     }
     case CHUNK:
     {
-	  for(int k = 0; k < d["chunks"].Size(); k++)
-	  {
+      for(int k = 0; k < d["chunks"].Size(); k++)
+      {
         int noChunks = ceil(d["chunks"][k]["size"].GetInt() / static_cast<double>(m_chunkSize));
         if (d["chunks"][k]["chunk"] == noChunks -1 && d["chunks"][k]["size"].GetInt() % m_chunkSize > 0)
           m_nodeStats->chunkSentBytes += d["chunks"][k]["size"].GetInt() % m_chunkSize;
@@ -3071,7 +3076,7 @@ BitcoinNode::SendMessage(enum Messages receivedMessage,  enum Messages responseM
           m_nodeStats->chunkSentBytes += d["chunks"][k]["availableChunks"].Size();
         if (d["chunks"][k]["requestChunks"].Size() > 0)
           m_nodeStats->chunkSentBytes += d["chunks"][k]["requestChunks"].Size() - 1;
-	  }
+      }
       m_nodeStats->chunkSentBytes += m_bitcoinMessageHeader;
       break;
     }
@@ -3112,7 +3117,7 @@ BitcoinNode::SendMessage(enum Messages receivedMessage,  enum Messages responseM
   NS_LOG_INFO ("Node " << GetNode ()->GetId () << " got a " 
                << getMessageName(receivedMessage) << " message" 
                << " and sent a " << getMessageName(responseMessage) 
-			   << " message: " << buffer.GetString());
+               << " message: " << buffer.GetString());
 			
   Ipv4Address outgoingIpv4Address = InetSocketAddress::ConvertFrom(outgoingAddress).GetIpv4 ();
   std::map<Ipv4Address, Ptr<Socket>>::iterator it = m_peersSockets.find(outgoingIpv4Address);
@@ -3180,8 +3185,8 @@ BitcoinNode::SendMessage(enum Messages receivedMessage,  enum Messages responseM
     }
     case CHUNK:
     {
-	  for(int k = 0; k < d["chunks"].Size(); k++)
-	  {
+      for(int k = 0; k < d["chunks"].Size(); k++)
+      {
         int noChunks = ceil(d["chunks"][k]["size"].GetInt() / static_cast<double>(m_chunkSize));
         if (d["chunks"][k]["chunk"] == noChunks -1 && d["chunks"][k]["size"].GetInt() % m_chunkSize > 0)
           m_nodeStats->chunkSentBytes += d["chunks"][k]["size"].GetInt() % m_chunkSize;
@@ -3193,7 +3198,7 @@ BitcoinNode::SendMessage(enum Messages receivedMessage,  enum Messages responseM
           m_nodeStats->chunkSentBytes += d["chunks"][k]["availableChunks"].Size();
         if (d["chunks"][k]["requestChunks"].Size() > 0)
           m_nodeStats->chunkSentBytes += d["chunks"][k]["requestChunks"].Size() - 1;
-	  }
+      }
       m_nodeStats->chunkSentBytes += m_bitcoinMessageHeader;
       break;
     }
@@ -3229,7 +3234,7 @@ BitcoinNode::PrintQueueInv()
     std::vector<Address>::iterator  block_it;
     std::cout << "  " << elem.first << ":";
 	
-	for (block_it = elem.second.begin();  block_it < elem.second.end(); block_it++)
+    for (block_it = elem.second.begin();  block_it < elem.second.end(); block_it++)
     {
       std::cout << " " << InetSocketAddress::ConvertFrom(*block_it).GetIpv4 ();
     }
@@ -3327,7 +3332,7 @@ BitcoinNode::PrintQueueChunkPeers()
     std::vector<Address>::iterator  block_it;
     std::cout << "  " << elem.first << ":";
 	
-	for (block_it = elem.second.begin();  block_it < elem.second.end(); block_it++)
+    for (block_it = elem.second.begin();  block_it < elem.second.end(); block_it++)
     {
       std::cout << " " << InetSocketAddress::ConvertFrom(*block_it).GetIpv4 ();
     }
@@ -3373,7 +3378,7 @@ BitcoinNode::InvTimeoutExpired(std::string blockHash)
   if (!m_queueInv[blockHash].empty())
   {
     rapidjson::Document   d; 
-	EventId               timeout;
+    EventId               timeout;
     rapidjson::Value      value(INV);
     rapidjson::Value      array(rapidjson::kArrayType);
 	

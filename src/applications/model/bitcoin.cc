@@ -1,3 +1,8 @@
+/**
+ * This file contains the definitions of the functions declared in bitcoin.h
+ */
+
+
 #include "ns3/application.h"
 #include "ns3/event-id.h"
 #include "ns3/ptr.h"
@@ -138,7 +143,7 @@ Block::IsChild(const Block &block) const
   if (GetBlockHeight() == block.GetBlockHeight() + 1 && GetParentBlockMinerId() == block.GetMinerId())
     return true;
   else
-	return false;
+    return false;
 }
 
 
@@ -268,10 +273,16 @@ bool
 Blockchain::HasBlock (const Block &newBlock) const
 {
   
-  if (newBlock.GetBlockHeight() > GetCurrentTopBlock()->GetBlockHeight())		//The new block has a new blockHeight, so we haven't received it previously.
+  if (newBlock.GetBlockHeight() > GetCurrentTopBlock()->GetBlockHeight())
+  {
+    /* The new block has a new blockHeight, so we haven't received it previously. */
+	
 	return false;
-  else														//The new block doesn't have a new blockHeight,
-  {															//so we have to check it is new or if we have already received it.
+  }
+  else														
+  {															
+    /*  The new block doesn't have a new blockHeight, so we have to check it is new or if we have already received it. */
+	
     for (auto const &block: m_blocks[newBlock.GetBlockHeight()]) 
     {
       if (block == newBlock)
@@ -287,10 +298,16 @@ bool
 Blockchain::HasBlock (int height, int minerId) const
 {
   
-  if (height > GetCurrentTopBlock()->GetBlockHeight())		//The new block has a new blockHeight, so we haven't received it previously.
+  if (height > GetCurrentTopBlock()->GetBlockHeight())		
+  {
+    /* The new block has a new blockHeight, so we haven't received it previously. */
+	
 	return false;
-  else														//The new block doesn't have a new blockHeight,
-  {															//so we have to check it is new or if we have already received it.
+  }
+  else														
+  {															
+    /*  The new block doesn't have a new blockHeight, so we have to check it is new or if we have already received it. */
+	
     for (auto const &block: m_blocks[height]) 
     {
       if (block.GetBlockHeight() == height && block.GetMinerId() == minerId)
@@ -313,14 +330,14 @@ Blockchain::ReturnBlock(int height, int minerId)
     for (block_it = m_blocks[height].begin();  block_it < m_blocks[height].end(); block_it++)
     {
       if (block_it->GetBlockHeight() == height && block_it->GetMinerId() == minerId)
-	    return *block_it;
+        return *block_it;
     }
   }
   
   for (block_it = m_orphans.begin();  block_it < m_orphans.end(); block_it++)
   {
     if (block_it->GetBlockHeight() == height && block_it->GetMinerId() == minerId)
-	  return *block_it;
+      return *block_it;
   }
   
   return Block(-1, -1, -1, -1, -1, -1, Ipv4Address("0.0.0.0"));
@@ -333,9 +350,9 @@ Blockchain::IsOrphan (const Block &newBlock) const
   for (auto const &block: m_orphans) 
   {
     if (block == newBlock)
-	{
-	  return true;
-	}
+    {
+      return true;
+    }
   }
   return false;
 }
@@ -347,9 +364,9 @@ Blockchain::IsOrphan (int height, int minerId) const
   for (auto const &block: m_orphans) 
   {
     if (block.GetBlockHeight() == height && block.GetMinerId() == minerId)
-	{
-	  return true;
-	}
+    {
+      return true;
+    }
   }
   return false;
 }
@@ -363,28 +380,28 @@ Blockchain::GetBlockPointer (const Block &newBlock) const
   {
     if (block == newBlock)
     {
-	  return &block;
-	}
+      return &block;
+    }
   }
   return nullptr;
 }
  
 const std::vector<const Block *> 
-Blockchain::GetChildrenPointers (const Block &newBlock)
+Blockchain::GetChildrenPointers (const Block &block)
 {
   std::vector<const Block *> children;
   std::vector<Block>::iterator  block_it;
-  int childrenHeight = newBlock.GetBlockHeight() + 1;
+  int childrenHeight = block.GetBlockHeight() + 1;
   
   if (childrenHeight > GetBlockchainHeight())
     return children;
 
   for (block_it = m_blocks[childrenHeight].begin();  block_it < m_blocks[childrenHeight].end(); block_it++)
   {
-    if (newBlock.IsParent(*block_it))
+    if (block.IsParent(*block_it))
     {
-	  children.push_back(&(*block_it));
-	}
+      children.push_back(&(*block_it));
+    }
   }
   return children;
 }
@@ -400,27 +417,27 @@ Blockchain::GetOrphanChildrenPointers (const Block &newBlock)
   {
     if (newBlock.IsParent(*block_it))
     {
-	  children.push_back(&(*block_it));
-	}
+      children.push_back(&(*block_it));
+    }
   }
   return children;
 }
 
 
 const Block* 
-Blockchain::GetParent (const Block &newBlock) 
+Blockchain::GetParent (const Block &block) 
 {
   std::vector<Block>::iterator  block_it;
-  int parentHeight = newBlock.GetBlockHeight() - 1;
+  int parentHeight = block.GetBlockHeight() - 1;
 
   if (parentHeight > GetBlockchainHeight())
     return nullptr;
   
   for (block_it = m_blocks[parentHeight].begin();  block_it < m_blocks[parentHeight].end(); block_it++)  {
-    if (newBlock.IsChild(*block_it))
+    if (block.IsChild(*block_it))
     {
-	  return &(*block_it);
-	}
+      return &(*block_it);
+    }
   }
 
   return nullptr;
@@ -443,26 +460,29 @@ Blockchain::AddBlock (const Block& newBlock)
     std::vector<Block> newHeight(1, newBlock);
 	m_blocks.push_back(newHeight);
   }	
-  else if (newBlock.GetBlockHeight() > GetCurrentTopBlock()->GetBlockHeight())   		//The new block has a new blockHeight, so have to create a new vector (row)
+  else if (newBlock.GetBlockHeight() > GetCurrentTopBlock()->GetBlockHeight())   		
   {
-	/**
-	 * If we receive an orphan block we have to create the dummy rows for the missing blocks as well
-	 */
-	int dummyRows = newBlock.GetBlockHeight() - GetCurrentTopBlock()->GetBlockHeight() - 1;
+    /**
+     * The new block has a new blockHeight, so have to create a new vector (row)
+     * If we receive an orphan block we have to create the dummy rows for the missing blocks as well
+     */
+    int dummyRows = newBlock.GetBlockHeight() - GetCurrentTopBlock()->GetBlockHeight() - 1;
 	
-	for(int i = 0; i < dummyRows; i++)
-	{  
-	  std::vector<Block> newHeight; 
-	  m_blocks.push_back(newHeight);
-	}
+    for(int i = 0; i < dummyRows; i++)
+    {  
+      std::vector<Block> newHeight; 
+      m_blocks.push_back(newHeight);
+    }
 	
     std::vector<Block> newHeight(1, newBlock);
-	m_blocks.push_back(newHeight);
+    m_blocks.push_back(newHeight);
   }
-  else														//The new block doesn't have a new blockHeight,
-  {															//so we have to add it in an existing row
+  else
+  {
+    /* The new block doesn't have a new blockHeight, so we have to add it in an existing row */
+	
     if (m_blocks[newBlock.GetBlockHeight()].size() > 0)
-	  m_noStaleBlocks++;									
+      m_noStaleBlocks++;									
 
     m_blocks[newBlock.GetBlockHeight()].push_back(newBlock);   
   }
@@ -492,11 +512,11 @@ Blockchain::RemoveOrphan (const Block& newBlock)
   if (block_it == m_orphans.end())
   {
     // name not in vector
-	return;
+    return;
   } 
   else
   {
-	m_orphans.erase(block_it);
+    m_orphans.erase(block_it);
   }
 }
 
@@ -510,7 +530,7 @@ Blockchain::PrintOrphans (void)
   
   for (block_it = m_orphans.begin();  block_it < m_orphans.end(); block_it++)
   {
-	std::cout << *block_it << "\n";
+    std::cout << *block_it << "\n";
   }
   
   std::cout << "\n";
@@ -548,20 +568,20 @@ Blockchain::GetLongestForkSize (void)
     if (blockHeight_it->size() > 1 && forkedBlocksParentId.size() == 0)
     {
       for (block_it = blockHeight_it->begin();  block_it < blockHeight_it->end(); block_it++)
-	  {
-	    forkedBlocksParentId[block_it->GetMinerId()] = 1;
+      {
+        forkedBlocksParentId[block_it->GetMinerId()] = 1;
       }
-	}
-	else if (blockHeight_it->size() > 1)
+    }
+    else if (blockHeight_it->size() > 1)
     {
       for (block_it = blockHeight_it->begin();  block_it < blockHeight_it->end(); block_it++)
-	  {
+      {
         std::map<int, int>::iterator mapIndex = forkedBlocksParentId.find(block_it->GetParentBlockMinerId());
         
         if(mapIndex != forkedBlocksParentId.end())
         {
           forkedBlocksParentId[block_it->GetMinerId()] = mapIndex->second + 1;
-		  if(block_it->GetMinerId() != mapIndex->first)
+          if(block_it->GetMinerId() != mapIndex->first)
             forkedBlocksParentId.erase(mapIndex);	
           newForks.push_back(block_it->GetMinerId());		  
         }
@@ -572,26 +592,25 @@ Blockchain::GetLongestForkSize (void)
       }
 	  
       for (auto &block : forkedBlocksParentId)
-	  {
+      {
        if (std::find(newForks.begin(), newForks.end(), block.first) == newForks.end() )
        {
-		 if(block.second > maxSize)
+         if(block.second > maxSize)
            maxSize = block.second;
          forkedBlocksParentId.erase(block.first);
-	   }
+       }
 	  }
-	}
-	else if (blockHeight_it->size() == 1 && forkedBlocksParentId.size() > 0)
+    }
+    else if (blockHeight_it->size() == 1 && forkedBlocksParentId.size() > 0)
     {
 
       for (auto &block : forkedBlocksParentId)
-	  {
-
-		 if(block.second > maxSize)
-           maxSize = block.second;
-	   }
+      {
+        if(block.second > maxSize)
+          maxSize = block.second;
+      }
 	
-	  forkedBlocksParentId.clear();
+      forkedBlocksParentId.clear();
     }
   }
   
@@ -610,7 +629,7 @@ bool operator== (const Block &block1, const Block &block2)
   if (block1.GetBlockHeight() == block2.GetBlockHeight() && block1.GetMinerId() == block2.GetMinerId())
     return true;
   else
-	return false;
+    return false;
 }
 
 bool operator== (const BitcoinChunk &chunk1, const BitcoinChunk &chunk2)
@@ -618,7 +637,7 @@ bool operator== (const BitcoinChunk &chunk1, const BitcoinChunk &chunk2)
   if (chunk1.GetBlockHeight() == chunk2.GetBlockHeight() && chunk1.GetMinerId() == chunk2.GetMinerId() && chunk1.GetChunkId() == chunk2.GetChunkId())
     return true;
   else
-	return false;
+    return false;
 }
 
 bool operator< (const BitcoinChunk &chunk1, const BitcoinChunk &chunk2)
@@ -626,9 +645,9 @@ bool operator< (const BitcoinChunk &chunk1, const BitcoinChunk &chunk2)
   if (chunk1.GetBlockHeight() < chunk2.GetBlockHeight())
     return true;
   else if (chunk1.GetBlockHeight() == chunk2.GetBlockHeight() && chunk1.GetMinerId() < chunk2.GetMinerId())
-	return true;
+    return true;
   else if (chunk1.GetBlockHeight() == chunk2.GetBlockHeight() && chunk1.GetMinerId() == chunk2.GetMinerId() && chunk1.GetChunkId() < chunk2.GetChunkId())
-	return true;
+    return true;
   else
     return false;
 }
@@ -639,11 +658,11 @@ std::ostream& operator<< (std::ostream &out, const Block &block)
     out << "(m_blockHeight: " << block.GetBlockHeight() << ", " <<
         "m_minerId: " << block.GetMinerId() << ", " <<
         "m_parentBlockMinerId: " << block.GetParentBlockMinerId() << ", " <<
-		"m_blockSizeBytes: " << block.GetBlockSizeBytes() << ", " <<
-		"m_timeCreated: " << block.GetTimeCreated() << ", " <<
-		"m_timeReceived: " << block.GetTimeReceived() << ", " <<
-		"m_receivedFromIpv4: " << block.GetReceivedFromIpv4() <<
-		")";
+        "m_blockSizeBytes: " << block.GetBlockSizeBytes() << ", " <<
+        "m_timeCreated: " << block.GetTimeCreated() << ", " <<
+        "m_timeReceived: " << block.GetTimeReceived() << ", " <<
+        "m_receivedFromIpv4: " << block.GetReceivedFromIpv4() <<
+        ")";
     return out;
 }
 
@@ -654,11 +673,11 @@ std::ostream& operator<< (std::ostream &out, const BitcoinChunk &chunk)
         "m_minerId: " << chunk.GetMinerId() << ", " <<
         "chunkId: " << chunk.GetChunkId() << ", " <<
         "m_parentBlockMinerId: " << chunk.GetParentBlockMinerId() << ", " <<
-		"m_blockSizeBytes: " << chunk.GetBlockSizeBytes() << ", " <<
-		"m_timeCreated: " << chunk.GetTimeCreated() << ", " <<
-		"m_timeReceived: " << chunk.GetTimeReceived() << ", " <<
-		"m_receivedFromIpv4: " << chunk.GetReceivedFromIpv4() <<
-		")";
+        "m_blockSizeBytes: " << chunk.GetBlockSizeBytes() << ", " <<
+        "m_timeCreated: " << chunk.GetTimeCreated() << ", " <<
+        "m_timeReceived: " << chunk.GetTimeReceived() << ", " <<
+        "m_receivedFromIpv4: " << chunk.GetReceivedFromIpv4() <<
+        ")";
     return out;
 }
 
@@ -671,10 +690,10 @@ std::ostream& operator<< (std::ostream &out, Blockchain &blockchain)
   
   for (blockHeight_it = blockchain.m_blocks.begin(), i = 0; blockHeight_it < blockchain.m_blocks.end(); blockHeight_it++, i++) 
   {
-	out << "  BLOCK HEIGHT " << i << ":\n";
+    out << "  BLOCK HEIGHT " << i << ":\n";
     for (block_it = blockHeight_it->begin();  block_it < blockHeight_it->end(); block_it++)
-	{
-	  out << *block_it << "\n";
+    {
+      out << *block_it << "\n";
     }
   }
   
@@ -752,7 +771,7 @@ const char* getBitcoinRegion(enum BitcoinRegion m)
     case JAPAN: return "JAPAN";
     case NORTH_AMERICA: return "NORTH_AMERICA";
     case SOUTH_AMERICA: return "SOUTH_AMERICA";
-	case OTHER: return "OTHER";
+    case OTHER: return "OTHER";
   }
 }
 
@@ -767,7 +786,7 @@ enum BitcoinRegion getBitcoinEnum(uint32_t n)
     case 3: return ASIA_PACIFIC;
     case 4: return JAPAN;
     case 5: return AUSTRALIA;
-	case 6: return OTHER;
+    case 6: return OTHER;
   }
 }
 }// Namespace ns3
