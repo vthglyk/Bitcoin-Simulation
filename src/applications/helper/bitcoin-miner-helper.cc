@@ -1,21 +1,5 @@
-/* -*- Mode:C++; c-file-style:"gnu"; indent-tabs-mode:nil; -*- */
-/*
- * Copyright (c) 2008 INRIA
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Mathieu Lacage <mathieu.lacage@sophia.inria.fr>
+/**
+ * This file contains the definitions of the functions declared in bitcoin-miner-helper.h
  */
 
 #include "ns3/bitcoin-miner-helper.h"
@@ -30,14 +14,14 @@
 namespace ns3 {
 
 BitcoinMinerHelper::BitcoinMinerHelper (std::string protocol, Address address, std::vector<Ipv4Address> peers, int noMiners,
-                                        std::map<Ipv4Address, double> &peersDownloadSpeeds, nodeInternetSpeeds &internetSpeeds,
-										nodeStatistics *stats, double hashRate, double averageBlockGenIntervalSeconds) : 
+                                        std::map<Ipv4Address, double> &peersDownloadSpeeds, std::map<Ipv4Address, double> &peersUploadSpeeds, 
+                                        nodeInternetSpeeds &internetSpeeds, nodeStatistics *stats, double hashRate, double averageBlockGenIntervalSeconds) : 
                                         BitcoinNodeHelper (),  m_minerType (NORMAL_MINER), m_blockBroadcastType (STANDARD),
                                         m_secureBlocks (6), m_advertiseBlocks (0), 
                                         m_blockGenBinSize (-1), m_blockGenParameter (-1)
 {
   m_factory.SetTypeId ("ns3::BitcoinMiner");
-  commonConstructor(protocol, address, peers, peersDownloadSpeeds, internetSpeeds, stats);
+  commonConstructor(protocol, address, peers, peersDownloadSpeeds, peersUploadSpeeds, internetSpeeds, stats);
   
   m_noMiners = noMiners;
   m_hashRate = hashRate;

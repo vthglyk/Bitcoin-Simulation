@@ -133,6 +133,7 @@ main (int argc, char *argv[])
     Ipv4InterfaceContainer                               ipv4InterfaceContainer;
     std::map<uint32_t, std::vector<Ipv4Address>>         nodesConnections;
     std::map<uint32_t, std::map<Ipv4Address, double>>    peersDownloadSpeeds;
+    std::map<uint32_t, std::map<Ipv4Address, double>>    peersUploadSpeeds;
     std::map<uint32_t, nodeInternetSpeeds>               nodesInternetSpeeds;
     std::vector<uint32_t>                                miners;
   
@@ -151,6 +152,7 @@ main (int argc, char *argv[])
     nodesConnections = bitcoinTopologyHelper.GetNodesConnectionsIps();
     miners = bitcoinTopologyHelper.GetMiners();
     peersDownloadSpeeds = bitcoinTopologyHelper.GetPeersDownloadSpeeds();
+    peersUploadSpeeds = bitcoinTopologyHelper.GetPeersUploadSpeeds();
     nodesInternetSpeeds = bitcoinTopologyHelper.GetNodesInternetSpeeds();
     if (systemId == 0)
       PrintBitcoinRegionStats(bitcoinTopologyHelper.GetBitcoinNodesRegions(), totalNoNodes);
@@ -158,7 +160,7 @@ main (int argc, char *argv[])
 
     //Install miners
     BitcoinMinerHelper bitcoinMinerHelper ("ns3::TcpSocketFactory", InetSocketAddress (Ipv4Address::GetAny (), bitcoinPort),
-                                            nodesConnections[miners[0]], noMiners, peersDownloadSpeeds[0], nodesInternetSpeeds[0], 
+                                            nodesConnections[miners[0]], noMiners, peersDownloadSpeeds[0], peersUploadSpeeds[0], nodesInternetSpeeds[0], 
 										    stats, minersHash[0], averageBlockGenIntervalSeconds);
     ApplicationContainer bitcoinMiners;
     int count = 0;
@@ -175,6 +177,8 @@ main (int argc, char *argv[])
         bitcoinMinerHelper.SetAttribute("HashRate", DoubleValue(minersHash[count]));
 	    bitcoinMinerHelper.SetPeersAddresses (nodesConnections[miner]);
 	    bitcoinMinerHelper.SetNodeStats (&stats[miner]);
+	    bitcoinMinerHelper.SetPeersDownloadSpeeds (peersDownloadSpeeds[miner]);
+	    bitcoinMinerHelper.SetPeersUploadSpeeds (peersUploadSpeeds[miner]);
 	    bitcoinMiners.Add(bitcoinMinerHelper.Install (targetNode));
 /*         std::cout << "SystemId " << systemId << ": Miner " << miner.first << " with hash power = " << minersHash[count] 
 	              << " and systemId = " << targetNode->GetSystemId() << " was installed in node (" 

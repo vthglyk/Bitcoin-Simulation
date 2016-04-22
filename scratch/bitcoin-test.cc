@@ -262,8 +262,8 @@ main (int argc, char *argv[])
 											   
   //Install miners
   BitcoinMinerHelper bitcoinMinerHelper ("ns3::TcpSocketFactory", InetSocketAddress (Ipv4Address::GetAny (), bitcoinPort),
-                                          nodesConnections[miners[0]], noMiners, peersDownloadSpeeds[0], nodesInternetSpeeds[0], 
-										  stats, minersHash[0], averageBlockGenIntervalSeconds);
+                                          nodesConnections[miners[0]], noMiners, peersDownloadSpeeds[0], peersUploadSpeeds[0],
+                                          nodesInternetSpeeds[0], stats, minersHash[0], averageBlockGenIntervalSeconds);
   ApplicationContainer bitcoinMiners;
   int count = 0;
   if (testScalability == true)
@@ -335,7 +335,7 @@ main (int argc, char *argv[])
   
   //Install simple nodes
   BitcoinNodeHelper bitcoinNodeHelper ("ns3::TcpSocketFactory", InetSocketAddress (Ipv4Address::GetAny (), bitcoinPort), 
-                                        nodesConnections[0], peersDownloadSpeeds[0], nodesInternetSpeeds[0], stats);
+                                        nodesConnections[0], peersDownloadSpeeds[0],  peersUploadSpeeds[0], nodesInternetSpeeds[0], stats);
   ApplicationContainer bitcoinNodes;
   
   for(auto &node : nodesConnections)

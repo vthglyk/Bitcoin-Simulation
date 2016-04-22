@@ -1,22 +1,7 @@
-/* -*- Mode:C++; c-file-style:"gnu"; indent-tabs-mode:nil; -*- */
-/*
- * Copyright (c) 2008 INRIA
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Mathieu Lacage <mathieu.lacage@sophia.inria.fr>
+/**
+ * This file contains declares the BitcoinNodeHelper class.
  */
+ 
 #ifndef BITCOIN_NODE_HELPER_H
 #define BITCOIN_NODE_HELPER_H
 
@@ -37,17 +22,22 @@ class BitcoinNodeHelper
 {
 public:
   /**
-   * Create a PacketSinkHelper to make it easier to work with PacketSinkApplications
+   * Create a BitcoinNodeHelper to make it easier to work with BitcoinNode applications
    *
    * \param protocol the name of the protocol to use to receive traffic
    *        This string identifies the socket factory type used to create
    *        sockets for the applications.  A typical value would be 
    *        ns3::TcpSocketFactory.
-   * \param address the address of the bitcoin node,
-   *
+   * \param address the address of the bitcoin node
+   * \param peers a reference to a vector containing the Ipv4 addresses of peers of the bitcoin node
+   * \param peersDownloadSpeeds a map containing the download speeds of the peers of the node
+   * \param peersUploadSpeeds a map containing the upload speeds of the peers of the node
+   * \param internetSpeeds a reference to a struct containing the internet speeds of the node
+   * \param stats a pointer to struct holding the node statistics
    */
   BitcoinNodeHelper (std::string protocol, Address address, std::vector<Ipv4Address> &peers, 
-                     std::map<Ipv4Address, double> &peersDownloadSpeeds, nodeInternetSpeeds &internetSpeeds, nodeStatistics *stats);
+                     std::map<Ipv4Address, double> &peersDownloadSpeeds, std::map<Ipv4Address, double> &peersUploadSpeeds,
+                     nodeInternetSpeeds &internetSpeeds, nodeStatistics *stats);
   
   /**
    * Called by subclasses to set a different factory TypeId
@@ -56,9 +46,20 @@ public:
   
   /**
    * Common Constructor called both from the base class and the subclasses
+   * \param protocol the name of the protocol to use to receive traffic
+   *        This string identifies the socket factory type used to create
+   *        sockets for the applications.  A typical value would be 
+   *        ns3::TcpSocketFactory.
+   * \param address the address of the bitcoin node
+   * \param peers a reference to a vector containing the Ipv4 addresses of peers of the bitcoin node
+   * \param peersDownloadSpeeds a map containing the download speeds of the peers of the node
+   * \param peersUploadSpeeds a map containing the upload speeds of the peers of the node
+   * \param internetSpeeds a reference to a struct containing the internet speeds of the node
+   * \param stats a pointer to struct holding the node statistics
    */
    void commonConstructor(std::string protocol, Address address, std::vector<Ipv4Address> &peers, 
-                          std::map<Ipv4Address, double> &peersDownloadSpeeds, nodeInternetSpeeds &internetSpeeds, nodeStatistics *stats);
+                          std::map<Ipv4Address, double> &peersDownloadSpeeds, std::map<Ipv4Address, double> &peersUploadSpeeds,
+                          nodeInternetSpeeds &internetSpeeds, nodeStatistics *stats);
   
   /**
    * Helper function used to set the underlying application attributes.
@@ -117,15 +118,15 @@ protected:
    */
   virtual Ptr<Application> InstallPriv (Ptr<Node> node);
   
-  ObjectFactory                                       m_factory; //!< Object factory.
-  std::string                                         m_protocol;
-  Address                                             m_address;
-  std::vector<Ipv4Address>		                      m_peersAddresses; //!< The addresses of peers
-  std::map<Ipv4Address, double>                       m_peersDownloadSpeeds;
-  std::map<Ipv4Address, double>                       m_peersUploadSpeeds;
-  nodeInternetSpeeds                                  m_internetSpeeds;
-  nodeStatistics                                      *m_nodeStats;
-  enum ProtocolType									  m_protocolType;
+  ObjectFactory                                       m_factory;              //!< Object factory.
+  std::string                                         m_protocol;             //!< The name of the protocol to use to receive traffic
+  Address                                             m_address;              //!< The address of the bitcoin node
+  std::vector<Ipv4Address>		                      m_peersAddresses;       //!< The addresses of peers
+  std::map<Ipv4Address, double>                       m_peersDownloadSpeeds;  //!< The download speeds of the peers
+  std::map<Ipv4Address, double>                       m_peersUploadSpeeds;    //!< The upload speeds of the peers
+  nodeInternetSpeeds                                  m_internetSpeeds;       //!< The internet speeds of the node
+  nodeStatistics                                      *m_nodeStats;           //!< The struct holding the node statistics
+  enum ProtocolType									  m_protocolType;         //!< The protocol that the nodes use to advertise new blocks (DEFAULT: STANDARD)
 
 };
 
