@@ -135,6 +135,8 @@ typedef struct {
   int      longestFork;
   int      blocksInForks;
   int      connections;
+  long     blockTimeouts;
+  long     chunkTimeouts;
 } nodeStatistics;
 
 

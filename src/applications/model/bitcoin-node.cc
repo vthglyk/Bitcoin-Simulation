@@ -265,6 +265,9 @@ BitcoinNode::StartApplication ()    // Called at time specified by Start
   m_nodeStats->longestFork = 0;
   m_nodeStats->blocksInForks = 0;
   m_nodeStats->connections = m_peersAddresses.size();
+  m_nodeStats->blockTimeouts = 0;
+  m_nodeStats->chunkTimeouts = 0;
+
 }
 
 void 
@@ -3365,7 +3368,8 @@ BitcoinNode::InvTimeoutExpired(std::string blockHash)
 
   NS_LOG_INFO ("Node " << GetNode ()->GetId () << ": At time "  << Simulator::Now ().GetSeconds ()
                 << " the timeout for block " << blockHash << " expired");
-
+  
+  m_nodeStats->blockTimeouts ++;
   //PrintQueueInv();
   //PrintInvTimeouts();
   
@@ -3433,6 +3437,8 @@ BitcoinNode::ChunkTimeoutExpired(std::string chunk)
   
   NS_LOG_WARN ("Node " << GetNode ()->GetId () << ": At time "  << Simulator::Now ().GetSeconds ()
                 << " the timeout for chunk " << chunk << " expired");
+				
+  m_nodeStats->chunkTimeouts ++;
 
 /*   PrintChunkTimeouts();
   PrintQueueChunks();

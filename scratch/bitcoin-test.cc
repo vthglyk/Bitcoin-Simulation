@@ -393,13 +393,13 @@ main (int argc, char *argv[])
 
 #ifdef MPI_TEST
 
-  int            blocklen[35] = {1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+  int            blocklen[37] = {1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
                                  1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
-                                 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1}; 
-  MPI_Aint       disp[35]; 
-  MPI_Datatype   dtypes[35] = {MPI_INT, MPI_DOUBLE, MPI_DOUBLE, MPI_DOUBLE, MPI_INT, MPI_INT, MPI_INT, MPI_INT, MPI_DOUBLE, MPI_DOUBLE, MPI_DOUBLE, MPI_INT,
-                               MPI_LONG, MPI_LONG, MPI_LONG, MPI_LONG, MPI_LONG, MPI_LONG, MPI_LONG, MPI_LONG, MPI_LONG, MPI_LONG,
-                               MPI_LONG, MPI_LONG, MPI_LONG, MPI_LONG, MPI_LONG, MPI_LONG, MPI_LONG, MPI_LONG, MPI_LONG, MPI_LONG, MPI_INT, MPI_INT, MPI_INT}; 
+                                 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1}; 
+  MPI_Aint       disp[37]; 
+  MPI_Datatype   dtypes[37] = {MPI_INT, MPI_DOUBLE, MPI_DOUBLE, MPI_DOUBLE, MPI_INT, MPI_INT, MPI_INT, MPI_INT, MPI_DOUBLE, MPI_DOUBLE, MPI_DOUBLE, MPI_INT,
+                               MPI_LONG, MPI_LONG, MPI_LONG, MPI_LONG, MPI_LONG, MPI_LONG, MPI_LONG, MPI_LONG, MPI_LONG, MPI_LONG, MPI_LONG, MPI_LONG,
+                               MPI_LONG, MPI_LONG, MPI_LONG, MPI_LONG, MPI_LONG, MPI_LONG, MPI_LONG, MPI_LONG, MPI_INT, MPI_INT, MPI_INT, MPI_LONG, MPI_LONG}; 
   MPI_Datatype   mpi_nodeStatisticsType;
 
   disp[0] = offsetof(nodeStatistics, nodeId);
@@ -437,8 +437,10 @@ main (int argc, char *argv[])
   disp[32] = offsetof(nodeStatistics, longestFork);
   disp[33] = offsetof(nodeStatistics, blocksInForks);
   disp[34] = offsetof(nodeStatistics, connections);
+  disp[35] = offsetof(nodeStatistics, blockTimeouts);
+  disp[36] = offsetof(nodeStatistics, chunkTimeouts);
 
-  MPI_Type_create_struct (35, blocklen, disp, dtypes, &mpi_nodeStatisticsType);
+  MPI_Type_create_struct (37, blocklen, disp, dtypes, &mpi_nodeStatisticsType);
   MPI_Type_commit (&mpi_nodeStatisticsType);
 
   if (systemId != 0 && systemCount > 1)
@@ -506,7 +508,9 @@ main (int argc, char *argv[])
       stats[recv.nodeId].longestFork = recv.longestFork;
       stats[recv.nodeId].blocksInForks = recv.blocksInForks;
       stats[recv.nodeId].connections = recv.connections;
-
+      stats[recv.nodeId].blockTimeouts = recv.blockTimeouts;
+      stats[recv.nodeId].chunkTimeouts = recv.chunkTimeouts;
+	  
 	  count++;
     }
   }	  
@@ -668,6 +672,8 @@ void PrintTotalStats (nodeStatistics *stats, int totalNodes, double start, doubl
   std::vector<double>    downloadBandwidths;
   std::vector<double>    uploadBandwidths;
   std::vector<double>    totalBandwidths;
+  std::vector<long>      blockTimeouts;
+  std::vector<long>      chunkTimeouts;
   
   for (int it = 0; it < totalNodes; it++ )
   {
@@ -717,8 +723,9 @@ void PrintTotalStats (nodeStatistics *stats, int totalNodes, double start, doubl
     downloadBandwidths.push_back(download);  
     uploadBandwidths.push_back(upload);     	  
     totalBandwidths.push_back(download + upload); 
+    blockTimeouts.push_back(stats[it].blockTimeouts);
+    chunkTimeouts.push_back(stats[it].chunkTimeouts);
 
-	
 	if(stats[it].miner == 0)
     {
       connectionsPerNode = connectionsPerNode*nodes/static_cast<double>(nodes + 1) + stats[it].connections/static_cast<double>(nodes + 1);
@@ -742,7 +749,9 @@ void PrintTotalStats (nodeStatistics *stats, int totalNodes, double start, doubl
   staleBlocks /= totalNodes;
   sort(propagationTimes.begin(), propagationTimes.end());
   sort(minersPropagationTimes.begin(), minersPropagationTimes.end());
-
+  sort(blockTimeouts.begin(), blockTimeouts.end());
+  sort(chunkTimeouts.begin(), chunkTimeouts.end());
+  
   double median = *(propagationTimes.begin()+propagationTimes.size()/2);
   double p_10 = *(propagationTimes.begin()+int(propagationTimes.size()*.1));
   double p_25 = *(propagationTimes.begin()+int(propagationTimes.size()*.25));
@@ -891,7 +900,32 @@ void PrintTotalStats (nodeStatistics *stats, int totalNodes, double start, doubl
     average += *it;
   }
   std::cout << "] average = " << average/totalBandwidths.size() << "\n" ;
+  
+  std::cout << "\nBlock Timeouts = [";
+  average = 0;
+  for(auto it = blockTimeouts.begin(); it != blockTimeouts.end(); it++)
+  {
+    if (it == blockTimeouts.begin())
+      std::cout << *it;
+    else
+      std::cout << ", " << *it ;
+    average += *it;
+  }
+  std::cout << "] average = " << average/blockTimeouts.size() << "\n" ;
 
+  std::cout << "\nChunk Timeouts = [";
+  average = 0;
+  for(auto it = chunkTimeouts.begin(); it != chunkTimeouts.end(); it++)
+  {
+    if (it == chunkTimeouts.begin())
+      std::cout << *it;
+    else
+      std::cout << ", " << *it ;
+    average += *it;
+  }
+  std::cout << "] average = " << average/chunkTimeouts.size() << "\n" ;
+  
+  std::cout << "\n";
 }
 
 void PrintBitcoinRegionStats (uint32_t *bitcoinNodesRegions, uint32_t totalNodes)
