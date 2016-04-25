@@ -59,12 +59,12 @@ BitcoinMiner::GetTypeId (void)
                    MakeBooleanAccessor (&BitcoinMiner::m_spv),
                    MakeBooleanChecker ())
     .AddAttribute ("NumberOfMiners", 
-				   "The number of miners",
+                   "The number of miners",
                    UintegerValue (16),
                    MakeUintegerAccessor (&BitcoinMiner::m_noMiners),
                    MakeUintegerChecker<uint32_t> ())
     .AddAttribute ("FixedBlockSize", 
-				   "The fixed size of the block",
+                   "The fixed size of the block",
                    UintegerValue (0),
                    MakeUintegerAccessor (&BitcoinMiner::m_fixedBlockSize),
                    MakeUintegerChecker<uint32_t> ())				   
@@ -74,37 +74,37 @@ BitcoinMiner::GetTypeId (void)
                    MakeDoubleAccessor (&BitcoinMiner::m_fixedBlockTimeGeneration),
                    MakeDoubleChecker<double> ())
     .AddAttribute ("InvTimeoutMinutes", 
-				   "The timeout of inv messages in minutes",
+                   "The timeout of inv messages in minutes",
                    TimeValue (Minutes (20)),
                    MakeTimeAccessor (&BitcoinMiner::m_invTimeoutMinutes),
                    MakeTimeChecker())
     .AddAttribute ("HashRate", 
-				   "The hash rate of the miner",
+                   "The hash rate of the miner",
                    DoubleValue (0.2),
                    MakeDoubleAccessor (&BitcoinMiner::m_hashRate),
                    MakeDoubleChecker<double> ())	
     .AddAttribute ("BlockGenBinSize", 
-				   "The block generation bin size",
+                   "The block generation bin size",
                    DoubleValue (-1),
                    MakeDoubleAccessor (&BitcoinMiner::m_blockGenBinSize),
                    MakeDoubleChecker<double> ())	
     .AddAttribute ("BlockGenParameter", 
-				   "The block generation distribution parameter",
+                   "The block generation distribution parameter",
                    DoubleValue (-1),
                    MakeDoubleAccessor (&BitcoinMiner::m_blockGenParameter),
                    MakeDoubleChecker<double> ())	
     .AddAttribute ("AverageBlockGenIntervalSeconds", 
-				   "The average block generation interval we aim at (in seconds)",
+                   "The average block generation interval we aim at (in seconds)",
                    DoubleValue (10*60),
                    MakeDoubleAccessor (&BitcoinMiner::m_averageBlockGenIntervalSeconds),
                    MakeDoubleChecker<double> ())
     .AddAttribute ("Cryptocurrency", 
-				   "BITCOIN, LITECOIN, DOGECOIN",
+                   "BITCOIN, LITECOIN, DOGECOIN",
                    UintegerValue (0),
                    MakeUintegerAccessor (&BitcoinMiner::m_cryptocurrency),
                    MakeUintegerChecker<uint32_t> ())
     .AddAttribute ("ChunkSize", 
-				   "The fixed size of the block chunk",
+                   "The fixed size of the block chunk",
                    UintegerValue (100000),
                    MakeUintegerAccessor (&BitcoinMiner::m_chunkSize),
                    MakeUintegerChecker<uint32_t> ())
@@ -128,7 +128,7 @@ BitcoinMiner::BitcoinMiner () : BitcoinNode(), m_realAverageBlockGenIntervalSeco
   m_generator.seed(rd());
   
   if (m_fixedBlockTimeGeneration > 0)
-	m_nextBlockTime = m_fixedBlockTimeGeneration;  
+    m_nextBlockTime = m_fixedBlockTimeGeneration;  
   else
     m_nextBlockTime = 0;
 
@@ -168,7 +168,7 @@ BitcoinMiner::StartApplication ()    // Called at time specified by Start
     m_blockGenParameter *= m_hashRate;
 
   if (m_fixedBlockTimeGeneration == 0)
-	m_blockGenTimeDistribution.param(std::geometric_distribution<int>::param_type(m_blockGenParameter)); 
+    m_blockGenTimeDistribution.param(std::geometric_distribution<int>::param_type(m_blockGenParameter)); 
 
   if (m_fixedBlockSize > 0)
     m_nextBlockSize = m_fixedBlockSize;
@@ -177,7 +177,7 @@ BitcoinMiner::StartApplication ()    // Called at time specified by Start
     switch(m_cryptocurrency)
     {
       case BITCOIN:
-	  {
+      {
         std::array<double,201> intervals {0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100, 105, 110, 115, 120, 125, 
                                          130, 135, 140, 145, 150, 155, 160, 165, 170, 175, 180, 185, 190, 195, 200, 205, 210, 215, 220, 225, 230, 235, 
                                          240, 245, 250, 255, 260, 265, 270, 275, 280, 285, 290, 295, 300, 305, 310, 315, 320, 325, 330, 335, 340, 345, 
@@ -200,9 +200,9 @@ BitcoinMiner::StartApplication ()    // Called at time specified by Start
                                        0.34, 0.46, 0.49, 0.67, 3.13, 2.94, 0.14, 0.36, 3.88, 0.07, 0.11, 0.11, 0.11, 0.26, 0.12, 0.13, 0.88, 5.84, 4.11};
         m_blockSizeDistribution = std::piecewise_constant_distribution<double> (intervals.begin(), intervals.end(), weights.begin());
         break;
-	  }
+      }
       case LITECOIN:
-	  {
+      {
         std::array<double,201> intervals {0.0, 0.5, 1.0, 1.5, 2.0, 2.5, 3.0, 3.5, 4.0, 4.5, 5.0, 5.5, 6.0, 6.5, 7.0, 7.5, 8.0, 8.5, 9.0, 9.5, 10.0,
 										 10.5, 11.0, 11.5, 12.0, 12.5, 13.0, 13.5, 14.0, 14.5, 15.0, 15.5, 16.0, 16.5, 17.0, 17.5, 18.0, 18.5, 19.0, 19.5,
 										 20.0, 20.5, 21.0, 21.5, 22.0, 22.5, 23.0, 23.5, 24.0, 24.5, 25.0, 25.5, 26.0, 26.5, 27.0, 27.5, 28.0, 28.5, 29.0,
@@ -227,9 +227,9 @@ BitcoinMiner::StartApplication ()    // Called at time specified by Start
 										0.0, 0.24};
         m_blockSizeDistribution = std::piecewise_constant_distribution<double> (intervals.begin(), intervals.end(), weights.begin());
         break;
-	  }
+      }
       case DOGECOIN:
-	  {
+      {
         std::array<double,201> intervals {0.0, 0.5, 1.0, 1.5, 2.0, 2.5, 3.0, 3.5, 4.0, 4.5, 5.0, 5.5, 6.0, 6.5, 7.0, 7.5, 8.0, 8.5, 9.0, 9.5, 10.0,
 										 10.5, 11.0, 11.5, 12.0, 12.5, 13.0, 13.5, 14.0, 14.5, 15.0, 15.5, 16.0, 16.5, 17.0, 17.5, 18.0, 18.5, 19.0, 19.5,
 										 20.0, 20.5, 21.0, 21.5, 22.0, 22.5, 23.0, 23.5, 24.0, 24.5, 25.0, 25.5, 26.0, 26.5, 27.0, 27.5, 28.0, 28.5, 29.0,
@@ -254,7 +254,7 @@ BitcoinMiner::StartApplication ()    // Called at time specified by Start
 										0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.02, 0.41};
         m_blockSizeDistribution = std::piecewise_constant_distribution<double> (intervals.begin(), intervals.end(), weights.begin());
         break;
-	  }
+      }
     }
   }
   
@@ -291,7 +291,7 @@ BitcoinMiner::StopApplication ()
   if (m_fistToMine)
   {
     m_timeFinish = GetWallTime();
-	std::cout << "Time/Block = " << (m_timeFinish - m_timeStart) / (m_blockchain.GetTotalBlocks() - 1) << "s\n";
+    std::cout << "Time/Block = " << (m_timeFinish - m_timeStart) / (m_blockchain.GetTotalBlocks() - 1) << "s\n";
   }
 }
 
@@ -453,10 +453,10 @@ BitcoinMiner::MineBlock (void)
   {
     m_nextBlockSize = m_blockSizeDistribution(m_generator) * 1000;	// *1000 because the m_blockSizeDistribution returns KBytes
 
-	if (m_cryptocurrency == BITCOIN)
-	{
+    if (m_cryptocurrency == BITCOIN)
+    {
       // The block size is linearly dependent on the averageBlockGenIntervalSeconds
-	  if(m_nextBlockSize < m_maxBlockSize - m_headersSizeBytes)
+      if(m_nextBlockSize < m_maxBlockSize - m_headersSizeBytes)
         m_nextBlockSize = m_nextBlockSize*m_averageBlockGenIntervalSeconds / m_realAverageBlockGenIntervalSeconds
                         + m_headersSizeBytes;	
       else
@@ -481,13 +481,13 @@ BitcoinMiner::MineBlock (void)
       value.SetString("block"); //Remove
       inv.AddMember("type", value, inv.GetAllocator());
 	  
-	  if (m_protocolType == STANDARD_PROTOCOL)
-	  {
+      if (m_protocolType == STANDARD_PROTOCOL)
+      {
         if (!m_blockTorrent)
         {
-	      value = INV;
+          value = INV;
           inv.AddMember("message", value, inv.GetAllocator());
-		  
+  		  
           value.SetString(blockHash.c_str(), blockHash.size(), inv.GetAllocator());
           array.PushBack(value, inv.GetAllocator());
 		
@@ -495,7 +495,7 @@ BitcoinMiner::MineBlock (void)
         }
         else
         {
-	      value = EXT_INV;
+          value = EXT_INV;
           inv.AddMember("message", value, inv.GetAllocator());
         
           value.SetString(blockHash.c_str(), blockHash.size(), inv.GetAllocator());
@@ -504,15 +504,15 @@ BitcoinMiner::MineBlock (void)
 	      value = newBlock.GetBlockSizeBytes ();
           blockInfo.AddMember("size", value, inv.GetAllocator ());
 		  
-	      value = true;
+          value = true;
           blockInfo.AddMember("fullBlock", value, inv.GetAllocator ());
 		  
           array.PushBack(blockInfo, inv.GetAllocator());
           inv.AddMember("inv", array, inv.GetAllocator()); 
-		}
-	  }
-	  else if (m_protocolType == SENDHEADERS)
-	  {
+        }
+      }
+      else if (m_protocolType == SENDHEADERS)
+      {
 
         value = newBlock.GetBlockHeight ();
         blockInfo.AddMember("height", value, inv.GetAllocator ());
@@ -542,9 +542,9 @@ BitcoinMiner::MineBlock (void)
           value = EXT_HEADERS;
           inv.AddMember("message", value, inv.GetAllocator());
 		  
-	      value = true;
+          value = true;
           blockInfo.AddMember("fullBlock", value, inv.GetAllocator ());
-		}
+        }
 		
         array.PushBack(blockInfo, inv.GetAllocator());
         inv.AddMember("blocks", array, inv.GetAllocator());      
@@ -589,19 +589,19 @@ BitcoinMiner::MineBlock (void)
     {
       rapidjson::Value value;
       rapidjson::Value headersInfo(rapidjson::kObjectType);
-	  rapidjson::Value chunkInfo(rapidjson::kObjectType);
-	  rapidjson::Value blockInfo(rapidjson::kObjectType);
+      rapidjson::Value chunkInfo(rapidjson::kObjectType);
+      rapidjson::Value blockInfo(rapidjson::kObjectType);
       rapidjson::Value invArray(rapidjson::kArrayType);
       rapidjson::Value blockArray(rapidjson::kArrayType);
 	  
       value.SetString("block"); //Remove
       inv.AddMember("type", value, inv.GetAllocator());
 	  
-	  if (m_protocolType == STANDARD_PROTOCOL)
-	  {
+      if (m_protocolType == STANDARD_PROTOCOL)
+      {
         if (!m_blockTorrent)
         {
-	      value = INV;
+          value = INV;
           inv.AddMember("message", value, inv.GetAllocator());
 		  
           value.SetString(blockHash.c_str(), blockHash.size(), inv.GetAllocator());
@@ -611,24 +611,24 @@ BitcoinMiner::MineBlock (void)
         }
         else
         {
-	      value = EXT_INV;
+          value = EXT_INV;
           inv.AddMember("message", value, inv.GetAllocator());
         
           value.SetString(blockHash.c_str(), blockHash.size(), inv.GetAllocator());
           chunkInfo.AddMember("hash", value, inv.GetAllocator ());
 
-	      value = newBlock.GetBlockSizeBytes ();
+          value = newBlock.GetBlockSizeBytes ();
           chunkInfo.AddMember("size", value, inv.GetAllocator ());
 		  
-	      value = true;
+          value = true;
           chunkInfo.AddMember("fullBlock", value, inv.GetAllocator ());
 		  
           invArray.PushBack(chunkInfo, inv.GetAllocator());
           inv.AddMember("inv", invArray, inv.GetAllocator()); 
-		}
+        }
       }
-	  else if (m_protocolType == SENDHEADERS)
-	  {
+      else if (m_protocolType == SENDHEADERS)
+      {
 
         value = newBlock.GetBlockHeight ();
         headersInfo.AddMember("height", value, inv.GetAllocator ());
@@ -658,9 +658,9 @@ BitcoinMiner::MineBlock (void)
           value = EXT_HEADERS;
           inv.AddMember("message", value, inv.GetAllocator());
 		  
-	      value = true;
+          value = true;
           headersInfo.AddMember("fullBlock", value, inv.GetAllocator ());
-		}
+        }
 		
         invArray.PushBack(headersInfo, inv.GetAllocator());
         inv.AddMember("blocks", invArray, inv.GetAllocator());      
@@ -668,7 +668,7 @@ BitcoinMiner::MineBlock (void)
 	  
 	  
 	  
-	  //Unsolicited for miners
+      //Unsolicited for miners
       value = BLOCK;
       block.AddMember("message", value, block.GetAllocator());
 
@@ -701,12 +701,12 @@ BitcoinMiner::MineBlock (void)
     case UNSOLICITED_RELAY_NETWORK:
     {
       rapidjson::Value value;
-	  rapidjson::Value blockNodesInfo(rapidjson::kObjectType);
-	  rapidjson::Value blockInfo(rapidjson::kObjectType);
+      rapidjson::Value blockNodesInfo(rapidjson::kObjectType);
+      rapidjson::Value blockInfo(rapidjson::kObjectType);
       rapidjson::Value invArray(rapidjson::kArrayType);
       rapidjson::Value blockArray(rapidjson::kArrayType);
 	  
-	  //Unsolicited for nodes
+      //Unsolicited for nodes
       value = BLOCK;
       inv.AddMember("message", value, inv.GetAllocator());
 
@@ -735,7 +735,7 @@ BitcoinMiner::MineBlock (void)
       inv.AddMember("blocks", invArray, inv.GetAllocator());
 	  
 	  
-	  //Unsolicited for miners
+      //Unsolicited for miners
       value = BLOCK;
       block.AddMember("message", value, block.GetAllocator());
 
@@ -771,8 +771,8 @@ BitcoinMiner::MineBlock (void)
   /**
    * Update m_meanBlockReceiveTime with the timeCreated of the newly generated block
    */
-  m_meanBlockReceiveTime = (m_blockchain.GetTotalBlocks() - 1)/static_cast<double>(m_blockchain.GetTotalBlocks())*m_meanBlockReceiveTime + 
-							(currentTime - m_previousBlockReceiveTime)/(m_blockchain.GetTotalBlocks());
+  m_meanBlockReceiveTime = (m_blockchain.GetTotalBlocks() - 1)/static_cast<double>(m_blockchain.GetTotalBlocks())*m_meanBlockReceiveTime 
+                         + (currentTime - m_previousBlockReceiveTime)/(m_blockchain.GetTotalBlocks());
   m_previousBlockReceiveTime = currentTime;	
   
   m_meanBlockPropagationTime = (m_blockchain.GetTotalBlocks() - 1)/static_cast<double>(m_blockchain.GetTotalBlocks())*m_meanBlockPropagationTime;
@@ -796,18 +796,18 @@ BitcoinMiner::MineBlock (void)
   for (std::vector<Ipv4Address>::const_iterator i = m_peersAddresses.begin(); i != m_peersAddresses.end(); ++i, ++count)
   {
     
-	const uint8_t delimiter[] = "#";
+    const uint8_t delimiter[] = "#";
 
     switch(m_blockBroadcastType)				  
     {
       case STANDARD:
       {
         m_peersSockets[*i]->Send (reinterpret_cast<const uint8_t*>(invInfo.GetString()), invInfo.GetSize(), 0);
-	    m_peersSockets[*i]->Send (delimiter, 1, 0);
+        m_peersSockets[*i]->Send (delimiter, 1, 0);
 		
         if (m_protocolType == STANDARD_PROTOCOL && !m_blockTorrent)
           m_nodeStats->invSentBytes += m_bitcoinMessageHeader + m_countBytes + inv["inv"].Size()*m_inventorySizeBytes;
-	    else if (m_protocolType == SENDHEADERS && !m_blockTorrent)
+        else if (m_protocolType == SENDHEADERS && !m_blockTorrent)
           m_nodeStats->headersSentBytes += m_bitcoinMessageHeader + m_countBytes + inv["blocks"].Size()*m_headersSizeBytes;
         else if (m_protocolType == STANDARD_PROTOCOL && m_blockTorrent)
         {
@@ -844,8 +844,8 @@ BitcoinMiner::MineBlock (void)
         double eventTime;	
 				
 /*                 std::cout << "Node " << GetNode()->GetId() << "-" << InetSocketAddress::ConvertFrom(from).GetIpv4 () 
-		  		          << " " << m_peersDownloadSpeeds[InetSocketAddress::ConvertFrom(from).GetIpv4 ()] << " Mbps , time = "
-		  		          << Simulator::Now ().GetSeconds() << "s \n"; */
+                          << " " << m_peersDownloadSpeeds[InetSocketAddress::ConvertFrom(from).GetIpv4 ()] << " Mbps , time = "
+                          << Simulator::Now ().GetSeconds() << "s \n"; */
                 
         if (m_sendBlockTimes.size() == 0 || Simulator::Now ().GetSeconds() >  m_sendBlockTimes.back())
         {
@@ -873,16 +873,16 @@ BitcoinMiner::MineBlock (void)
       {
         if(count < m_noMiners - 1)
         {
-		  int    noTransactions = static_cast<int>((m_nextBlockSize - m_blockHeadersSizeBytes)/m_averageTransactionSize);
+          int    noTransactions = static_cast<int>((m_nextBlockSize - m_blockHeadersSizeBytes)/m_averageTransactionSize);
           long   blockSize = m_blockHeadersSizeBytes + m_transactionIndexSize*noTransactions;
           double sendTime = blockSize / m_uploadSpeed;
-	      double eventTime;
+          double eventTime;
 		  
           m_nodeStats->blockSentBytes += m_bitcoinMessageHeader + blockSize;
 			  
 /* 				std::cout << "Node " << GetNode()->GetId() << "-" << *i 
-				            << " " << m_peersDownloadSpeeds[*i] << " Mbps , time = "
-							<< Simulator::Now ().GetSeconds() << "s \n"; */
+                            << " " << m_peersDownloadSpeeds[*i] << " Mbps , time = "
+                            << Simulator::Now ().GetSeconds() << "s \n"; */
                 
           if (m_sendCompressedBlockTimes.size() == 0 || Simulator::Now ().GetSeconds() >  m_sendCompressedBlockTimes.back())
           {
@@ -910,11 +910,11 @@ BitcoinMiner::MineBlock (void)
         else
         {	    
           m_peersSockets[*i]->Send (reinterpret_cast<const uint8_t*>(invInfo.GetString()), invInfo.GetSize(), 0);
-	      m_peersSockets[*i]->Send (delimiter, 1, 0);
+          m_peersSockets[*i]->Send (delimiter, 1, 0);
 	  
           if (m_protocolType == STANDARD_PROTOCOL && !m_blockTorrent)
             m_nodeStats->invSentBytes += m_bitcoinMessageHeader + m_countBytes + inv["inv"].Size()*m_inventorySizeBytes;
-	      else if (m_protocolType == SENDHEADERS && !m_blockTorrent)
+          else if (m_protocolType == SENDHEADERS && !m_blockTorrent)
             m_nodeStats->headersSentBytes += m_bitcoinMessageHeader + m_countBytes + inv["blocks"].Size()*m_headersSizeBytes;
           else if (m_protocolType == STANDARD_PROTOCOL && m_blockTorrent)
           {
@@ -940,10 +940,10 @@ BitcoinMiner::MineBlock (void)
           NS_LOG_INFO ("At time " << Simulator::Now ().GetSeconds ()
                        << "s bitcoin miner " << GetNode ()->GetId () 
                        << " sent a packet " << invInfo.GetString() 
-			           << " to " << *i);
+                       << " to " << *i);
         }
         break;
-	  }
+      }
       case UNSOLICITED_RELAY_NETWORK:
       {
         double sendTime;
@@ -951,12 +951,12 @@ BitcoinMiner::MineBlock (void)
         std::string packet;
 			  
 /* 				std::cout << "Node " << GetNode()->GetId() << "-" << *i 
-				            << " " << m_peersDownloadSpeeds[*i] << " Mbps , time = "
-							<< Simulator::Now ().GetSeconds() << "s \n"; */
+                            << " " << m_peersDownloadSpeeds[*i] << " Mbps , time = "
+                            << Simulator::Now ().GetSeconds() << "s \n"; */
 							
         if(count < m_noMiners - 1)
         {
-		  int    noTransactions = static_cast<int>((m_nextBlockSize - m_blockHeadersSizeBytes)/m_averageTransactionSize);
+          int    noTransactions = static_cast<int>((m_nextBlockSize - m_blockHeadersSizeBytes)/m_averageTransactionSize);
           long   blockSize = m_blockHeadersSizeBytes + m_transactionIndexSize*noTransactions;
           sendTime = blockSize / m_uploadSpeed;
 
@@ -1008,10 +1008,7 @@ BitcoinMiner::MineBlock (void)
           Simulator::Schedule (Seconds(eventTime + sendTime), &BitcoinMiner::RemoveSendTime, this);
 
         }
-		
-
-
-        break;
+	   break;
       }
     }
 	
@@ -1028,9 +1025,9 @@ BitcoinMiner::MineBlock (void)
   }
   
   m_minerAverageBlockGenInterval = m_minerGeneratedBlocks/static_cast<double>(m_minerGeneratedBlocks+1)*m_minerAverageBlockGenInterval 
-                             + (Simulator::Now ().GetSeconds () - m_previousBlockGenerationTime)/(m_minerGeneratedBlocks+1);
+                                 + (Simulator::Now ().GetSeconds () - m_previousBlockGenerationTime)/(m_minerGeneratedBlocks+1);
   m_minerAverageBlockSize = m_minerGeneratedBlocks/static_cast<double>(m_minerGeneratedBlocks+1)*m_minerAverageBlockSize 
-                            + static_cast<double>(m_nextBlockSize)/(m_minerGeneratedBlocks+1);
+                          + static_cast<double>(m_nextBlockSize)/(m_minerGeneratedBlocks+1);
   m_previousBlockGenerationTime = Simulator::Now ().GetSeconds ();
   m_minerGeneratedBlocks++;
 			   

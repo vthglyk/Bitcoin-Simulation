@@ -40,61 +40,61 @@ BitcoinMinerHelper::InstallPriv (Ptr<Node> node) //FIX ME
    switch (m_minerType) 
    {
       case NORMAL_MINER: 
-	  {
+      {
         Ptr<BitcoinMiner> app = m_factory.Create<BitcoinMiner> ();
         app->SetPeersAddresses(m_peersAddresses);
-		app->SetPeersDownloadSpeeds(m_peersDownloadSpeeds);
-		app->SetPeersUploadSpeeds(m_peersUploadSpeeds);
-		app->SetNodeInternetSpeeds(m_internetSpeeds);
+        app->SetPeersDownloadSpeeds(m_peersDownloadSpeeds);
+        app->SetPeersUploadSpeeds(m_peersUploadSpeeds);
+        app->SetNodeInternetSpeeds(m_internetSpeeds);
         app->SetNodeStats(m_nodeStats);
         app->SetBlockBroadcastType(m_blockBroadcastType);
         app->SetProtocolType(m_protocolType);
 
         node->AddApplication (app);
         return app;
-	  }
+      }
       case SIMPLE_ATTACKER: 
-	  {
+      {
         Ptr<BitcoinSimpleAttacker> app = m_factory.Create<BitcoinSimpleAttacker> ();
         app->SetPeersAddresses(m_peersAddresses);
-		app->SetPeersDownloadSpeeds(m_peersDownloadSpeeds);
-		app->SetPeersUploadSpeeds(m_peersUploadSpeeds);
-		app->SetNodeInternetSpeeds(m_internetSpeeds);
+        app->SetPeersDownloadSpeeds(m_peersDownloadSpeeds);
+        app->SetPeersUploadSpeeds(m_peersUploadSpeeds);
+        app->SetNodeInternetSpeeds(m_internetSpeeds);
         app->SetNodeStats(m_nodeStats);
         app->SetBlockBroadcastType(m_blockBroadcastType);
         app->SetProtocolType(m_protocolType);
 
         node->AddApplication (app);
         return app;
-	  }
+      }
       case SELFISH_MINER: 
-	  {
+      {
         Ptr<BitcoinSelfishMiner> app = m_factory.Create<BitcoinSelfishMiner> ();
         app->SetPeersAddresses(m_peersAddresses);
-		app->SetPeersDownloadSpeeds(m_peersDownloadSpeeds);
-		app->SetPeersUploadSpeeds(m_peersUploadSpeeds);
-		app->SetNodeInternetSpeeds(m_internetSpeeds);
+        app->SetPeersDownloadSpeeds(m_peersDownloadSpeeds);
+        app->SetPeersUploadSpeeds(m_peersUploadSpeeds);
+        app->SetNodeInternetSpeeds(m_internetSpeeds);
         app->SetNodeStats(m_nodeStats);
         app->SetBlockBroadcastType(m_blockBroadcastType);
         app->SetProtocolType(m_protocolType);
 
         node->AddApplication (app);
         return app;
-	  }
+      }
       case SELFISH_MINER_TRIALS: 
-	  {
+      {
         Ptr<BitcoinSelfishMinerTrials> app = m_factory.Create<BitcoinSelfishMinerTrials> ();
         app->SetPeersAddresses(m_peersAddresses);
-		app->SetPeersDownloadSpeeds(m_peersDownloadSpeeds);
-		app->SetPeersUploadSpeeds(m_peersUploadSpeeds);
-		app->SetNodeInternetSpeeds(m_internetSpeeds);
+        app->SetPeersDownloadSpeeds(m_peersDownloadSpeeds);
+        app->SetPeersUploadSpeeds(m_peersUploadSpeeds);
+        app->SetNodeInternetSpeeds(m_internetSpeeds);
         app->SetNodeStats(m_nodeStats);
         app->SetBlockBroadcastType(m_blockBroadcastType);
         app->SetProtocolType(m_protocolType);
 
         node->AddApplication (app);
         return app;
-	  }
+      }
    }
    
 }
@@ -108,46 +108,44 @@ BitcoinMinerHelper::GetMinerType(void)
 void 
 BitcoinMinerHelper::SetMinerType (enum MinerType m)  //FIX ME
 {
-  m_minerType = m;
+   m_minerType = m;
   
    switch (m) 
    {
       case NORMAL_MINER: 
       {
         m_factory.SetTypeId ("ns3::BitcoinMiner");
-		SetFactoryAttributes();
+        SetFactoryAttributes();
         break;
       }
       case SIMPLE_ATTACKER:  
       {
         m_factory.SetTypeId ("ns3::BitcoinSimpleAttacker");
-		SetFactoryAttributes();
-		m_factory.Set ("SecureBlocks", UintegerValue(m_secureBlocks));
-		m_factory.Set ("AdvertiseBlocks", UintegerValue(m_advertiseBlocks));
+        SetFactoryAttributes();
+        m_factory.Set ("SecureBlocks", UintegerValue(m_secureBlocks));
+        m_factory.Set ("AdvertiseBlocks", UintegerValue(m_advertiseBlocks));
 
         break;
       }
       case SELFISH_MINER:  
       {
         m_factory.SetTypeId ("ns3::BitcoinSelfishMiner");
-		SetFactoryAttributes();
-		m_factory.Set ("SecureBlocks", UintegerValue(m_secureBlocks));
-		m_factory.Set ("AdvertiseBlocks", UintegerValue(m_advertiseBlocks));
+        SetFactoryAttributes();
+        m_factory.Set ("SecureBlocks", UintegerValue(m_secureBlocks));
+        m_factory.Set ("AdvertiseBlocks", UintegerValue(m_advertiseBlocks));
 
         break;
       }
       case SELFISH_MINER_TRIALS:  
       {
         m_factory.SetTypeId ("ns3::BitcoinSelfishMinerTrials");
-		SetFactoryAttributes();
-		m_factory.Set ("SecureBlocks", UintegerValue(m_secureBlocks));
-		m_factory.Set ("AdvertiseBlocks", UintegerValue(m_advertiseBlocks));
+        SetFactoryAttributes();
+        m_factory.Set ("SecureBlocks", UintegerValue(m_secureBlocks));
+        m_factory.Set ("AdvertiseBlocks", UintegerValue(m_advertiseBlocks));
 
         break;
       }
    }
-   
-  //std::cout << "Changed minerType to " << getMinerType(m) << std::endl;
 }
 
 

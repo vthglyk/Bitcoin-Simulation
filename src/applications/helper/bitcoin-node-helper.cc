@@ -66,9 +66,9 @@ BitcoinNodeHelper::Install (NodeContainer c)
 
   ApplicationContainer apps;
   for (NodeContainer::Iterator i = c.Begin (); i != c.End (); ++i)
-    {
-      apps.Add (InstallPriv (*i));
-    }
+  {
+    apps.Add (InstallPriv (*i));
+  }
 
   return apps;
 }
