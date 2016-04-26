@@ -3402,15 +3402,19 @@ BitcoinNode::InvTimeoutExpired(std::string blockHash)
     value.SetString(blockHash.c_str(), blockHash.size(), d.GetAllocator());
     array.PushBack(value, d.GetAllocator());
     d.AddMember("blocks", array, d.GetAllocator());
-	
+
+    int index = rand() % m_queueInv[blockHash].size();
+    Address temp = m_queueInv[blockHash][0];
+    m_queueInv[blockHash][0] = m_queueInv[blockHash][index];
+    m_queueInv[blockHash][index] = temp;
+    	
     SendMessage(INV, GET_HEADERS, d, *(m_queueInv[blockHash].begin()));				
     SendMessage(INV, GET_DATA, d, *(m_queueInv[blockHash].begin()));	
 					
     timeout = Simulator::Schedule (m_invTimeoutMinutes, &BitcoinNode::InvTimeoutExpired, this, blockHash);
     m_invTimeouts[blockHash] = timeout;
   }
-  
-  if (m_queueInv[blockHash].size() == 0)
+  else
     m_queueInv.erase(blockHash);
     
   //PrintQueueInv();
