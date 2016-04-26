@@ -3366,6 +3366,12 @@ BitcoinNode::InvTimeoutExpired(std::string blockHash)
 {
   NS_LOG_FUNCTION (this);
 
+  std::string   invDelimiter = "/";
+  size_t        invPos = blockHash.find(invDelimiter);
+
+  int height = atoi(blockHash.substr(0, invPos).c_str());
+  int minerId = atoi(blockHash.substr(invPos+1, blockHash.size()).c_str());
+  
   NS_LOG_INFO ("Node " << GetNode ()->GetId () << ": At time "  << Simulator::Now ().GetSeconds ()
                 << " the timeout for block " << blockHash << " expired");
   
@@ -3379,7 +3385,7 @@ BitcoinNode::InvTimeoutExpired(std::string blockHash)
   //PrintQueueInv();
   //PrintInvTimeouts();
   
-  if (!m_queueInv[blockHash].empty())
+  if (!m_queueInv[blockHash].empty() && !m_blockchain.HasBlock(height, minerId) && !m_blockchain.IsOrphan(height, minerId) && !ReceivedButNotValidated(blockHash))
   {
     rapidjson::Document   d; 
     EventId               timeout;
