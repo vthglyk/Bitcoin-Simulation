@@ -36,6 +36,7 @@ int GetNodeIdByIpv4 (Ipv4InterfaceContainer container, Ipv4Address addr);
 void PrintStatsForEachNode (nodeStatistics *stats, int totalNodes);
 void PrintTotalStats (nodeStatistics *stats, int totalNodes, double start, double finish, double averageBlockGenIntervalMinutes);
 void PrintBitcoinRegionStats (uint32_t *bitcoinNodesRegions, uint32_t totalNodes);
+void PrintAttackStats (nodeStatistics *stats, int attackerId, double ud);
 
 NS_LOG_COMPONENT_DEFINE ("SelfishMinerTest");
 
@@ -44,6 +45,10 @@ main (int argc, char *argv[])
 {
 #ifdef NS3_MPI
   bool nullmsg = false;
+  bool unsolicited = false;
+  bool relayNetwork = false;
+  bool unsolicitedRelayNetwork = false;
+  double ud = 0;
   enum Cryptocurrency  cryptocurrency = BITCOIN;
   double tStart = get_wall_time(), tFinish, tSimStart, tSimFinish;
   const int secsPerMin = 60;
@@ -55,13 +60,21 @@ main (int argc, char *argv[])
   int start = 0;
   double bandwidth = 8;
   double latency = 40;
-  bool advertiseBlocks = false;
   bool test = false;
   
-  int totalNoNodes = 2;
-  int noMiners = 2;
-  double minersHash[] = {0.6, 0.4};
-  enum BitcoinRegion minersRegions[] = {ASIA_PACIFIC, ASIA_PACIFIC};
+  
+/*   double minersHash[] = {0.185, 0.159, 0.133, 0.066, 0.054,
+                                0.029, 0.016, 0.012, 0.012, 0.012, 0.009,
+                                0.005, 0.005, 0.002, 0.002, 0.3};
+  enum BitcoinRegion minersRegions[] = {ASIA_PACIFIC, ASIA_PACIFIC, NORTH_AMERICA, ASIA_PACIFIC, NORTH_AMERICA,
+                                               EUROPE, EUROPE, NORTH_AMERICA, NORTH_AMERICA, NORTH_AMERICA, EUROPE,
+                                               NORTH_AMERICA, NORTH_AMERICA, NORTH_AMERICA, NORTH_AMERICA, ASIA_PACIFIC}; */
+  double minersHash[] = {0.4, 0.4, 0.3};
+  enum BitcoinRegion minersRegions[] = {ASIA_PACIFIC, ASIA_PACIFIC, ASIA_PACIFIC};
+
+  int totalNoNodes = sizeof(minersHash)/sizeof(double);
+  int noMiners = totalNoNodes;
+  int attackerId = totalNoNodes - 1;
   int minConnectionsPerNode = 1;
   int maxConnectionsPerNode = 1;
   
@@ -84,9 +97,9 @@ main (int argc, char *argv[])
   uint32_t systemId = 0;
   uint32_t systemCount = 1;
   
-  //LogComponentEnable("BitcoinNode", LOG_LEVEL_WARN);
-  //LogComponentEnable("BitcoinMiner", LOG_LEVEL_WARN);
-  //LogComponentEnable("BitcoinSelfishMiner", LOG_LEVEL_WARN);
+  //LogComponentEnable("BitcoinNode", LOG_LEVEL_INFO);
+  LogComponentEnable("BitcoinMiner", LOG_LEVEL_INFO);
+  LogComponentEnable("BitcoinSelfishMiner", LOG_LEVEL_INFO);
   
   //LogComponentEnable("ObjectFactory", LOG_LEVEL_FUNCTION);
   //LogComponentEnable("Ipv4AddressGenerator", LOG_LEVEL_INFO);
@@ -115,16 +128,18 @@ main (int argc, char *argv[])
   cmd.AddValue ("secureBlocks", "The number of confirmations required for transactions", secureBlocks);
   cmd.AddValue ("blockIntervalMinutes", "The average block generation interval in minutes", averageBlockGenIntervalMinutes);
   cmd.AddValue ("noBlocks", "The number of generated blocks", targetNumberOfBlocks);
-  cmd.AddValue ("attHashRate", "The hash rate of the attacker", minersHash[1]);
+  cmd.AddValue ("attHashRate", "The hash rate of the attacker", minersHash[attackerId]);
   cmd.AddValue ("iterations", "The number of iterations of the attack", iterations);
-  cmd.AddValue ("advertiseBlocks", "Choose whether the attacker will advertise his generated blocks", advertiseBlocks);
   cmd.AddValue ("test", "Test the attack", test);
-
+  cmd.AddValue ("ud", "The transaction value which is double-spent", ud);
+  cmd.AddValue ("unsolicited", "Change the miners block broadcast type to UNSOLICITED", unsolicited);
+  cmd.AddValue ("relayNetwork", "Change the miners block broadcast type to RELAY_NETWORK", relayNetwork);
+  cmd.AddValue ("unsolicitedRelayNetwork", "Change the miners block broadcast type to UNSOLICITED_RELAY_NETWORK", unsolicitedRelayNetwork);
+  
   cmd.Parse(argc, argv);
   
   averageBlockGenIntervalSeconds = averageBlockGenIntervalMinutes * secsPerMin;
   stop = targetNumberOfBlocks * averageBlockGenIntervalMinutes; //seconds
-  minersHash[0] = 1 - minersHash[1];
   
   for (int iter = 0; iter < iterations; iter++)
   { 
@@ -165,8 +180,6 @@ main (int argc, char *argv[])
     ApplicationContainer bitcoinMiners;
     int count = 0;
 	
-    if (test == true)
-      bitcoinMinerHelper.SetAttribute("FixedBlockIntervalGeneration", DoubleValue(600));
     
     for(auto &miner : miners)
     {
@@ -174,11 +187,31 @@ main (int argc, char *argv[])
 	
 	  if (systemId == targetNode->GetSystemId())
 	  {
+		  
+	    if (attackerId == miner)
+        {
+          bitcoinMinerHelper.SetMinerType (SELFISH_MINER);
+	      bitcoinMinerHelper.SetAttribute("SecureBlocks", UintegerValue(secureBlocks));
+        }
+		
         bitcoinMinerHelper.SetAttribute("HashRate", DoubleValue(minersHash[count]));
 	    bitcoinMinerHelper.SetPeersAddresses (nodesConnections[miner]);
 	    bitcoinMinerHelper.SetNodeStats (&stats[miner]);
 	    bitcoinMinerHelper.SetPeersDownloadSpeeds (peersDownloadSpeeds[miner]);
 	    bitcoinMinerHelper.SetPeersUploadSpeeds (peersUploadSpeeds[miner]);
+
+        if (test == true && attackerId != miner)
+          bitcoinMinerHelper.SetAttribute("FixedBlockIntervalGeneration", DoubleValue(100));
+        else if (test == true && attackerId == miner)
+          bitcoinMinerHelper.SetAttribute("FixedBlockIntervalGeneration", DoubleValue(500));
+	  
+	    if(unsolicited)
+	      bitcoinMinerHelper.SetBlockBroadcastType (UNSOLICITED);
+	    if(relayNetwork)
+	      bitcoinMinerHelper.SetBlockBroadcastType (RELAY_NETWORK);
+	    if(unsolicitedRelayNetwork)
+	      bitcoinMinerHelper.SetBlockBroadcastType (UNSOLICITED_RELAY_NETWORK);
+	  
 	    bitcoinMiners.Add(bitcoinMinerHelper.Install (targetNode));
 /*         std::cout << "SystemId " << systemId << ": Miner " << miner.first << " with hash power = " << minersHash[count] 
 	              << " and systemId = " << targetNode->GetSystemId() << " was installed in node (" 
@@ -188,17 +221,6 @@ main (int argc, char *argv[])
           nodesInSystemId0++;
 	  }				
 	  count++;
-
-    bitcoinMinerHelper.SetMinerType (SELFISH_MINER);
-	bitcoinMinerHelper.SetAttribute("SecureBlocks", UintegerValue(secureBlocks));
-	
-    if (advertiseBlocks)
-    {
-      bitcoinMinerHelper.SetAttribute("AdvertiseBlocks", UintegerValue(1));
-    }
-	
-	if (test == true)
-	   bitcoinMinerHelper.SetAttribute("FixedBlockIntervalGeneration", DoubleValue(100));
    
     }
     bitcoinMiners.Start (Seconds (start));
@@ -215,15 +237,10 @@ main (int argc, char *argv[])
     Simulator::Destroy ();
     tSimFinish = get_wall_time();
 
-    if (stats[1].attackSuccess == 1)
-    {
-      std::cout << "Iteration " << iter+1 << " lasted " << tSimFinish - tSimStart << "s: SUCCESS!\n\n";
-      successfullAttacks++;
-    }
-    else
-    {
-      std::cout << "Iteration " << iter+1 << " lasted " << tSimFinish - tSimStart << "s: FAIL\n\n";
-    }
+
+    std::cout << "Iteration " << iter+1 << " lasted " << tSimFinish - tSimStart << "s\n";
+    std::cout << std::endl;
+
   }
 
   
@@ -231,9 +248,9 @@ main (int argc, char *argv[])
   {
     tFinish = get_wall_time();
 	
+    PrintAttackStats(stats, attackerId, ud);
     //PrintStatsForEachNode(stats, totalNoNodes);
     //PrintTotalStats(stats, totalNoNodes);
-    std::cout << "The success rate of the attack was " << successfullAttacks / static_cast<float>(iterations) * 100 << "%\n";
     std::cout << "\nThe simulation ran for " << tFinish - tStart << "s simulating "
               << stop << "mins.\nIt consisted of " << totalNoNodes
               << " nodes (" << noMiners << " miners) with minConnectionsPerNode = "
@@ -242,7 +259,7 @@ main (int argc, char *argv[])
               << "The averageBlockGenIntervalMinutes was " << averageBlockGenIntervalMinutes 
 			  << "min and averageBlockGenIntervalSeconds was " << averageBlockGenIntervalSeconds << ".\n"
               << "Each attack had a duration of " << targetNumberOfBlocks << " generated blocks.\n"
-              << "The attacker's hash rate was " << minersHash[1] << ".\n"
+              << "The attacker's hash rate was " << minersHash[attackerId] << ".\n"
               << "The number of iterations was " << iterations << ".\n\n";
 
   }  
@@ -317,6 +334,53 @@ void PrintStatsForEachNode (nodeStatistics *stats, int totalNodes)
                 << " and average size " << stats[it].minerAverageBlockSize << " Bytes\n";
     }
   }
+}
+
+
+void PrintAttackStats (nodeStatistics *stats, int attackerId, double ud)
+{
+  int secPerMin = 60;
+
+  std::cout << "\nNode " << stats[attackerId].nodeId << " statistics:\n";
+  std::cout << "Connections = " << stats[attackerId].connections << "\n";
+  std::cout << "Mean Block Receive Time = " << stats[attackerId].meanBlockReceiveTime << " or " 
+            << static_cast<int>(stats[attackerId].meanBlockReceiveTime) / secPerMin << "min and " 
+			<< stats[attackerId].meanBlockReceiveTime - static_cast<int>(stats[attackerId].meanBlockReceiveTime) / secPerMin * secPerMin << "s\n";
+  std::cout << "Mean Block Propagation Time = " << stats[attackerId].meanBlockPropagationTime << "s\n";
+  std::cout << "Mean Block Size = " << stats[attackerId].meanBlockSize << " Bytes\n";
+  std::cout << "Total Blocks = " << stats[attackerId].totalBlocks << "\n";
+  std::cout << "Stale Blocks = " << stats[attackerId].staleBlocks << " (" 
+            << 100. * stats[attackerId].staleBlocks / stats[attackerId].totalBlocks << "%)\n";
+  std::cout << "The size of the longest fork was " << stats[attackerId].longestFork << " blocks\n";
+  std::cout << "There were in total " << stats[attackerId].blocksInForks << " blocks in forks\n";
+  std::cout << "There were " << stats[attackerId].attackSuccess << " successful double-spending attacks.\n";
+
+
+
+  if (stats[attackerId].miner == 1)
+  {
+    std::cout << "The miner " << stats[attackerId].nodeId << " with hash rate = " << stats[attackerId].hashRate*100 << "% generated " << stats[attackerId].minerGeneratedBlocks 
+              << " blocks "<< "(" << 100. * stats[attackerId].minerGeneratedBlocks / (stats[attackerId].totalBlocks - 1)
+              << "%) with average block generation time = " << stats[attackerId].minerAverageBlockGenInterval
+              << "s or " << static_cast<int>(stats[attackerId].minerAverageBlockGenInterval) / secPerMin << "min and " 
+              << stats[attackerId].minerAverageBlockGenInterval - static_cast<int>(stats[attackerId].minerAverageBlockGenInterval) / secPerMin * secPerMin << "s"
+              << " and average size " << stats[attackerId].minerAverageBlockSize << " Bytes\n";
+  }
+  
+  double increase = (stats[attackerId].attackSuccess * ud + stats[attackerId].minedBlocksInMainChain) /
+                    (stats[attackerId].minerGeneratedBlocks);
+  std::cout << "Total Blocks = " << stats[attackerId].totalBlocks << "\n";
+  std::cout << "Mined Blocks in main blockchain = " << stats[attackerId].minedBlocksInMainChain << "\n";
+  std::cout << "Honest Mining Income = " << stats[attackerId].minerGeneratedBlocks << "\n";
+  std::cout << "Attacker Income = " << stats[attackerId].attackSuccess * ud + stats[attackerId].minedBlocksInMainChain << "(";
+  
+  if (increase >= 1)
+   std::cout << "+" << (increase - 1) * 100 << "%)\n";
+  else
+   std::cout << "-" << (1 - increase) * 100 << "%)\n";
+
+  std::cout << std::endl;
+
 }
 
 

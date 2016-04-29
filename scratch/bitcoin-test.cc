@@ -228,7 +228,7 @@ main (int argc, char *argv[])
   uint32_t systemCount = 1;
 #endif
 
-  //LogComponentEnable("BitcoinNode", LOG_LEVEL_INFO);
+  LogComponentEnable("BitcoinNode", LOG_LEVEL_INFO);
   //LogComponentEnable("BitcoinMiner", LOG_LEVEL_INFO);
   //LogComponentEnable("Ipv4AddressGenerator", LOG_LEVEL_FUNCTION);
   //LogComponentEnable("OnOffApplication", LOG_LEVEL_DEBUG);
@@ -393,13 +393,13 @@ main (int argc, char *argv[])
 
 #ifdef MPI_TEST
 
-  int            blocklen[37] = {1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+  int            blocklen[38] = {1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
                                  1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
-                                 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1}; 
-  MPI_Aint       disp[37]; 
-  MPI_Datatype   dtypes[37] = {MPI_INT, MPI_DOUBLE, MPI_DOUBLE, MPI_DOUBLE, MPI_INT, MPI_INT, MPI_INT, MPI_INT, MPI_DOUBLE, MPI_DOUBLE, MPI_DOUBLE, MPI_INT,
+                                 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1}; 
+  MPI_Aint       disp[38]; 
+  MPI_Datatype   dtypes[38] = {MPI_INT, MPI_DOUBLE, MPI_DOUBLE, MPI_DOUBLE, MPI_INT, MPI_INT, MPI_INT, MPI_INT, MPI_DOUBLE, MPI_DOUBLE, MPI_DOUBLE, MPI_INT,
                                MPI_LONG, MPI_LONG, MPI_LONG, MPI_LONG, MPI_LONG, MPI_LONG, MPI_LONG, MPI_LONG, MPI_LONG, MPI_LONG, MPI_LONG, MPI_LONG,
-                               MPI_LONG, MPI_LONG, MPI_LONG, MPI_LONG, MPI_LONG, MPI_LONG, MPI_LONG, MPI_LONG, MPI_INT, MPI_INT, MPI_INT, MPI_LONG, MPI_LONG}; 
+                               MPI_LONG, MPI_LONG, MPI_LONG, MPI_LONG, MPI_LONG, MPI_LONG, MPI_LONG, MPI_LONG, MPI_INT, MPI_INT, MPI_INT, MPI_LONG, MPI_LONG, MPI_INT}; 
   MPI_Datatype   mpi_nodeStatisticsType;
 
   disp[0] = offsetof(nodeStatistics, nodeId);
@@ -439,8 +439,9 @@ main (int argc, char *argv[])
   disp[34] = offsetof(nodeStatistics, connections);
   disp[35] = offsetof(nodeStatistics, blockTimeouts);
   disp[36] = offsetof(nodeStatistics, chunkTimeouts);
+  disp[37] = offsetof(nodeStatistics, minedBlocksInMainChain);
 
-  MPI_Type_create_struct (37, blocklen, disp, dtypes, &mpi_nodeStatisticsType);
+  MPI_Type_create_struct (38, blocklen, disp, dtypes, &mpi_nodeStatisticsType);
   MPI_Type_commit (&mpi_nodeStatisticsType);
 
   if (systemId != 0 && systemCount > 1)
@@ -510,7 +511,7 @@ main (int argc, char *argv[])
       stats[recv.nodeId].connections = recv.connections;
       stats[recv.nodeId].blockTimeouts = recv.blockTimeouts;
       stats[recv.nodeId].chunkTimeouts = recv.chunkTimeouts;
-	  
+      stats[recv.nodeId].minedBlocksInMainChain = recv.minedBlocksInMainChain;
 	  count++;
     }
   }	  

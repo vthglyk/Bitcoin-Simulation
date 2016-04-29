@@ -267,7 +267,7 @@ BitcoinNode::StartApplication ()    // Called at time specified by Start
   m_nodeStats->connections = m_peersAddresses.size();
   m_nodeStats->blockTimeouts = 0;
   m_nodeStats->chunkTimeouts = 0;
-
+  m_nodeStats->minedBlocksInMainChain = 0;
 }
 
 void 
@@ -704,17 +704,17 @@ BitcoinNode::HandleRead (Ptr<Socket> socket)
               {
                 rapidjson::Value value;
                 rapidjson::Value array(rapidjson::kArrayType);
-                rapidjson::Value blockInfo(rapidjson::kObjectType);
 
                 d.RemoveMember("blocks");
 				
                 for (block_it = requestHeaders.begin(); block_it < requestHeaders.end(); block_it++) 
                 {
+                  rapidjson::Value blockInfo(rapidjson::kObjectType);
                   NS_LOG_INFO ("In requestHeaders " << *block_it);
-    
+                  
                   value = block_it->GetBlockHeight ();
                   blockInfo.AddMember("height", value, d.GetAllocator ());
-  
+
                   value = block_it->GetMinerId ();
                   blockInfo.AddMember("minerId", value, d.GetAllocator ());
 
@@ -901,12 +901,13 @@ BitcoinNode::HandleRead (Ptr<Socket> socket)
               {
                 rapidjson::Value value;
                 rapidjson::Value array(rapidjson::kArrayType);
-                rapidjson::Value blockInfo(rapidjson::kObjectType);
+                
 
                 d.RemoveMember("blocks");
 				
                 for (block_it = requestBlocks.begin(); block_it < requestBlocks.end(); block_it++) 
                 {
+                  rapidjson::Value blockInfo(rapidjson::kObjectType);
                   NS_LOG_INFO ("In requestBlocks " << *block_it);
     
                   value = block_it->GetBlockHeight ();
@@ -2331,9 +2332,12 @@ BitcoinNode::ReceiveBlock(const Block &newBlock)
 	//PrintQueueInv();
 	//PrintInvTimeouts();
 	
-    m_queueInv.erase(blockHash);
-    Simulator::Cancel (m_invTimeouts[blockHash]);
-    m_invTimeouts.erase(blockHash);
+    if (m_invTimeouts.find(blockHash) != m_invTimeouts.end())
+    {
+      m_queueInv.erase(blockHash);
+      Simulator::Cancel (m_invTimeouts[blockHash]);
+      m_invTimeouts.erase(blockHash);
+    }
 	
     //PrintQueueInv();
 	//PrintInvTimeouts();

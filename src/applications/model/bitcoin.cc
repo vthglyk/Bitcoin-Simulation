@@ -325,7 +325,7 @@ Blockchain::ReturnBlock(int height, int minerId)
 {
   std::vector<Block>::iterator  block_it;
 
-  if (height <= GetBlockchainHeight())
+  if (height <= GetBlockchainHeight() && height >= 0)
   {
     for (block_it = m_blocks[height].begin();  block_it < m_blocks[height].end(); block_it++)
     {
@@ -430,7 +430,7 @@ Blockchain::GetParent (const Block &block)
   std::vector<Block>::iterator  block_it;
   int parentHeight = block.GetBlockHeight() - 1;
 
-  if (parentHeight > GetBlockchainHeight())
+  if (parentHeight > GetBlockchainHeight() || parentHeight < 0)
     return nullptr;
   
   for (block_it = m_blocks[parentHeight].begin();  block_it < m_blocks[parentHeight].end(); block_it++)  {

@@ -137,6 +137,7 @@ typedef struct {
   int      connections;
   long     blockTimeouts;
   long     chunkTimeouts;
+  int      minedBlocksInMainChain;
 } nodeStatistics;
 
 

@@ -134,7 +134,7 @@ protected:
    * \brief Called when a new block non-orphan block is received
    * \param newBlock the newly received block
    */
-  void ReceiveBlock(const Block &newBlock);				                   
+  virtual void ReceiveBlock(const Block &newBlock);				                   
   
   /**
    * \brief Called when the last chunk of a block is received
