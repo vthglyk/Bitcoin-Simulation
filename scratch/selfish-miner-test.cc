@@ -36,7 +36,7 @@ int GetNodeIdByIpv4 (Ipv4InterfaceContainer container, Ipv4Address addr);
 void PrintStatsForEachNode (nodeStatistics *stats, int totalNodes);
 void PrintTotalStats (nodeStatistics *stats, int totalNodes, double start, double finish, double averageBlockGenIntervalMinutes);
 void PrintBitcoinRegionStats (uint32_t *bitcoinNodesRegions, uint32_t totalNodes);
-void PrintAttackStats (nodeStatistics *stats, int attackerId, double ud);
+void PrintAttackStats (nodeStatistics *stats, int attackerId, double ud, double r);
 
 NS_LOG_COMPONENT_DEFINE ("SelfishMinerTest");
 
@@ -49,6 +49,7 @@ main (int argc, char *argv[])
   bool relayNetwork = false;
   bool unsolicitedRelayNetwork = false;
   double ud = 0;
+  double r = 0;
   enum Cryptocurrency  cryptocurrency = BITCOIN;
   double tStart = get_wall_time(), tFinish, tSimStart, tSimFinish;
   const int secsPerMin = 60;
@@ -132,6 +133,7 @@ main (int argc, char *argv[])
   cmd.AddValue ("iterations", "The number of iterations of the attack", iterations);
   cmd.AddValue ("test", "Test the attack", test);
   cmd.AddValue ("ud", "The transaction value which is double-spent", ud);
+  cmd.AddValue ("r", "The stale block rate", r);
   cmd.AddValue ("unsolicited", "Change the miners block broadcast type to UNSOLICITED", unsolicited);
   cmd.AddValue ("relayNetwork", "Change the miners block broadcast type to RELAY_NETWORK", relayNetwork);
   cmd.AddValue ("unsolicitedRelayNetwork", "Change the miners block broadcast type to UNSOLICITED_RELAY_NETWORK", unsolicitedRelayNetwork);
@@ -248,7 +250,7 @@ main (int argc, char *argv[])
   {
     tFinish = get_wall_time();
 	
-    PrintAttackStats(stats, attackerId, ud);
+    PrintAttackStats(stats, attackerId, ud, r);
     //PrintStatsForEachNode(stats, totalNoNodes);
     //PrintTotalStats(stats, totalNoNodes);
     std::cout << "\nThe simulation ran for " << tFinish - tStart << "s simulating "
@@ -337,7 +339,7 @@ void PrintStatsForEachNode (nodeStatistics *stats, int totalNodes)
 }
 
 
-void PrintAttackStats (nodeStatistics *stats, int attackerId, double ud)
+void PrintAttackStats (nodeStatistics *stats, int attackerId, double ud, double r)
 {
   int secPerMin = 60;
 
@@ -368,10 +370,10 @@ void PrintAttackStats (nodeStatistics *stats, int attackerId, double ud)
   }
   
   double increase = (stats[attackerId].attackSuccess * ud + stats[attackerId].minedBlocksInMainChain) /
-                    (stats[attackerId].minerGeneratedBlocks);
+                    (stats[attackerId].minerGeneratedBlocks * (1-r));
   std::cout << "Total Blocks = " << stats[attackerId].totalBlocks << "\n";
   std::cout << "Mined Blocks in main blockchain = " << stats[attackerId].minedBlocksInMainChain << "\n";
-  std::cout << "Honest Mining Income = " << stats[attackerId].minerGeneratedBlocks << "\n";
+  std::cout << "Honest Mining Income = " << stats[attackerId].minerGeneratedBlocks * (1-r) << "\n";
   std::cout << "Attacker Income = " << stats[attackerId].attackSuccess * ud + stats[attackerId].minedBlocksInMainChain << "(";
   
   if (increase >= 1)
