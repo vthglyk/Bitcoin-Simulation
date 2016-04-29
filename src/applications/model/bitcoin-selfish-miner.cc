@@ -277,101 +277,124 @@ BitcoinSelfishMiner::MineBlock (void)  //FIX ME
   
   if (m_la == m_maxAttackBlocks)
   {
-    NS_FATAL_ERROR("m_la == m_maxAttackBlocks in MineBlock");
+    NS_LOG_INFO("m_la == m_maxAttackBlocks in MineBlock");
+    std::vector<Block> blocks;
+
+    Block b = m_blockchain.ReturnBlock(m_attackerTopBlock.GetBlockHeight(), GetNode ()->GetId ());
+	  
+    for (int j = 0; j < m_la; j++)
+    {
+      blocks.insert(blocks.begin(), b);
+      if (m_blockchain.GetParent(b))
+        b = *(m_blockchain.GetParent(b));
+    }
+	  
+    ReleaseChain(blocks);
+	  
+    m_la = 0;
+    m_lh = 0;
+    m_forkType = IRRELEVANT;
+    m_honestNetworkTopBlock = m_attackerTopBlock;
+	m_nodeStats->attackSuccess++;
+	
+    NS_LOG_INFO("---New State = (" << m_la << ", " << m_lh << ", " << getForkType(m_forkType) << ")");  
+	
   }
   else if (m_forkType != ACTIVE)
+  {
     m_forkType = IRRELEVANT;
   
-  NS_LOG_INFO("---New State = (" << m_la << ", " << m_lh << ", " << getForkType(m_forkType) << ")");
+    NS_LOG_INFO("---New State = (" << m_la << ", " << m_lh << ", " << getForkType(m_forkType) << ")");
 
 
-  switch(ReadActionMatrix(m_forkType, m_la, m_lh))
-  {
-    case ADOPT:
+    switch(ReadActionMatrix(m_forkType, m_la, m_lh))
     {
-      NS_LOG_INFO("MineBlock: ADOPT");
-      m_forkType = IRRELEVANT;
-      m_la = 0;
-      m_lh = 0;
-      m_attackerTopBlock = m_honestNetworkTopBlock;
-      break;
-    }
-    case OVERRIDE:
-    {
-      NS_LOG_INFO("MineBlock: OVERRIDE");
-      std::vector<Block> blocks;
-
-      Block b = m_blockchain.ReturnBlock(m_honestNetworkTopBlock.GetBlockHeight() + 1, GetNode ()->GetId ());
-	  
-      for (int j = 0; j < m_lh + 1; j++)
+      case ADOPT:
       {
-        blocks.insert(blocks.begin(), b);
-		if (m_blockchain.GetParent(b))
-          b = *(m_blockchain.GetParent(b));
+        NS_LOG_INFO("MineBlock: ADOPT");
+        m_forkType = IRRELEVANT;
+        m_la = 0;
+        m_lh = 0;
+        m_attackerTopBlock = m_honestNetworkTopBlock;
+        break;
       }
+      case OVERRIDE:
+      {
+        NS_LOG_INFO("MineBlock: OVERRIDE");
+        std::vector<Block> blocks;
+  
+        Block b = m_blockchain.ReturnBlock(m_honestNetworkTopBlock.GetBlockHeight() + 1, GetNode ()->GetId ());
+	    
+        for (int j = 0; j < m_lh + 1; j++)
+        {
+          blocks.insert(blocks.begin(), b);
+          if (m_blockchain.GetParent(b))
+           b = *(m_blockchain.GetParent(b));
+        }
 	 
-      ReleaseChain(blocks);
+        ReleaseChain(blocks);
 	  
-      m_forkType = IRRELEVANT;
-      m_la = m_la - m_lh - 1;
-      m_lh = 0;
-      break;
-    }
-    case MATCH:
-    {
-      NS_LOG_INFO("MineBlock: MATCH");
-      std::vector<Block> blocks;
-
-      Block b = m_blockchain.ReturnBlock(m_honestNetworkTopBlock.GetBlockHeight(), GetNode ()->GetId ());
-	  
-      for (int j = 0; j < m_lh; j++)
-      {
-        blocks.insert(blocks.begin(), b);
-		if (m_blockchain.GetParent(b))
-          b = *(m_blockchain.GetParent(b));
+        m_forkType = IRRELEVANT;
+        m_la = m_la - m_lh - 1;
+        m_lh = 0;
+        break;
       }
-	  
-      ReleaseChain(blocks);
-
-      m_forkType = ACTIVE;
-      break;
-    }
-    case WAIT:
-	{
-      NS_LOG_INFO("MineBlock: WAIT");
-      break;
-    }
-    case EXIT:
-    {
-      NS_LOG_INFO("MineBlock: EXIT");
-      std::vector<Block> blocks;
-
-      Block b = m_blockchain.ReturnBlock(m_attackerTopBlock.GetBlockHeight(), GetNode ()->GetId ());
-	  
-      for (int j = 0; j < m_la; j++)
+      case MATCH:
       {
-        blocks.insert(blocks.begin(), b);
-		if (m_blockchain.GetParent(b))
-          b = *(m_blockchain.GetParent(b));
+        NS_LOG_INFO("MineBlock: MATCH");
+        std::vector<Block> blocks;
+
+        Block b = m_blockchain.ReturnBlock(m_honestNetworkTopBlock.GetBlockHeight(), GetNode ()->GetId ());
+	  
+        for (int j = 0; j < m_lh; j++)
+        {
+          blocks.insert(blocks.begin(), b);
+		  if (m_blockchain.GetParent(b))
+            b = *(m_blockchain.GetParent(b));
+        }
+	  
+        ReleaseChain(blocks);
+
+        m_forkType = ACTIVE;
+        break;
       }
+      case WAIT:
+	  {
+        NS_LOG_INFO("MineBlock: WAIT");
+        break;
+      }
+      case EXIT:
+      {
+        NS_LOG_INFO("MineBlock: EXIT");
+        std::vector<Block> blocks;
+
+        Block b = m_blockchain.ReturnBlock(m_attackerTopBlock.GetBlockHeight(), GetNode ()->GetId ());
 	  
-      ReleaseChain(blocks);
+        for (int j = 0; j < m_la; j++)
+        {
+          blocks.insert(blocks.begin(), b);
+		  if (m_blockchain.GetParent(b))
+            b = *(m_blockchain.GetParent(b));
+        }
 	  
-      m_la = 0;
-      m_lh = 0;
-      m_forkType = IRRELEVANT;
-      m_honestNetworkTopBlock = m_attackerTopBlock;
+        ReleaseChain(blocks);
+	  
+        m_la = 0;
+        m_lh = 0;
+        m_forkType = IRRELEVANT;
+        m_honestNetworkTopBlock = m_attackerTopBlock;
       
-	  m_nodeStats->attackSuccess++;
-      break;
-    }
-    case ERROR:
-    {
-      NS_FATAL_ERROR("MineBlock: ERROR");
-      break; 
+	    m_nodeStats->attackSuccess++;
+        break;
+      }
+      case ERROR:
+      {
+        NS_FATAL_ERROR("MineBlock: ERROR");
+        break; 
+      }
     }
   }
-
+  
   NS_LOG_INFO("m_attackerTopBlock = " << m_attackerTopBlock);
   NS_LOG_INFO("m_honestNetworkTopBlock = " << m_honestNetworkTopBlock);
   
