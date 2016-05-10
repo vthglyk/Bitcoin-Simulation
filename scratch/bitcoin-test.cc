@@ -202,9 +202,7 @@ main (int argc, char *argv[])
         minersRegions[i*16 + j] = bitcoinMinersRegions[j];
       }
     }	
-	
-	for(int i = 0; i < noMiners; i++) 
-      std::cout << "Miner " << i << ", hash = " << minersHash[i] << ", region = " << getBitcoinRegion(minersRegions[i]) << std::endl;
+
   }
 
   averageBlockGenIntervalSeconds = averageBlockGenIntervalMinutes * secsPerMin;
