@@ -82,16 +82,6 @@ BitcoinSelfishMiner::GetTypeId (void)
                    DoubleValue (10*60),
                    MakeDoubleAccessor (&BitcoinSelfishMiner::m_averageBlockGenIntervalSeconds),
                    MakeDoubleChecker<double> ())
-    .AddAttribute ("SecureBlocks", 
-				   "The number of blocks required for the secure confirmation of the transactions",
-                   UintegerValue (6),
-                   MakeUintegerAccessor (&BitcoinSelfishMiner::m_secureBlocks),
-                   MakeUintegerChecker<uint32_t> ())
-    .AddAttribute ("AdvertiseBlocks", 
-				   "Choose whether the attacker will advertise his generated blocks",
-                   UintegerValue (0),
-                   MakeUintegerAccessor (&BitcoinSelfishMiner::m_advertiseBlocks),
-                   MakeUintegerChecker<uint32_t> ())
     .AddTraceSource ("Rx",
                      "A packet has been received",
                      MakeTraceSourceAccessor (&BitcoinSelfishMiner::m_rxTrace),
@@ -123,9 +113,7 @@ BitcoinSelfishMiner::StartApplication ()    // Called at time specified by Start
   NS_LOG_WARN ("Selfish Miner " << GetNode()->GetId() << " m_realAverageBlockGenIntervalSeconds = " << m_realAverageBlockGenIntervalSeconds << "s");
   NS_LOG_WARN ("Selfish Miner " << GetNode()->GetId() << " m_averageBlockGenIntervalSeconds = " << m_averageBlockGenIntervalSeconds << "s");
   NS_LOG_WARN ("Selfish Miner " << GetNode()->GetId() << " m_fixedBlockTimeGeneration = " << m_fixedBlockTimeGeneration << "s");
-  NS_LOG_WARN ("Selfish Miner " << GetNode()->GetId() << " m_secureBlocks = " << m_secureBlocks);
-  NS_LOG_WARN ("Selfish Miner " << GetNode()->GetId() << " m_hashRate = " << m_hashRate << " " << m_advertiseBlocks);
-  NS_LOG_WARN ("Selfish Miner " << GetNode()->GetId() << " m_advertiseBlocks = " << m_advertiseBlocks);
+  NS_LOG_WARN ("Selfish Miner " << GetNode()->GetId() << " m_hashRate = " << m_hashRate);
   NS_LOG_WARN ("Selfish Miner " << GetNode()->GetId() << " m_maxAttackBlocks = " << m_maxAttackBlocks);
 
   if (m_blockGenBinSize < 0 && m_blockGenParameter < 0)

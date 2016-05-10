@@ -67,9 +67,7 @@ protected:
   
   enum Action ReadActionMatrix(enum ForkType f, int la, int lh);
   
-  uint32_t   m_secureBlocks;
   bool       m_attackFinished;
-  uint32_t   m_advertiseBlocks;
   int        m_la;
   int        m_lh;
   Block      m_honestNetworkTopBlock;

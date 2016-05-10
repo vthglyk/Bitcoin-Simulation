@@ -66,17 +66,13 @@ main (int argc, char *argv[])
   double averageBlockGenIntervalSeconds = 10 * secsPerMin; //seconds
   double fixedHashRate = 0.5;
   int start = 0;
-  double bandwidthSDDivider = -1;
-  double latency = 40;
-
   
-  int totalNoNodes = 4;
-
+  int totalNoNodes = 16;
   int minConnectionsPerNode = -1;
   int maxConnectionsPerNode = -1;
   double *minersHash;
   enum BitcoinRegion *minersRegions;
-  int noMiners;
+  int noMiners = 16;
 
 #ifdef MPI_TEST
   
@@ -128,11 +124,10 @@ main (int argc, char *argv[])
   
   CommandLine cmd;
   cmd.AddValue ("nullmsg", "Enable the use of null-message synchronization", nullmsg);
-  cmd.AddValue ("bandwidthSDDivider", "The divider for the standard deviation of bandwidths", bandwidthSDDivider);
-  cmd.AddValue ("latency", "The latency of the nodes (ms)", latency);
   cmd.AddValue ("blockSize", "The the fixed block size (Bytes)", blockSize);
   cmd.AddValue ("noBlocks", "The number of generated blocks", targetNumberOfBlocks);
   cmd.AddValue ("nodes", "The total number of nodes in the network", totalNoNodes);
+  cmd.AddValue ("miners", "The total number of miners in the network", noMiners);
   cmd.AddValue ("minConnections", "The minConnectionsPerNode of the grid", minConnectionsPerNode);
   cmd.AddValue ("maxConnections", "The maxConnectionsPerNode of the grid", maxConnectionsPerNode);
   cmd.AddValue ("blockIntervalMinutes", "The average block generation interval in minutes", averageBlockGenIntervalMinutes);
@@ -149,6 +144,12 @@ main (int argc, char *argv[])
   cmd.AddValue ("spv", "Enable the spv mechanism", spv);
 
   cmd.Parse(argc, argv);
+ 
+  if (noMiners % 16 != 0)
+  {
+    std::cout << "The number of miners must be multiple of 16" << std::endl;
+	return 0;
+  }
   
   if (litecoin && dogecoin)
   {
@@ -190,15 +191,20 @@ main (int argc, char *argv[])
   }
   else
   {
-    noMiners = sizeof(bitcoinMinersHash)/sizeof(double);
     minersHash = new double[noMiners];
 	minersRegions = new enum BitcoinRegion[noMiners];
 	
-    for(int i = 0; i < noMiners; i++)
+    for(int i = 0; i < noMiners/16; i++)
     {
-      minersHash[i] = bitcoinMinersHash[i];
-      minersRegions[i] = bitcoinMinersRegions[i];
+      for (int j = 0; j < 16 ; j++)
+      {
+        minersHash[i*16 + j] = bitcoinMinersHash[j]*16/noMiners;
+        minersRegions[i*16 + j] = bitcoinMinersRegions[j];
+      }
     }	
+	
+	for(int i = 0; i < noMiners; i++) 
+      std::cout << "Miner " << i << ", hash = " << minersHash[i] << ", region = " << getBitcoinRegion(minersRegions[i]) << std::endl;
   }
 
   averageBlockGenIntervalSeconds = averageBlockGenIntervalMinutes * secsPerMin;
@@ -228,7 +234,7 @@ main (int argc, char *argv[])
   uint32_t systemCount = 1;
 #endif
 
-  LogComponentEnable("BitcoinNode", LOG_LEVEL_INFO);
+  //LogComponentEnable("BitcoinNode", LOG_LEVEL_INFO);
   //LogComponentEnable("BitcoinMiner", LOG_LEVEL_INFO);
   //LogComponentEnable("Ipv4AddressGenerator", LOG_LEVEL_FUNCTION);
   //LogComponentEnable("OnOffApplication", LOG_LEVEL_DEBUG);
@@ -242,8 +248,8 @@ main (int argc, char *argv[])
   }
   
   BitcoinTopologyHelper bitcoinTopologyHelper (systemCount, totalNoNodes, noMiners, minersRegions,
-                                               bandwidthSDDivider, cryptocurrency, minConnectionsPerNode, 
-                                               maxConnectionsPerNode, latency, 5, systemId);
+                                               cryptocurrency, minConnectionsPerNode, 
+                                               maxConnectionsPerNode, 5, systemId);
 
   // Install stack on Grid
   InternetStackHelper stack;

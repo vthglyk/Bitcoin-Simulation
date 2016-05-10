@@ -37,11 +37,11 @@ namespace ns3 {
 NS_LOG_COMPONENT_DEFINE ("BitcoinTopologyHelper");
 
 BitcoinTopologyHelper::BitcoinTopologyHelper (uint32_t noCpus, uint32_t totalNoNodes, uint32_t noMiners, enum BitcoinRegion *minersRegions,
-                                              double bandwidthSDDevider, enum Cryptocurrency cryptocurrency, int minConnectionsPerNode, 
-						                      int maxConnectionsPerNode, double latencyParetoMean, double latencyParetoShape, uint32_t systemId)
-  : m_noCpus(noCpus), m_totalNoNodes (totalNoNodes), m_noMiners (noMiners), m_bandwidthSDDevider (bandwidthSDDevider), 
+                                              enum Cryptocurrency cryptocurrency, int minConnectionsPerNode, int maxConnectionsPerNode,  
+						                      double latencyParetoShapeDivider, uint32_t systemId)
+  : m_noCpus(noCpus), m_totalNoNodes (totalNoNodes), m_noMiners (noMiners),
     m_minConnectionsPerNode (minConnectionsPerNode), m_maxConnectionsPerNode (maxConnectionsPerNode), 
-	m_totalNoLinks (0), m_latencyParetoMean (latencyParetoMean), m_latencyParetoShape (latencyParetoShape), 
+	m_totalNoLinks (0), m_latencyParetoShapeDivider (latencyParetoShapeDivider), 
 	m_systemId (systemId), m_minConnectionsPerMiner (700), m_maxConnectionsPerMiner (800),
 	m_minerDownloadSpeed (100), m_minerUploadSpeed (100), m_cryptocurrency (cryptocurrency)
 {
@@ -1114,19 +1114,19 @@ BitcoinTopologyHelper::BitcoinTopologyHelper (uint32_t noCpus, uint32_t totalNoN
         latencyStringStream.str("");
         latencyStringStream.clear();
 		
-		if (m_latencyParetoShape > 0)
+		if (m_latencyParetoShapeDivider > 0)
         {
           Ptr<ParetoRandomVariable> paretoDistribution = CreateObject<ParetoRandomVariable> ();
           paretoDistribution->SetAttribute ("Mean", DoubleValue (m_regionLatencies[m_bitcoinNodesRegion[(m_nodes.at (*miner).Get (0))->GetId()]]
                                                                                   [m_bitcoinNodesRegion[(m_nodes.at (*it).Get (0))->GetId()]]));
           paretoDistribution->SetAttribute ("Shape", DoubleValue (m_regionLatencies[m_bitcoinNodesRegion[(m_nodes.at (*miner).Get (0))->GetId()]]
-                                                                                   [m_bitcoinNodesRegion[(m_nodes.at (*it).Get (0))->GetId()]] / m_latencyParetoShape));
+                                                                                   [m_bitcoinNodesRegion[(m_nodes.at (*it).Get (0))->GetId()]] / m_latencyParetoShapeDivider));
           latencyStringStream << paretoDistribution->GetValue() << "ms";
         }
         else
         {
-        latencyStringStream << m_regionLatencies[m_bitcoinNodesRegion[(m_nodes.at (*miner).Get (0))->GetId()]]
-                                                [m_bitcoinNodesRegion[(m_nodes.at (*it).Get (0))->GetId()]] << "ms";
+          latencyStringStream << m_regionLatencies[m_bitcoinNodesRegion[(m_nodes.at (*miner).Get (0))->GetId()]]
+                                                  [m_bitcoinNodesRegion[(m_nodes.at (*it).Get (0))->GetId()]] << "ms";
         }
 
         
@@ -1171,13 +1171,13 @@ BitcoinTopologyHelper::BitcoinTopologyHelper (uint32_t noCpus, uint32_t totalNoN
         latencyStringStream.str("");
         latencyStringStream.clear();
 		
-		if (m_latencyParetoShape > 0)
+		if (m_latencyParetoShapeDivider > 0)
         {
           Ptr<ParetoRandomVariable> paretoDistribution = CreateObject<ParetoRandomVariable> ();
           paretoDistribution->SetAttribute ("Mean", DoubleValue (m_regionLatencies[m_bitcoinNodesRegion[(m_nodes.at (node.first).Get (0))->GetId()]]
                                                                                   [m_bitcoinNodesRegion[(m_nodes.at (*it).Get (0))->GetId()]]));
           paretoDistribution->SetAttribute ("Shape", DoubleValue (m_regionLatencies[m_bitcoinNodesRegion[(m_nodes.at (node.first).Get (0))->GetId()]]
-                                                                                   [m_bitcoinNodesRegion[(m_nodes.at (*it).Get (0))->GetId()]] / m_latencyParetoShape));
+                                                                                   [m_bitcoinNodesRegion[(m_nodes.at (*it).Get (0))->GetId()]] / m_latencyParetoShapeDivider));
           latencyStringStream << paretoDistribution->GetValue() << "ms";
         }
         else
@@ -1363,57 +1363,44 @@ BitcoinTopologyHelper::AssignInternetSpeeds(uint32_t id)
     m_nodesInternetSpeeds[id].uploadSpeed = m_minerUploadSpeed;
   }
   else{
-    if(m_bandwidthSDDevider < 0)
-	{
-/*       m_nodesInternetSpeeds[id].downloadSpeed = m_regionDownloadSpeeds[m_bitcoinNodesRegion[id]];
-      m_nodesInternetSpeeds[id].uploadSpeed = m_regionUploadSpeeds[m_bitcoinNodesRegion[id]]; */
-      switch(m_bitcoinNodesRegion[id])
-      {
-        case ASIA_PACIFIC: 
-        {
-          m_nodesInternetSpeeds[id].downloadSpeed = m_asiaPacificDownloadBandwidthDistribution(m_generator);
-          m_nodesInternetSpeeds[id].uploadSpeed = m_asiaPacificUploadBandwidthDistribution(m_generator);
-          break;
-		}
-        case AUSTRALIA: 
-        {
-          m_nodesInternetSpeeds[id].downloadSpeed = m_australiaDownloadBandwidthDistribution(m_generator);
-          m_nodesInternetSpeeds[id].uploadSpeed = m_australiaUploadBandwidthDistribution(m_generator);
-          break;
-		}
-        case EUROPE:  
-        {
-          m_nodesInternetSpeeds[id].downloadSpeed = m_europeDownloadBandwidthDistribution(m_generator);
-          m_nodesInternetSpeeds[id].uploadSpeed = m_europeUploadBandwidthDistribution(m_generator);
-          break;
-		}
-        case JAPAN:  
-        {
-          m_nodesInternetSpeeds[id].downloadSpeed = m_japanDownloadBandwidthDistribution(m_generator);
-          m_nodesInternetSpeeds[id].uploadSpeed = m_japanUploadBandwidthDistribution(m_generator);
-          break;
-		}
-        case NORTH_AMERICA:  
-        {
-          m_nodesInternetSpeeds[id].downloadSpeed = m_northAmericaDownloadBandwidthDistribution(m_generator);
-          m_nodesInternetSpeeds[id].uploadSpeed = m_northAmericaUploadBandwidthDistribution(m_generator);
-          break;
-		}
-        case SOUTH_AMERICA: 
-        {
-          m_nodesInternetSpeeds[id].downloadSpeed = m_southAmericaDownloadBandwidthDistribution(m_generator);
-          m_nodesInternetSpeeds[id].uploadSpeed = m_southAmericaUploadBandwidthDistribution(m_generator);
-          break;
-		}
-      }
-    }
-    else
+    switch(m_bitcoinNodesRegion[id])
     {
-      std::normal_distribution<double> downloadDistribution(m_regionDownloadSpeeds[m_bitcoinNodesRegion[id]], m_regionDownloadSpeeds[m_bitcoinNodesRegion[id]] / m_bandwidthSDDevider);
-      std::normal_distribution<double> uploadDistribution(m_regionUploadSpeeds[m_bitcoinNodesRegion[id]], m_regionUploadSpeeds[m_bitcoinNodesRegion[id]] / m_bandwidthSDDevider);
-
-      m_nodesInternetSpeeds[id].downloadSpeed = downloadDistribution(m_generator);
-      m_nodesInternetSpeeds[id].uploadSpeed = uploadDistribution(m_generator);
+      case ASIA_PACIFIC: 
+      {
+        m_nodesInternetSpeeds[id].downloadSpeed = m_asiaPacificDownloadBandwidthDistribution(m_generator);
+        m_nodesInternetSpeeds[id].uploadSpeed = m_asiaPacificUploadBandwidthDistribution(m_generator);
+        break;
+      }
+      case AUSTRALIA: 
+      {
+        m_nodesInternetSpeeds[id].downloadSpeed = m_australiaDownloadBandwidthDistribution(m_generator);
+        m_nodesInternetSpeeds[id].uploadSpeed = m_australiaUploadBandwidthDistribution(m_generator);
+        break;
+      }
+      case EUROPE:  
+      {
+        m_nodesInternetSpeeds[id].downloadSpeed = m_europeDownloadBandwidthDistribution(m_generator);
+        m_nodesInternetSpeeds[id].uploadSpeed = m_europeUploadBandwidthDistribution(m_generator);
+        break;
+      }
+      case JAPAN:  
+      {
+        m_nodesInternetSpeeds[id].downloadSpeed = m_japanDownloadBandwidthDistribution(m_generator);
+        m_nodesInternetSpeeds[id].uploadSpeed = m_japanUploadBandwidthDistribution(m_generator);
+        break;
+      }
+      case NORTH_AMERICA:  
+      {
+        m_nodesInternetSpeeds[id].downloadSpeed = m_northAmericaDownloadBandwidthDistribution(m_generator);
+        m_nodesInternetSpeeds[id].uploadSpeed = m_northAmericaUploadBandwidthDistribution(m_generator);
+        break;
+      }
+      case SOUTH_AMERICA: 
+      {
+        m_nodesInternetSpeeds[id].downloadSpeed = m_southAmericaDownloadBandwidthDistribution(m_generator);
+        m_nodesInternetSpeeds[id].uploadSpeed = m_southAmericaUploadBandwidthDistribution(m_generator);
+        break;
+      }
     }
   }
   

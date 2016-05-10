@@ -17,8 +17,7 @@ BitcoinMinerHelper::BitcoinMinerHelper (std::string protocol, Address address, s
                                         std::map<Ipv4Address, double> &peersDownloadSpeeds, std::map<Ipv4Address, double> &peersUploadSpeeds, 
                                         nodeInternetSpeeds &internetSpeeds, nodeStatistics *stats, double hashRate, double averageBlockGenIntervalSeconds) : 
                                         BitcoinNodeHelper (),  m_minerType (NORMAL_MINER), m_blockBroadcastType (STANDARD),
-                                        m_secureBlocks (6), m_advertiseBlocks (0), 
-                                        m_blockGenBinSize (-1), m_blockGenParameter (-1)
+                                        m_secureBlocks (6), m_blockGenBinSize (-1), m_blockGenParameter (-1)
 {
   m_factory.SetTypeId ("ns3::BitcoinMiner");
   commonConstructor(protocol, address, peers, peersDownloadSpeeds, peersUploadSpeeds, internetSpeeds, stats);
@@ -123,7 +122,6 @@ BitcoinMinerHelper::SetMinerType (enum MinerType m)  //FIX ME
         m_factory.SetTypeId ("ns3::BitcoinSimpleAttacker");
         SetFactoryAttributes();
         m_factory.Set ("SecureBlocks", UintegerValue(m_secureBlocks));
-        m_factory.Set ("AdvertiseBlocks", UintegerValue(m_advertiseBlocks));
 
         break;
       }
@@ -131,8 +129,6 @@ BitcoinMinerHelper::SetMinerType (enum MinerType m)  //FIX ME
       {
         m_factory.SetTypeId ("ns3::BitcoinSelfishMiner");
         SetFactoryAttributes();
-        m_factory.Set ("SecureBlocks", UintegerValue(m_secureBlocks));
-        m_factory.Set ("AdvertiseBlocks", UintegerValue(m_advertiseBlocks));
 
         break;
       }
@@ -141,7 +137,6 @@ BitcoinMinerHelper::SetMinerType (enum MinerType m)  //FIX ME
         m_factory.SetTypeId ("ns3::BitcoinSelfishMinerTrials");
         SetFactoryAttributes();
         m_factory.Set ("SecureBlocks", UintegerValue(m_secureBlocks));
-        m_factory.Set ("AdvertiseBlocks", UintegerValue(m_advertiseBlocks));
 
         break;
       }

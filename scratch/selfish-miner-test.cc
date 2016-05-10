@@ -79,7 +79,7 @@ main (int argc, char *argv[])
   int minConnectionsPerNode = 1;
   int maxConnectionsPerNode = 1;
   
-  int iterations = 50;
+  int iterations = 1;
   int successfullAttacks = 0;
   int secureBlocks = 6;
   
@@ -126,10 +126,8 @@ main (int argc, char *argv[])
   }
   
   CommandLine cmd;
-  cmd.AddValue ("secureBlocks", "The number of confirmations required for transactions", secureBlocks);
   cmd.AddValue ("blockIntervalMinutes", "The average block generation interval in minutes", averageBlockGenIntervalMinutes);
   cmd.AddValue ("noBlocks", "The number of generated blocks", targetNumberOfBlocks);
-  cmd.AddValue ("attHashRate", "The hash rate of the attacker", minersHash[attackerId]);
   cmd.AddValue ("iterations", "The number of iterations of the attack", iterations);
   cmd.AddValue ("test", "Test the attack", test);
   cmd.AddValue ("ud", "The transaction value which is double-spent", ud);
@@ -156,8 +154,8 @@ main (int argc, char *argv[])
   
 	
     BitcoinTopologyHelper bitcoinTopologyHelper (systemCount, totalNoNodes, noMiners, minersRegions,
-                                                 bandwidth, cryptocurrency, minConnectionsPerNode, 
-                                                 maxConnectionsPerNode, latency, 2, systemId);
+                                                 cryptocurrency, minConnectionsPerNode, 
+                                                 maxConnectionsPerNode, 2, systemId);
 
     // Install stack on Grid
     InternetStackHelper stack;
@@ -193,7 +191,6 @@ main (int argc, char *argv[])
 	    if (attackerId == miner)
         {
           bitcoinMinerHelper.SetMinerType (SELFISH_MINER);
-	      bitcoinMinerHelper.SetAttribute("SecureBlocks", UintegerValue(secureBlocks));
         }
 		
         bitcoinMinerHelper.SetAttribute("HashRate", DoubleValue(minersHash[count]));
@@ -243,27 +240,27 @@ main (int argc, char *argv[])
     std::cout << "Iteration " << iter+1 << " lasted " << tSimFinish - tSimStart << "s\n";
     std::cout << std::endl;
 
-  }
+
 
   
-  if (systemId == 0)
-  {
-    tFinish = get_wall_time();
+    if (systemId == 0)
+    {
+      tFinish = get_wall_time();
 	
-    PrintAttackStats(stats, attackerId, ud, r);
-    //PrintStatsForEachNode(stats, totalNoNodes);
-    //PrintTotalStats(stats, totalNoNodes);
-    std::cout << "\nThe simulation ran for " << tFinish - tStart << "s simulating "
-              << stop << "mins.\nIt consisted of " << totalNoNodes
-              << " nodes (" << noMiners << " miners) with minConnectionsPerNode = "
-              << minConnectionsPerNode << " and maxConnectionsPerNode = " << maxConnectionsPerNode << ".\n"
-              << "\nThe number of secure blocks required was " << secureBlocks << ".\n"
-              << "The averageBlockGenIntervalMinutes was " << averageBlockGenIntervalMinutes 
-			  << "min and averageBlockGenIntervalSeconds was " << averageBlockGenIntervalSeconds << ".\n"
-              << "Each attack had a duration of " << targetNumberOfBlocks << " generated blocks.\n"
-              << "The attacker's hash rate was " << minersHash[attackerId] << ".\n"
-              << "The number of iterations was " << iterations << ".\n\n";
-
+      PrintAttackStats(stats, attackerId, ud, r);
+      //PrintStatsForEachNode(stats, totalNoNodes);
+      //PrintTotalStats(stats, totalNoNodes);
+      std::cout << "\nThe simulation ran for " << tFinish - tStart << "s simulating "
+                << stop << "mins.\nIt consisted of " << totalNoNodes
+                << " nodes (" << noMiners << " miners) with minConnectionsPerNode = "
+                << minConnectionsPerNode << " and maxConnectionsPerNode = " << maxConnectionsPerNode << ".\n"
+                << "\nThe number of secure blocks required was " << secureBlocks << ".\n"
+                << "The averageBlockGenIntervalMinutes was " << averageBlockGenIntervalMinutes 
+                << "min and averageBlockGenIntervalSeconds was " << averageBlockGenIntervalSeconds << ".\n"
+                << "Each attack had a duration of " << targetNumberOfBlocks << " generated blocks.\n"
+                << "The attacker's hash rate was " << minersHash[attackerId] << ".\n"
+                << "The number of iterations was " << iterations << ".\n\n";
+    }
   }  
   
   delete[] stats;  

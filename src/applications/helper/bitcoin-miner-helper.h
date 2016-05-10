@@ -69,7 +69,6 @@ protected:
   double                    m_blockGenParameter;
   double                    m_averageBlockGenIntervalSeconds;
   uint32_t                  m_secureBlocks;
-  uint32_t                  m_advertiseBlocks;
 };
 
 } // namespace ns3

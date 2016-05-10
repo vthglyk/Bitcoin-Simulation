@@ -56,8 +56,8 @@ public:
    *                     in the grid
    */
   BitcoinTopologyHelper (uint32_t noCpus, uint32_t totalNoNodes, uint32_t noMiners, enum BitcoinRegion *minersRegions,
-                         double bandwidthSDDevider, enum Cryptocurrency cryptocurrency, int minConnectionsPerNode, 
-                         int maxConnectionsPerNode, double latencyParetoMean, double latencyParetoShape, uint32_t systemId);
+                         enum Cryptocurrency cryptocurrency, int minConnectionsPerNode, int maxConnectionsPerNode, 
+                         double latencyParetoShapeDivider, uint32_t systemId);
 
   ~BitcoinTopologyHelper ();
 
@@ -143,9 +143,7 @@ private:
   uint32_t     m_totalNoNodes;                  //!< The total number of nodes
   uint32_t     m_noMiners;                      //!< The total number of miners
   uint32_t     m_noCpus;                        //!< The number of the available cpus in the simulation
-  double       m_bandwidthSDDevider;            //!<  The bandwidth of the point-to-point links
-  double       m_latencyParetoMean;             //!<  The pareto mean for the latency of the point-to-point links
-  double       m_latencyParetoShape;            //!<  The pareto shape for the latency of the point-to-point links
+  double       m_latencyParetoShapeDivider;     //!<  The pareto shape for the latency of the point-to-point links
   int          m_minConnectionsPerNode;         //!<  The minimum connections per node
   int          m_maxConnectionsPerNode;         //!<  The maximum connections per node
   int          m_minConnectionsPerMiner;        //!<  The minimum connections per node
