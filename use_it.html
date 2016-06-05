@@ -6,7 +6,7 @@
 -->
 <html>
 	<head>
-		<title>Get Started - Bitcoin Simulator</title>
+		<title>Bitcoin Simulator - Use it</title>
 		<meta charset="utf-8" />
 		<meta name="viewport" content="width=device-width, initial-scale=1" />
 		<!--[if lte IE 8]><script src="assets/js/ie/html5shiv.js"></script><![endif]-->
@@ -36,6 +36,8 @@
 								<li><a href="get_started.html">Get Started</a></li>
 								<li><a href="Installation.html">Installation</a></li>
 								<li><a href="use_it.html">Use it</a></li>
+								<li><a href="https://github.com/vthglyk/Bitcoin-Simulation">Github</a></li>
+								<li><a href="contact.html">Contact Us</a></li>
 							</ul>
 							<a href="#" class="close">Close</a>
 						</div>
@@ -54,29 +56,113 @@
 							<div class="wrapper">
 								<div class="inner">
 
-									<h3 class="major">Lorem ipsum dolor</h3>
-									<p>Morbi mattis mi consectetur tortor elementum, varius pellentesque velit convallis. Aenean tincidunt lectus auctor mauris maximus, ac scelerisque ipsum tempor. Duis vulputate ex et ex tincidunt, quis lacinia velit aliquet. Duis non efficitur nisi, id malesuada justo. Maecenas sagittis felis ac sagittis semper. Curabitur purus leo donec vel dolor at arcu tincidunt bibendum. Interdum et malesuada fames ac ante ipsum primis in faucibus. Fusce ut aliquet justo. Donec id neque ipsum. Integer eget ultricies odio. Nam vel ex a orci fringilla tincidunt. Aliquam eleifend ligula non velit accumsan cursus. Etiam ut gravida sapien.</p>
-
-									<p>Vestibulum ultrices risus velit, sit amet blandit massa auctor sit amet. Sed eu lectus sem. Phasellus in odio at ipsum porttitor mollis id vel diam. Praesent sit amet posuere risus, eu faucibus lectus. Vivamus ex ligula, tempus pulvinar ipsum in, auctor porta quam. Proin nec commodo, vel scelerisque nisi scelerisque. Suspendisse id quam vel tortor tincidunt suscipit. Nullam auctor orci eu dolor consectetur, interdum ullamcorper ante tincidunt. Mauris felis nec felis elementum varius.</p>
-
-									<h3 class="major">Vitae phasellus</h3>
-									<p>Cras mattis ante fermentum, malesuada neque vitae, eleifend erat. Phasellus non pulvinar erat. Fusce tincidunt, nisl eget mattis egestas, purus ipsum consequat orci, sit amet lobortis lorem lacus in tellus. Sed ac elementum arcu. Quisque placerat auctor laoreet.</p>
-
-									<section class="features">
-										<article>
-											<a href="#" class="image"><img src="images/pic04.jpg" alt="" /></a>
-											<h3 class="major">Sed feugiat lorem</h3>
-											<p>Lorem ipsum dolor sit amet, consectetur adipiscing vehicula id nulla dignissim dapibus ultrices.</p>
-											<a href="#" class="special">Learn more</a>
-										</article>
-										<article>
-											<a href="#" class="image"><img src="images/pic05.jpg" alt="" /></a>
-											<h3 class="major">Nisl placerat</h3>
-											<p>Lorem ipsum dolor sit amet, consectetur adipiscing vehicula id nulla dignissim dapibus ultrices.</p>
-											<a href="#" class="special">Learn more</a>
-										</article>
-									</section>
-
+									<h3 class="major">Bitcoin Simulator</h3>
+									<p  style="font-size: 1.2em">The Bitcoin Simulator can be easily configured via command line parameters. Below is presented a table of all the input parameters
+									along with their default values.</p>
+									<h3 class="major" style="text-align: center;">Input Parameters</h3>
+									<div class="table-wrapper" >
+										<table>
+											<thead style="font-size: 1.2em">
+												<tr>
+													<th>Parameter</th>
+													<th>Description</th>
+													<th>Default Value</th>
+												</tr>
+											</thead>
+											<tbody>
+												<tr>
+													<td>blockSize</td>
+													<td>The fixed block size (Bytes). If the default value is used then the blockSize follows the real bitcoin block 
+											size distribution as estimated by collecting stats from <a href="https://blockchain.info/">blockchain.info</a></td>
+													<td>-1</td>
+												</tr>
+												<tr>
+													<td>noBlocks</td>
+													<td>The number of generated blocks</td>
+													<td>100</td>
+												</tr>
+												<tr>
+													<td>nodes</td>
+													<td>The total number of nodes in the network. The number of nodes should always be greater of equal 
+													to the number of miners. The number of miners, their hash rates and their locations can be changed 
+													by modifying the variables bitcoinMinersHash/litecoinMinersHash/dogecoinMinersHash and 
+													bitcoinMinersRegions/litecoinMinersRegions/dogecoinMinersRegions.</td>
+													<td>16</td>
+												</tr>
+												<tr>
+													<td>minConnections</td>
+													<td>The minConnectionsPerNode of the grid.</td>
+													<td>-1</td>
+												</tr>
+												<tr>
+													<td>maxConnections</td>
+													<td>The maxConnectionsPerNode of the grid. If minConnections <= 0 
+													or maxConnections <=0, the nodes follow the connections distribution 
+													as described in https://cs.umd.edu/projects/coinscope/coinscope.pdf.</td>
+													<td>-1</td>
+												</tr>
+												<tr>
+													<td>blockIntervalMinutes</td>
+													<td>The average block generation interval in minutes.</td>
+													<td>10</td>
+												</tr>
+												<tr>
+													<td>invTimeoutMins</td>
+													<td>The inv block timeout. If the default value is used, the timeouts are twice as long as blockIntervalMinutes.</td>
+													<td>-1</td>
+												</tr>
+												<tr>
+													<td>unsolicited</td>
+													<td>Change the miners block broadcast type to UNSOLICITED. Each newly mined block is broadcast immediately to all the peers of the miner who mined it.</td>
+													<td>false</td>
+												</tr>
+												<tr>
+													<td>relayNetwork</td>
+													<td>Change the miners block broadcast type to RELAY_NETWORK. The miners use a relay network for communicating among themselves and send compressed blocks.</td>
+													<td>false</td>
+												</tr>
+												<tr>
+													<td>unsolicitedRelayNetwork</td>
+													<td>Change the miners block broadcast type to UNSOLICITED_RELAY_NETWORK. The miners use a relay network among themselves 
+													and send compressed blocks and each newly mined block is broadcast immediately to all the peers of the miner who mined it.</td>
+													<td>false</td>
+												</tr>
+												<tr>
+													<td>sendheaders</td>
+													<td>Change the protocol to sendheaders.</td>
+													<td>false</td>
+												</tr>
+												<tr>
+													<td>litecoin</td>
+													<td>Imitate the litecoin network behaviour. It sets the --nodes=1000, --blockIntervalMinutes=2.5, 
+													follows the same connection distribution as bitcoin, but the litecoin distribution for the block generation interval and block size.</td>
+													<td>false</td>
+												</tr>
+												<tr>
+													<td>dogecoin</td>
+													<td>Imitate the dogecoin network behaviour. It sets the --nodes=650, --blockIntervalMinutes=1, 
+													follows the same connection distribution as bitcoin, but the dogecoin distribution for the block generation interval and block size.</td>
+													<td>false</td>
+												</tr>
+												<tr>
+													<td>blockTorrent</td>
+													<td>Enable the BlockTorrent protocol. </td>
+													<td>false</td>
+												</tr>
+												<tr>
+													<td>chunkSize</td>
+													<td>The chunksize of the blockTorrent in Bytes. Used only in conjuction with --blockTorrent.</td>
+													<td>-1</td>
+												</tr>
+												<tr>
+													<td>spv</td>
+													<td>Enable the spv mechanism in blockTorrent.Used only in conjuction with --blockTorrent. The nodes are able to advertise chunks of blocks which are not yet validated.</td>
+													<td>false</td>
+												</tr>
+											</tbody>
+										</table>
+									</div>
+									
 								</div>
 							</div>
 
@@ -85,37 +171,7 @@
 				<!-- Footer -->
 					<section id="footer">
 						<div class="inner">
-							<h2 class="major">Get in touch</h2>
-							<p>Cras mattis ante fermentum, malesuada neque vitae, eleifend erat. Phasellus non pulvinar erat. Fusce tincidunt, nisl eget mattis egestas, purus ipsum consequat orci, sit amet lobortis lorem lacus in tellus. Sed ac elementum arcu. Quisque placerat auctor laoreet.</p>
-							<form method="post" action="#">
-								<div class="field">
-									<label for="name">Name</label>
-									<input type="text" name="name" id="name" />
-								</div>
-								<div class="field">
-									<label for="email">Email</label>
-									<input type="email" name="email" id="email" />
-								</div>
-								<div class="field">
-									<label for="message">Message</label>
-									<textarea name="message" id="message" rows="4"></textarea>
-								</div>
-								<ul class="actions">
-									<li><input type="submit" value="Send Message" /></li>
-								</ul>
-							</form>
-							<ul class="contact">
-								<li class="fa-home">
-									Untitled Inc<br />
-									1234 Somewhere Road Suite #2894<br />
-									Nashville, TN 00000-0000
-								</li>
-								<li class="fa-phone">(000) 000-0000</li>
-								<li class="fa-envelope"><a href="#">information@untitled.tld</a></li>
-								<li class="fa-twitter"><a href="#">twitter.com/untitled-tld</a></li>
-								<li class="fa-facebook"><a href="#">facebook.com/untitled-tld</a></li>
-								<li class="fa-instagram"><a href="#">instagram.com/untitled-tld</a></li>
-							</ul>
+							
 							<ul class="copyright">
 								<li>&copy; Untitled Inc. All rights reserved.</li><li>Design: <a href="http://html5up.net">HTML5 UP</a></li>
 							</ul>
