@@ -202,7 +202,7 @@ BitcoinSimpleAttacker::DoDispose (void)
 }
 
 void 
-BitcoinSimpleAttacker::MineBlock (void)  //FIX ME
+BitcoinSimpleAttacker::MineBlock (void)  
 {
   NS_LOG_FUNCTION (this);
   rapidjson::Document d; 
@@ -324,7 +324,7 @@ BitcoinSimpleAttacker::MineBlock (void)  //FIX ME
 }
 
 void 
-BitcoinSimpleAttacker::ReceivedHigherBlock(const Block &newBlock) //FIX ME
+BitcoinSimpleAttacker::ReceivedHigherBlock(const Block &newBlock) 
 {
   NS_LOG_FUNCTION (this);
   NS_LOG_INFO("Bitcoin simple attacker "<< GetNode ()->GetId () << " added a new block in the m_blockchain with higher height: " << newBlock);

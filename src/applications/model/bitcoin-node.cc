@@ -531,7 +531,7 @@ BitcoinNode::HandleRead (Ptr<Socket> socket)
                     {
                       for (int k = 0; k < d["inv"][j]["availableChunks"].Size(); k++)
                       {
-                        //FIX ME: if (!fullBlock)
+                        
                         if (std::find(m_queueChunks[blockHash].begin(), m_queueChunks[blockHash].end(), d["inv"][j]["availableChunks"][k].GetInt()) != m_queueChunks[blockHash].end())
                           candidateChunks.push_back(d["inv"][j]["availableChunks"][k].GetInt());
                       }
@@ -556,7 +556,7 @@ BitcoinNode::HandleRead (Ptr<Socket> socket)
                       requestChunks.push_back(chunk.str());
 					  
                       timeout = Simulator::Schedule (Minutes(m_invTimeoutMinutes.GetMinutes() / ceil(blockSize/static_cast<double>(m_chunkSize))),
-                                                     &BitcoinNode::ChunkTimeoutExpired, this, chunk.str());//FIX ME: the timeout
+                                                     &BitcoinNode::ChunkTimeoutExpired, this, chunk.str());
 													 
                       m_chunkTimeouts[chunk.str()] = timeout;
                       m_queueChunkPeers[blockHash].push_back(from);
@@ -773,7 +773,6 @@ BitcoinNode::HandleRead (Ptr<Socket> socket)
                 }
                 else if (OnlyHeadersReceived(blockHash))	
                 {	
-                  //FIX ME: 
                   NS_LOG_INFO("EXT_GET_HEADERS: Bitcoin node " << GetNode ()->GetId () 
                   << " has received only the headers of the block with hash = " << blockHash); 
                   requestHeaders.push_back(m_onlyHeadersReceived[blockHash]);
@@ -857,7 +856,7 @@ BitcoinNode::HandleRead (Ptr<Socket> socket)
 				
                 d.AddMember("blocks", array, d.GetAllocator());
 				
-                SendMessage(EXT_GET_HEADERS, EXT_HEADERS, d, from); //FIX ME: EXT_HEADERS
+                SendMessage(EXT_GET_HEADERS, EXT_HEADERS, d, from); 
               }
               break;
             }
@@ -1016,7 +1015,6 @@ BitcoinNode::HandleRead (Ptr<Socket> socket)
                 }
                 else if (OnlyHeadersReceived(blockHash))	
                 {	
-                  //FIX ME: 
                   NS_LOG_INFO("EXT_GET_DATA: Bitcoin node " << GetNode ()->GetId () 
                               << " has received the headers (and maybe some chunks) of the block with hash = " << blockHash); 
                   if (HasChunk(blockHash, chunkId))
@@ -1032,7 +1030,6 @@ BitcoinNode::HandleRead (Ptr<Socket> socket)
                   {
                     for (int k = 0; k < d["chunks"][j]["availableChunks"].Size(); k++)
                     {
-                      //FIX ME: if (!fullBlock)
                       if (std::find(m_queueChunks[blockHash].begin(), m_queueChunks[blockHash].end(), d["chunks"][j]["availableChunks"][k].GetInt()) != m_queueChunks[blockHash].end())
                         candidateChunks.push_back(d["chunks"][j]["availableChunks"][k].GetInt());
                     }
@@ -1071,7 +1068,7 @@ BitcoinNode::HandleRead (Ptr<Socket> socket)
                     NS_FATAL_ERROR ("blockSize == -1");
 				
                   timeout = Simulator::Schedule (Minutes(m_invTimeoutMinutes.GetMinutes() / ceil(blockSize/static_cast<double>(m_chunkSize))),
-                                                     &BitcoinNode::ChunkTimeoutExpired, this, chunk.str());//FIX ME: the timeout
+                                                     &BitcoinNode::ChunkTimeoutExpired, this, chunk.str());
 
                   m_chunkTimeouts[chunk.str()] = timeout;
                   m_queueChunkPeers[blockHash].push_back(from);
@@ -1303,7 +1300,7 @@ BitcoinNode::HandleRead (Ptr<Socket> socket)
                                  << " has already requested the block");
                   }
 				  
-                  m_queueInv[blockHash].push_back(from); //FIX ME: check if it should be placed inside if
+                  m_queueInv[blockHash].push_back(from); 
 
                 }
 				  
@@ -1340,7 +1337,7 @@ BitcoinNode::HandleRead (Ptr<Socket> socket)
 				  
                   if(m_protocolType == STANDARD_PROTOCOL || 
                     (m_protocolType == SENDHEADERS && std::find(requestBlocks.begin(), requestBlocks.end(), parentBlockHash) == requestBlocks.end()))
-                    m_queueInv[parentBlockHash].push_back(from); //FIX ME: check if it should be placed inside if
+                    m_queueInv[parentBlockHash].push_back(from); 
 
                   //PrintQueueInv();
                   //PrintInvTimeouts();
@@ -1486,7 +1483,6 @@ BitcoinNode::HandleRead (Ptr<Socket> socket)
                     {
                       for (int k = 0; k < d["blocks"][j]["availableChunks"].Size(); k++)
                       {
-                        //FIX ME: if (!fullBlock)
                         if (std::find(m_queueChunks[blockHash].begin(), m_queueChunks[blockHash].end(), d["blocks"][j]["availableChunks"][k].GetInt()) != m_queueChunks[blockHash].end())
                           candidateChunks.push_back(d["blocks"][j]["availableChunks"][k].GetInt());
                       }
@@ -1512,7 +1508,7 @@ BitcoinNode::HandleRead (Ptr<Socket> socket)
                       requestChunks.push_back(chunk.str());
 					  
                       timeout = Simulator::Schedule (Minutes(m_invTimeoutMinutes.GetMinutes() / ceil(blockSize/static_cast<double>(m_chunkSize))),
-                                                     &BitcoinNode::ChunkTimeoutExpired, this, chunk.str());//FIX ME: the timeout
+                                                     &BitcoinNode::ChunkTimeoutExpired, this, chunk.str());
 													 
                       m_chunkTimeouts[chunk.str()] = timeout;
                       m_queueChunkPeers[blockHash].push_back(from);
@@ -1575,7 +1571,7 @@ BitcoinNode::HandleRead (Ptr<Socket> socket)
 				  
                   if(m_protocolType == STANDARD_PROTOCOL || 
                     (m_protocolType == SENDHEADERS && std::find(requestChunks.begin(), requestChunks.end(), parentBlockHash) == requestChunks.end()))
-                    m_queueInv[parentBlockHash].push_back(from); //FIX ME: check if it should be placed inside if
+                    m_queueInv[parentBlockHash].push_back(from); 
 
                   //PrintQueueInv();
                   //PrintInvTimeouts();
@@ -1713,13 +1709,13 @@ BitcoinNode::HandleRead (Ptr<Socket> socket)
               {
                 if (m_receiveBlockTimes.size() == 0 || Simulator::Now ().GetSeconds() >  m_receiveBlockTimes.back())
                 {
-                  receiveTime = blockMessageSize / m_downloadSpeed; //FIX ME: constant MB/s
+                  receiveTime = blockMessageSize / m_downloadSpeed; 
                   eventTime = blockMessageSize / minSpeed;
                 }
                 else
                 {
-                  receiveTime = blockMessageSize / m_downloadSpeed + m_receiveBlockTimes.back() - Simulator::Now ().GetSeconds(); //FIX ME: constant MB/s
-                  eventTime = blockMessageSize / minSpeed + m_receiveBlockTimes.back() - Simulator::Now ().GetSeconds(); //FIX ME: constant MB/s
+                  receiveTime = blockMessageSize / m_downloadSpeed + m_receiveBlockTimes.back() - Simulator::Now ().GetSeconds(); 
+                  eventTime = blockMessageSize / minSpeed + m_receiveBlockTimes.back() - Simulator::Now ().GetSeconds(); 
                 }
                 m_receiveBlockTimes.push_back(Simulator::Now ().GetSeconds() + receiveTime);
 			  
@@ -1731,13 +1727,13 @@ BitcoinNode::HandleRead (Ptr<Socket> socket)
               {
                 if (m_receiveCompressedBlockTimes.size() == 0 || Simulator::Now ().GetSeconds() >  m_receiveCompressedBlockTimes.back())
                 {
-                  receiveTime = blockMessageSize / m_downloadSpeed; //FIX ME: constant MB/s
+                  receiveTime = blockMessageSize / m_downloadSpeed; 
                   eventTime = blockMessageSize / minSpeed;
                 }
                 else
                 {
-                  receiveTime = blockMessageSize / m_downloadSpeed + m_receiveCompressedBlockTimes.back() - Simulator::Now ().GetSeconds(); //FIX ME: constant MB/s
-                  eventTime = blockMessageSize / minSpeed + m_receiveCompressedBlockTimes.back() - Simulator::Now ().GetSeconds(); //FIX ME: constant MB/s
+                  receiveTime = blockMessageSize / m_downloadSpeed + m_receiveCompressedBlockTimes.back() - Simulator::Now ().GetSeconds(); 
+                  eventTime = blockMessageSize / minSpeed + m_receiveCompressedBlockTimes.back() - Simulator::Now ().GetSeconds(); 
                 }
                 m_receiveCompressedBlockTimes.push_back(Simulator::Now ().GetSeconds() + receiveTime);
 			  
@@ -1786,13 +1782,13 @@ BitcoinNode::HandleRead (Ptr<Socket> socket)
               std::string help = chunkInfo.GetString();
               if (m_receiveBlockTimes.size() == 0 || Simulator::Now ().GetSeconds() >  m_receiveBlockTimes.back())
               {
-                receiveTime = chunkMessageSize / m_downloadSpeed; //FIX ME: constant MB/s
+                receiveTime = chunkMessageSize / m_downloadSpeed; 
                 eventTime = chunkMessageSize / minSpeed; 
               }
               else
               {
-                receiveTime = chunkMessageSize / m_downloadSpeed + m_receiveBlockTimes.back() - Simulator::Now ().GetSeconds(); //FIX ME: constant MB/s
-                eventTime = chunkMessageSize / minSpeed + m_receiveBlockTimes.back() - Simulator::Now ().GetSeconds(); //FIX ME: constant MB/s
+                receiveTime = chunkMessageSize / m_downloadSpeed + m_receiveBlockTimes.back() - Simulator::Now ().GetSeconds(); 
+                eventTime = chunkMessageSize / minSpeed + m_receiveBlockTimes.back() - Simulator::Now ().GetSeconds(); 
               }
               m_receiveBlockTimes.push_back(Simulator::Now ().GetSeconds() + receiveTime);
 			  
@@ -1973,7 +1969,6 @@ BitcoinNode::ReceivedChunkMessage(std::string &chunkInfo, Address &from)
       {
         m_receivedChunks[blockHash].push_back(chunkId);
 				  
-        //FIX ME: When to advertise?
         if (m_receivedChunks[blockHash].size() == 1 && m_spv)
           AdvertiseFirstChunk (Block (d["chunks"][j]["height"].GetInt(), d["chunks"][j]["minerId"].GetInt(), d["chunks"][j]["parentBlockMinerId"].GetInt(), 
                                       d["chunks"][j]["size"].GetInt(), d["chunks"][j]["timeCreated"].GetDouble(), 
@@ -2026,7 +2021,6 @@ BitcoinNode::ReceivedChunkMessage(std::string &chunkInfo, Address &from)
           {
             for (int k = 0; k < d["chunks"][j]["availableChunks"].Size(); k++)
             {
-              //FIX ME: if (!fullBlock)
               if (std::find(m_queueChunks[blockHash].begin(), m_queueChunks[blockHash].end(), d["chunks"][j]["availableChunks"][k].GetInt()) != m_queueChunks[blockHash].end())
                 candidateChunks.push_back(d["chunks"][j]["availableChunks"][k].GetInt());
             }
@@ -2064,7 +2058,7 @@ BitcoinNode::ReceivedChunkMessage(std::string &chunkInfo, Address &from)
             }
 					  
             timeout = Simulator::Schedule (Minutes(m_invTimeoutMinutes.GetMinutes() / ceil(d["chunks"][j]["size"].GetInt()/static_cast<double>(m_chunkSize))),
-                                                   &BitcoinNode::ChunkTimeoutExpired, this, chunk.str());//FIX ME: the timeout
+                                                   &BitcoinNode::ChunkTimeoutExpired, this, chunk.str());
 													 
             m_chunkTimeouts[chunk.str()] = timeout;
             m_queueChunkPeers[blockHash].push_back(from);

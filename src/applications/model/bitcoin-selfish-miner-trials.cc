@@ -202,7 +202,7 @@ BitcoinSelfishMinerTrials::DoDispose (void)
 }
 
 void 
-BitcoinSelfishMinerTrials::MineBlock (void)  //FIX ME
+BitcoinSelfishMinerTrials::MineBlock (void)  
 {
   NS_LOG_FUNCTION (this);
   rapidjson::Document d; 
@@ -320,7 +320,7 @@ BitcoinSelfishMinerTrials::MineBlock (void)  //FIX ME
 }
 
 void 
-BitcoinSelfishMinerTrials::ReceivedHigherBlock(const Block &newBlock) //FIX ME
+BitcoinSelfishMinerTrials::ReceivedHigherBlock(const Block &newBlock) 
 {
   NS_LOG_FUNCTION (this);
   NS_LOG_WARN("Bitcoin selfish miner "<< GetNode ()->GetId () << " added a new block in the m_blockchain with higher height: " << newBlock);
